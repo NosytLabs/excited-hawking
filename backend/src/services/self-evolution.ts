@@ -1,13 +1,10 @@
 import { randomUUID } from 'crypto';
 import { writeFileSync, readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export type EvolutionVerdict =
   | 'CONVERGED'

@@ -339,7 +339,7 @@ export class MemvidService {
   }
 
   private computeEmbeddingSync(text: string): number[] {
-    const simpleHash = this.simpleTextHash(text);
+    const simpleHash = simpleTextHashFn(text);
     const dimensions = 384;
     const embedding = new Array(dimensions).fill(0);
 

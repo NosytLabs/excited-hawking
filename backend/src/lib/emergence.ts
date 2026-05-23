@@ -22,7 +22,6 @@ class ConwayEngine {
   private gridSize = 64;
   private generation = 0;
   private events: EmergenceEvent[] = [];
-  private detectedPatterns: EmergenceEvent[] = [];
 
   constructor() {
     this.grid = new Uint8Array(this.gridSize * this.gridSize);
@@ -105,10 +104,17 @@ class ConwayEngine {
 
     this.grid = newGrid;
     this.generation++;
-    this.detectedPatterns = events;
+
+    const grid2D: boolean[][] = [];
+    for (let i = 0; i < this.gridSize; i++) {
+      grid2D.push([]);
+      for (let j = 0; j < this.gridSize; j++) {
+        grid2D[i].push(this.grid[i * this.gridSize + j] === 1);
+      }
+    }
 
     emitEmergenceUpdate({
-      grid: Array.from(this.grid).map(v => v === 1),
+      grid: grid2D,
       generation: this.generation,
       patterns: events.map(p => p.type)
     });
