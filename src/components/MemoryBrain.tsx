@@ -46,6 +46,10 @@ export const MemoryBrain = React.memo(function MemoryBrain() {
   const nodesRef = useRef(nodes);
 
   useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  useEffect(() => {
     const handleNewMemory = (memory: { id: string; type: string; content: string; timestamp: number }) => {
       const newNode: MemoryNode = {
         id: memory.id,
