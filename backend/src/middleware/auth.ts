@@ -68,7 +68,7 @@ export function clearChallenge(wallet: string): void {
   activeChallenges.delete(wallet.toLowerCase());
 }
 
-function verifySignatureFormat(signature: string): boolean {
+export function verifySignatureFormat(signature: string): boolean {
   if (!signature || signature.length !== SIGNATURE_LENGTH) {
     return false;
   }

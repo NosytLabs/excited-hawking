@@ -12,6 +12,7 @@ import type {
 import { getState, addVote } from './state.js';
 import { emitGovernanceUpdate, emitProposalNew, emitProposalUpdate } from './websocket.js';
 import { generateId } from '../lib/crypto.js';
+import { bigIntSqrt } from '../utils/math.js';
 import { 
   getProposalPublicVotes,
   getLeaderboard,
@@ -93,7 +94,7 @@ export function getVoterWeight(wallet: string): VoterWeight {
   
   const isDelegating = delegations.has(wallet);
   const totalWeight = (baseStake + delegatedPower) * tierMultiplier;
-  const quadraticWeight = sqrt(totalWeight);
+  const quadraticWeight = bigIntSqrt(totalWeight);
   
   return {
     wallet,
@@ -104,21 +105,6 @@ export function getVoterWeight(wallet: string): VoterWeight {
     quadraticWeight,
     isDelegating
   };
-}
-
-function sqrt(value: bigint): bigint {
-  if (value < 0n) return 0n;
-  if (value === 0n) return 0n;
-  
-  let x = value;
-  let y = (x + 1n) >> 1n;
-  
-  while (y < x) {
-    x = y;
-    y = (x + value / x) >> 1n;
-  }
-  
-  return x;
 }
 
 function getDelegationsTo(wallet: string): DelegationRecord[] {

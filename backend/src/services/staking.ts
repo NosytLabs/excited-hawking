@@ -3,6 +3,7 @@ import { getState } from './state.js';
 import { emitGovernanceUpdate } from './websocket.js';
 import { generateId } from '../lib/crypto.js';
 import { getVoterWeight } from './governance.js';
+import { bigIntSqrt } from '../utils/math.js';
 
 const DEFAULT_CONFIG: StakingConfig = {
   minStakeAmount: 1n,
@@ -197,23 +198,7 @@ export function processUnstakeRequest(wallet: string, requestId: string): { succ
 
 export function calculateVotingPower(stakedAmount: bigint): bigint {
   if (stakedAmount === 0n) return 0n;
-
-  const sqrt = (value: bigint): bigint => {
-    if (value < 0n) return 0n;
-    if (value === 0n) return 0n;
-
-    let x = value;
-    let y = (x + 1n) >> 1n;
-
-    while (y < x) {
-      x = y;
-      y = (x + value / x) >> 1n;
-    }
-
-    return x;
-  };
-
-  return sqrt(stakedAmount * config.quadraticWeightMultiplier);
+  return bigIntSqrt(stakedAmount * config.quadraticWeightMultiplier);
 }
 
 export function calculateInferenceBudget(stakedAmount: bigint): bigint {

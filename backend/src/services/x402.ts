@@ -1,7 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 import { getStakedBalance, getInferenceBudget } from './staking.js';
 import { isValidWalletAddress } from '../types/index.js';
-import { verifyMessageSignature } from '../middleware/auth.js';
+import { verifyMessageSignature, verifySignatureFormat } from '../middleware/auth.js';
 
 export interface X402Payment {
   version: string;
@@ -56,27 +56,8 @@ function validateSignaturePattern(signature: string | undefined): { valid: boole
     return { valid: false, error: 'Signature is required for payment validation' };
   }
 
-  if (signature.length !== 132) {
-    return { valid: false, error: 'Signature must be 132 characters (0x + 130 hex)' };
-  }
-
-  if (!signature.startsWith('0x')) {
-    return { valid: false, error: 'Signature must start with 0x' };
-  }
-
-  const hexPart = signature.slice(2);
-  if (!/^[a-fA-F0-9]+$/.test(hexPart)) {
-    return { valid: false, error: 'Signature must contain only hex characters after 0x prefix' };
-  }
-
-  const sigBytes = Buffer.from(hexPart, 'hex');
-  if (sigBytes.length !== 65) {
-    return { valid: false, error: 'Invalid signature length: expected 65 bytes' };
-  }
-
-  const v = sigBytes[64];
-  if (v !== 27 && v !== 28) {
-    return { valid: false, error: 'Invalid signature v value: expected 27 or 28' };
+  if (!verifySignatureFormat(signature)) {
+    return { valid: false, error: 'Invalid signature format' };
   }
 
   return { valid: true };

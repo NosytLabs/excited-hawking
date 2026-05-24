@@ -10,7 +10,8 @@ import {
   getInferenceBudget,
   getVotingPower,
   getStakeStats,
-  calculateInferenceBudget
+  calculateInferenceBudget,
+  calculateVotingPower
 } from '../services/staking.js';
 import { requireWalletWithSignature } from '../middleware/auth.js';
 import { checkRateLimit, setRateLimitHeaders, getClientIp } from '../services/state.js';
@@ -321,16 +322,7 @@ export async function stakingRoutes(fastify: FastifyInstance) {
 
     const amountBigInt = BigInt(amount);
     const budget = calculateInferenceBudget(amountBigInt);
-    const votingPower = amountBigInt > 0n ? (() => {
-      const sqrt = (value: bigint): bigint => {
-        if (value === 0n) return 0n;
-        let x = value;
-        let y = (x + 1n) >> 1n;
-        while (y < x) { x = y; y = (x + value / x) >> 1n; }
-        return x;
-      };
-      return sqrt(amountBigInt * 10000n);
-    })() : 0n;
+    const votingPower = calculateVotingPower(amountBigInt);
 
     return {
       amount,

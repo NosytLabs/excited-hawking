@@ -7,6 +7,7 @@ import { logsRoutes } from './routes/logs.js';
 import { priceRoutes } from './routes/price.js';
 import { socialRoutes } from './routes/social.js';
 import { emergenceRoutes } from './routes/emergence.js';
+import { memoryRoutes } from './routes/memory.js';
 import { governanceRoutes } from './routes/governance.js';
 import { agentRoutes } from './routes/agent.js';
 import { stakingRoutes } from './routes/staking.js';
@@ -83,6 +84,7 @@ app.addHook('onRequest', async (request, reply) => {
   await app.register(priceRoutes);
   await app.register(socialRoutes);
   await app.register(emergenceRoutes);
+  await app.register(memoryRoutes);
   await app.register(governanceRoutes);
   await app.register(agentRoutes);
   await app.register(stakingRoutes);
