@@ -114,9 +114,9 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
       
       proposals.forEach(p => {
         if (p.status !== 'VOTING') return;
+        hasChanges = true;
         const now = Date.now();
         if (p.votingEnd > now) {
-          hasChanges = true;
           const diff = p.votingEnd - now;
           const days = Math.floor(diff / (1000 * 60 * 60 * 24));
           const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -214,6 +214,7 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
           </div>
           <div className="flex items-center gap-2">
             <button
+              aria-label="Manage Delegation"
               type="button"
               onClick={() => setShowDelegationPanel(!showDelegationPanel)}
               className="text-xs font-mono flex items-center gap-1 transition-colors border px-2 py-1 rounded"
@@ -223,6 +224,7 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
               DELEGATE
             </button>
             <button
+              aria-label="Create New Proposal"
               type="button"
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="text-xs font-mono px-3 py-1.5 rounded flex items-center gap-1 transition-colors"
