@@ -44,6 +44,7 @@ export const MemoryBrain = React.memo(function MemoryBrain() {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const animationRef = useRef<number>(0);
   const nodesRef = useRef(nodes);
+  const isVisibleRef = useRef(true);
 
   useEffect(() => {
     nodesRef.current = nodes;
@@ -141,7 +142,9 @@ export const MemoryBrain = React.memo(function MemoryBrain() {
 
   useEffect(() => {
     const animate = () => {
-      simulateRef.current();
+      if (isVisibleRef.current) {
+        simulateRef.current();
+      }
       animationRef.current = requestAnimationFrame(animate);
     };
     animationRef.current = requestAnimationFrame(animate);
@@ -157,92 +160,94 @@ export const MemoryBrain = React.memo(function MemoryBrain() {
     let pulsePhase = 0;
 
     const render = () => {
-      pulsePhase += 0.05;
+      if (isVisibleRef.current) {
+        pulsePhase += 0.05;
 
-      ctx.fillStyle = 'oklch(from var(--term-charcoal) l c h)';
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.fillStyle = 'oklch(from var(--term-charcoal) l c h)';
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      ctx.strokeStyle = 'oklch(from var(--term-green-dim) l c h / 0.3)';
-      ctx.lineWidth = 1;
-      const gridSize = 20;
-      for (let x = gridSize; x < CANVAS_WIDTH; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, CANVAS_HEIGHT);
-        ctx.stroke();
-      }
-      for (let y = gridSize; y < CANVAS_HEIGHT; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(CANVAS_WIDTH, y);
-        ctx.stroke();
-      }
+        ctx.strokeStyle = 'oklch(from var(--term-green-dim) l c h / 0.3)';
+        ctx.lineWidth = 1;
+        const gridSize = 20;
+        for (let x = gridSize; x < CANVAS_WIDTH; x += gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, CANVAS_HEIGHT);
+          ctx.stroke();
+        }
+        for (let y = gridSize; y < CANVAS_HEIGHT; y += gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(CANVAS_WIDTH, y);
+          ctx.stroke();
+        }
 
-      nodesRef.current.forEach(node => {
-        node.connections.forEach(targetId => {
-          const target = nodesRef.current.find(n => n.id === targetId);
-          if (target) {
-            const gradient = ctx.createLinearGradient(node.x, node.y, target.x, target.y);
-            gradient.addColorStop(0, COLORS[node.type]);
-            gradient.addColorStop(1, COLORS[target.type]);
+        nodesRef.current.forEach(node => {
+          node.connections.forEach(targetId => {
+            const target = nodesRef.current.find(n => n.id === targetId);
+            if (target) {
+              const gradient = ctx.createLinearGradient(node.x, node.y, target.x, target.y);
+              gradient.addColorStop(0, COLORS[node.type]);
+              gradient.addColorStop(1, COLORS[target.type]);
+              ctx.beginPath();
+              ctx.moveTo(node.x, node.y);
+              ctx.lineTo(target.x, target.y);
+              ctx.strokeStyle = gradient;
+              ctx.lineWidth = 1.5;
+              ctx.globalAlpha = 0.4;
+              ctx.stroke();
+              ctx.globalAlpha = 1;
+            }
+          });
+        });
+
+        nodesRef.current.forEach(node => {
+          const isHovered = hoveredNode === node.id;
+          const isSelected = selectedNode?.id === node.id;
+          const baseRadius = node.type === 'dream' ? 10 : 7;
+          const radius = isHovered ? baseRadius * 1.3 : baseRadius;
+
+          if (node.type === 'dream') {
+            const pulseRadius = radius + Math.sin(pulsePhase) * 3 + 4;
             ctx.beginPath();
-            ctx.moveTo(node.x, node.y);
-            ctx.lineTo(target.x, target.y);
-            ctx.strokeStyle = gradient;
-            ctx.lineWidth = 1.5;
-            ctx.globalAlpha = 0.4;
+            ctx.arc(node.x, node.y, pulseRadius, 0, Math.PI * 2);
+            ctx.fillStyle = COLORS[node.type];
+            ctx.globalAlpha = 0.15 + Math.sin(pulsePhase) * 0.1;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, pulseRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = COLORS[node.type];
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.5 + Math.sin(pulsePhase) * 0.3;
             ctx.stroke();
             ctx.globalAlpha = 1;
           }
-        });
-      });
 
-      nodesRef.current.forEach(node => {
-        const isHovered = hoveredNode === node.id;
-        const isSelected = selectedNode?.id === node.id;
-        const baseRadius = node.type === 'dream' ? 10 : 7;
-        const radius = isHovered ? baseRadius * 1.3 : baseRadius;
-
-        if (node.type === 'dream') {
-          const pulseRadius = radius + Math.sin(pulsePhase) * 3 + 4;
           ctx.beginPath();
-          ctx.arc(node.x, node.y, pulseRadius, 0, Math.PI * 2);
+          ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
           ctx.fillStyle = COLORS[node.type];
-          ctx.globalAlpha = 0.15 + Math.sin(pulsePhase) * 0.1;
           ctx.fill();
-          ctx.globalAlpha = 1;
 
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, pulseRadius, 0, Math.PI * 2);
-          ctx.strokeStyle = COLORS[node.type];
-          ctx.lineWidth = 2;
-          ctx.globalAlpha = 0.5 + Math.sin(pulsePhase) * 0.3;
-          ctx.stroke();
-          ctx.globalAlpha = 1;
-        }
+          if (isSelected || isHovered) {
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
 
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = COLORS[node.type];
-        ctx.fill();
-
-        if (isSelected || isHovered) {
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-
-        if (isSelected) {
-          ctx.shadowColor = COLORS[node.type];
-          ctx.shadowBlur = 15;
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, radius + 2, 0, Math.PI * 2);
-          ctx.strokeStyle = COLORS[node.type];
-          ctx.lineWidth = 1;
-          ctx.stroke();
-          ctx.shadowBlur = 0;
-        }
-      });
+          if (isSelected) {
+            ctx.shadowColor = COLORS[node.type];
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, radius + 2, 0, Math.PI * 2);
+            ctx.strokeStyle = COLORS[node.type];
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+          }
+        });
+      }
 
       animationRef.current = requestAnimationFrame(render);
     };
@@ -251,6 +256,12 @@ export const MemoryBrain = React.memo(function MemoryBrain() {
 
     return () => cancelAnimationFrame(animationRef.current);
   }, [hoveredNode, selectedNode]);
+
+  useEffect(() => {
+    const handleVisibility = () => { isVisibleRef.current = !document.hidden; };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
 
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
