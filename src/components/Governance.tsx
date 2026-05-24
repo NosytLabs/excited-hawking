@@ -1,13 +1,17 @@
+/* Hallmark · component: governance-panel · genre: terminal-aesthetic · theme: Terminal */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAgent } from '../context/useAgent';
-import { Plus, Clock, AlertTriangle, CheckCircle, XCircle, Minus, ChevronDown, ChevronUp, Leaf } from 'lucide-react';
+import { Plus, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Leaf } from 'lucide-react';
+import { api } from '../services/api';
+import { DelegationPanel } from './DelegationPanel';
+import { GovernanceProposal } from './GovernanceProposal';
 import { ListSkeleton } from './LoadingSkeleton';
 
 type ProposalStatus = 'DRAFT' | 'ACTIVE' | 'VOTING' | 'PASSED' | 'FAILED' | 'EXECUTED';
-type ProposalCategory = 'TREASURY' | 'PARAMETER' | 'EMERGENCY' | 'CONSTITUTION' | 'PARTNERSHIP';
-type VoteChoice = 'for' | 'against' | 'abstain';
+export type ProposalCategory = 'TREASURY' | 'PARAMETER' | 'EMERGENCY' | 'CONSTITUTION' | 'PARTNERSHIP';
+export type VoteChoice = 'for' | 'against' | 'abstain';
 
-interface ProposalDetail {
+export interface ProposalDetail {
   id: string;
   title: string;
   description: string;
@@ -41,13 +45,13 @@ const STATUS_LABELS: Record<ProposalStatus, string> = {
   EXECUTED: '[EXECUTED]',
 };
 
-const STATUS_COLORS: Record<ProposalStatus, string> = {
-  DRAFT: 'text-[var(--term-amber)]',
-  ACTIVE: 'text-[var(--term-amber)]',
-  VOTING: 'text-[var(--term-green)]',
-  PASSED: 'text-[var(--term-green-glow)]',
-  FAILED: 'text-[var(--term-red)]',
-  EXECUTED: 'text-[var(--term-green)]',
+const STATUS_COLORS: Record<ProposalStatus, React.CSSProperties['color']> = {
+  DRAFT: 'var(--term-amber)',
+  ACTIVE: 'var(--term-amber)',
+  VOTING: 'var(--term-green)',
+  PASSED: 'var(--term-green-glow)',
+  FAILED: 'var(--term-red)',
+  EXECUTED: 'var(--term-green)',
 };
 
 const CATEGORY_LABELS: Record<ProposalCategory, string> = {
@@ -71,7 +75,9 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
   const [showDelegationPanel, setShowDelegationPanel] = useState(false);
   const [delegationAddress, setDelegationAddress] = useState('');
 
-const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
+  const [localProposals, setLocalProposals] = useState<ProposalDetail[]>([]);
+
+  const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
       ? contextProposals.map(p => ({
           id: p.id,
           title: p.title,
@@ -90,8 +96,8 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
           isEmergency: false,
           discussionUrl: '#discussion',
         }))
-      : []),
-    [propProposals, contextProposals]);
+      : localProposals),
+    [propProposals, contextProposals, localProposals]);
 
   const [newProposal, setNewProposal] = useState({
     title: '',
@@ -172,14 +178,43 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
     setUserVotes(prev => ({ ...prev, [proposalId]: vote }));
   }, [voteProposal]);
 
-  const handleCreateProposal = useCallback(() => {
+  const handleCreateProposal = useCallback(async () => {
     if (!newProposal.title.trim()) return;
-    // Note: This is intentionally a local-only demo that doesn't persist to backend.
-    // Proposal creation API would go here when backend supports it.
-    addLog(`Created proposal: "${newProposal.title}"`, 'info');
+    addLog(`Creating proposal: "${newProposal.title}"`, 'info');
+    try {
+      const result = await api.createProposal(
+        newProposal.title,
+        newProposal.description,
+        newProposal.category,
+        newProposal.depositAmount
+      );
+      addLog(`Proposal created: "${newProposal.title}" (ID: ${result.proposalId})`, 'success');
+      setLocalProposals(prev => [{
+        id: result.proposalId,
+        title: newProposal.title,
+        description: newProposal.description,
+        category: newProposal.category,
+        status: 'VOTING' as const,
+        votesFor: 0,
+        votesAgainst: 0,
+        votesAbstain: 0,
+        quorumRequired: 100,
+        quorumReached: false,
+        depositAmount: newProposal.depositAmount,
+        votingStart: Date.now(),
+        votingEnd: Date.now() + 86400000 * 7,
+        proposer: walletAddress ?? '0x0000...0000',
+        isEmergency: false,
+        discussionUrl: `/forum/proposal/${result.proposalId}`,
+      }, ...prev]);
+    } catch (err) {
+      console.error('[Governance] createProposal failed:', err);
+      addLog(`Failed to create proposal: "${newProposal.title}"`, 'error');
+      return;
+    }
     setNewProposal({ title: '', description: '', category: 'TREASURY', depositAmount: 10 });
     setShowCreateForm(false);
-  }, [addLog, newProposal]);
+  }, [addLog, newProposal, walletAddress]);
 
   const totalVotes = (p: ProposalDetail) => p.votesFor + p.votesAgainst + p.votesAbstain;
   const forPercentage = (p: ProposalDetail) => totalVotes(p) > 0 ? (p.votesFor / totalVotes(p)) * 100 : 0;
@@ -198,7 +233,7 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
     }}>
       <div className="absolute inset-0 pointer-events-none opacity-5"
         style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, oklch(0% 0% 0% / 0.3) 2px, oklch(0% 0% 0% / 0.3) 4px)',
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, var(--term-scanline) 2px, var(--term-scanline) 4px)',
         }}
       />
 
@@ -235,7 +270,7 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
               type="button"
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="text-xs font-mono px-3 py-1.5 rounded flex items-center gap-1 transition-colors"
-              style={{ color: 'var(--term-green)', border: '1px solid var(--term-green-dim)', backgroundColor: 'oklch(70% 22% 140deg / 0.12)' }}
+              style={{ color: 'var(--term-green)', border: '1px solid var(--term-green-dim)', backgroundColor: 'var(--term-cta-bg)' }}
             >
               <Plus size={14} />
               NEW
@@ -244,40 +279,24 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
         </div>
 
         {showDelegationPanel && (
-          <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--term-void)', border: '1px solid var(--term-green-dim)' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-mono" style={{ color: 'var(--term-green)' }}>CULTIVATION CIRCLE</span>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-xs font-mono">
-                <span className="text-[var(--term-green-dim)]">Root Strength:</span>
-                <span className="text-[var(--term-green)]">{quadraticWeight.toFixed(2)} roots</span>
-              </div>
-              <div className="flex justify-between items-center text-xs font-mono">
-                <span className="text-[var(--term-green-dim)]">Delegated:</span>
-                <span className="text-[var(--term-green)]">{delegations.reduce((sum, d) => sum + d.amount, 0)} seeds</span>
-              </div>
-              <input
-                type="text"
-                value={delegationAddress}
-                onChange={(e) => setDelegationAddress(e.target.value)}
-                placeholder="Enter address..."
-                className="w-full mt-2 bg-black/50 border border-[var(--term-green-dim)] rounded px-3 py-2 text-xs font-mono text-[var(--term-green)] placeholder-[var(--term-concrete)] focus:outline-none focus:border-[var(--term-green)]"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (delegationAddress.trim()) {
-                    setDelegationAddress('');
-                    setShowDelegationPanel(false);
-                  }
-                }}
-                className="w-full mt-2 bg-[var(--term-green-dim)]/30 hover:bg-[var(--term-green-dim)]/50 text-[var(--term-green)] border border-[var(--term-green)] text-xs font-mono py-2 rounded transition-colors"
-              >
-                [EXECUTE DELEGATION]
-              </button>
-            </div>
-          </div>
+          <DelegationPanel
+            quadraticWeight={quadraticWeight}
+            delegations={delegations}
+            delegationAddress={delegationAddress}
+            onDelegationAddressChange={setDelegationAddress}
+            onDelegate={async () => {
+              if (delegationAddress.trim()) {
+                try {
+                  await api.delegateStake(delegationAddress);
+                  setDelegationAddress('');
+                  setShowDelegationPanel(false);
+                } catch (err) {
+                  console.error('Delegation failed:', err);
+                }
+              }
+            }}
+            onClose={() => setShowDelegationPanel(false)}
+          />
         )}
 
           {showCreateForm && (
@@ -372,7 +391,7 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
                 ? 'bg-[var(--term-green-dim)]/30 border-[var(--term-green)]'
                 : 'bg-[var(--term-void)]/70 border-[var(--term-concrete)]'
             }`}
-            style={{ color: showMyProposals ? 'var(--term-green)' : 'var(--term-green-dim)' }}
+            style={{ color: showMyProposals ? 'var(--term-green)' : 'var(--term-green-dim)', whiteSpace: 'nowrap' }}
           >
             {showMyProposals ? '[MY PROPOSALS]' : 'MY PROPOSALS'}
           </button>
@@ -385,7 +404,7 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
               className="rounded p-3 transition-all hover:border-[var(--term-green)]"
               style={{
                 border: '1px solid',
-                backgroundColor: proposal.isEmergency ? 'oklch(55% 20% 25deg / 0.05)' : 'oklch(28% 3% 230deg / 0.6)',
+                backgroundColor: proposal.isEmergency ? 'var(--term-emergency-bg)' : 'var(--term-ash)',
                 borderColor: proposal.isEmergency ? 'oklch(55% 20% 25deg / 0.31)' : (selectedProposal?.id === proposal.id ? 'var(--term-green)' : 'var(--term-concrete)'),
               }}
             >
@@ -404,7 +423,7 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
                   <div className="flex-1">
                     <h4 className="text-sm font-mono text-[var(--term-green)] leading-tight">{proposal.title}</h4>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] font-mono uppercase ${STATUS_COLORS[proposal.status]}`}>
+                      <span className="text-[10px] font-mono uppercase" style={{ color: STATUS_COLORS[proposal.status] }}>
                         {STATUS_LABELS[proposal.status]}
                       </span>
                       <span className="text-[10px] font-mono text-[var(--term-green-dim)] uppercase">
@@ -421,20 +440,20 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
 
                 <div className="w-full h-1.5 bg-black rounded-full overflow-hidden flex">
                   <div
-                    className="h-full transition-all"
-                    style={{ width: `${forPercentage(proposal)}%`, backgroundColor: 'var(--term-green)' }}
+                    className="h-full"
+                    style={{ width: `${forPercentage(proposal)}%`, backgroundColor: 'var(--term-green)', transition: 'width 200ms var(--ease-out)' }}
                   />
                   <div
-                    className="h-full transition-all"
-                    style={{ width: `${100 - forPercentage(proposal)}%`, backgroundColor: 'var(--term-red)' }}
+                    className="h-full"
+                    style={{ width: `${100 - forPercentage(proposal)}%`, backgroundColor: 'var(--term-red)', transition: 'width 200ms var(--ease-out)' }}
                   />
                 </div>
 
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex-1 h-1 bg-black rounded-full overflow-hidden">
                     <div
-                      className="h-full transition-all"
-                      style={{ width: `${quorumPercentage(proposal)}%`, backgroundColor: proposal.quorumReached ? 'var(--term-green)' : 'var(--term-amber)' }}
+                      className="h-full"
+                      style={{ width: `${quorumPercentage(proposal)}%`, backgroundColor: proposal.quorumReached ? 'var(--term-green)' : 'var(--term-amber)', transition: 'width 200ms var(--ease-out)' }}
                     />
                   </div>
                   <span className="text-[10px] font-mono text-[var(--term-green-dim)]">
@@ -448,101 +467,13 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
               </div>
 
               {selectedProposal?.id === proposal.id && (
-                <div className="mt-4 pt-4 border-t border-[var(--term-concrete)]">
-                  <p className="text-xs text-[var(--term-green)] leading-relaxed mb-4 font-mono">{proposal.description}</p>
-
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="text-center p-2 rounded border bg-black/30 border-[var(--term-green-dim)]">
-                      <div className="text-lg font-mono font-bold text-[var(--term-green)]">{proposal.votesFor}</div>
-                      <div className="text-[10px] font-mono uppercase text-[var(--term-green-dim)]">[FOR]</div>
-                    </div>
-                    <div className="text-center p-2 rounded border bg-black/30" style={{ borderColor: 'var(--term-red)' }}>
-                      <div className="text-lg font-mono font-bold" style={{ color: 'var(--term-red)' }}>{proposal.votesAgainst}</div>
-                      <div className="text-[10px] font-mono uppercase" style={{ color: 'var(--term-red)' }}>[AGAINST]</div>
-                    </div>
-                    <div className="text-center p-2 rounded border bg-black/30" style={{ borderColor: 'var(--term-amber)' }}>
-                      <div className="text-lg font-mono font-bold" style={{ color: 'var(--term-amber)' }}>{proposal.votesAbstain}</div>
-                      <div className="text-[10px] font-mono uppercase" style={{ color: 'var(--term-amber)' }}>[ABSTAIN]</div>
-                    </div>
-                  </div>
-
-                  {proposal.status === 'VOTING' && (
-                    <div className="flex items-center justify-center gap-2 mb-4 p-2 bg-black/40 rounded border border-[var(--term-concrete)]">
-                      <Clock size={12} style={{ color: 'var(--term-amber)' }} />
-                      <span className="text-xs font-mono text-[var(--term-green-dim)]">Time Remaining:</span>
-                      <span className="text-sm font-mono font-bold" style={{ color: 'var(--term-amber)' }}>
-                        {timeRemaining[proposal.id] || 'CALCULATING...'}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between mb-4 p-2 bg-black/40 rounded border border-[var(--term-concrete)]">
-                    <span className="text-xs font-mono text-[var(--term-green-dim)]">Voting Weight:</span>
-                    <span className="text-sm font-mono font-bold text-[var(--term-green)]">
-                      {quadraticWeight.toFixed(2)} roots
-                    </span>
-                  </div>
-
-                  {proposal.status === 'VOTING' && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleVote(proposal.id, 'for')}
-                        disabled={userVotes[proposal.id] !== undefined}
-                        className={`flex-1 py-3 rounded font-mono text-xs flex items-center justify-center gap-2 transition-all border ${
-                          userVotes[proposal.id] === 'for'
-                            ? 'bg-[var(--term-green-dim)] text-[var(--term-void)] border-[var(--term-green)]'
-                            : 'bg-black/50 text-[var(--term-green)] hover:bg-[var(--term-green-dim)]/30 border-[var(--term-green-dim)] hover:border-[var(--term-green)]'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        <CheckCircle size={16} />
-                        [VOTE FOR]
-                      </button>
-                      <button
-                        onClick={() => handleVote(proposal.id, 'against')}
-                        disabled={userVotes[proposal.id] !== undefined}
-                        className={`flex-1 py-3 rounded font-mono text-xs flex items-center justify-center gap-2 transition-all border ${
-                          userVotes[proposal.id] === 'against'
-                            ? 'border-[var(--term-red)]'
-                            : 'bg-black/50 hover:bg-[var(--term-red)]/30 border-[var(--term-red)] hover:border-[var(--term-red)]'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        style={{
-                          color: userVotes[proposal.id] === 'against' ? 'var(--term-void)' : 'var(--term-red)',
-                          backgroundColor: userVotes[proposal.id] === 'against' ? 'var(--term-red)' : undefined,
-                        }}
-                      >
-                        <XCircle size={16} />
-                        [VOTE AGAINST]
-                      </button>
-                      <button
-                        onClick={() => handleVote(proposal.id, 'abstain')}
-                        disabled={userVotes[proposal.id] !== undefined}
-                        className={`flex-1 py-3 rounded font-mono text-xs flex items-center justify-center gap-2 transition-all border ${
-                          userVotes[proposal.id] === 'abstain'
-                            ? 'border-[var(--term-amber)]'
-                            : 'bg-black/50 hover:bg-[var(--term-amber)]/30 border-[var(--term-amber)] hover:border-[var(--term-amber)]'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        style={{
-                          color: userVotes[proposal.id] === 'abstain' ? 'var(--term-void)' : 'var(--term-amber)',
-                          backgroundColor: userVotes[proposal.id] === 'abstain' ? 'var(--term-amber)' : undefined,
-                        }}
-                      >
-                        <Minus size={16} />
-                        [ABSTAIN]
-                      </button>
-                    </div>
-                  )}
-
-                  {userVotes[proposal.id] && (
-                    <div className="mt-3 text-center text-xs font-mono text-[var(--term-green-dim)]">
-                      Recorded: <span className="text-[var(--term-green)] uppercase">{userVotes[proposal.id]}</span>
-                    </div>
-                  )}
-
-                  <div className="mt-4 flex items-center justify-between text-[10px] font-mono text-[var(--term-concrete)] border-t border-[var(--term-void)] pt-3">
-                    <span>Proposer: {proposal.proposer}</span>
-                    <span>Deposit: {proposal.depositAmount}</span>
-                  </div>
-                </div>
+                <GovernanceProposal
+                  proposal={proposal}
+                  userVotes={userVotes}
+                  quadraticWeight={quadraticWeight}
+                  timeRemaining={timeRemaining[proposal.id] || 'CALCULATING...'}
+                  onVote={handleVote}
+                />
               )}
             </div>
           ))}

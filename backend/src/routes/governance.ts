@@ -12,13 +12,14 @@ import {
   getProposal,
   getAllProposals,
   getVoterWeight,
+  getGovernanceStats,
   castPublicVote,
   delegatePublicVote,
   getVotingLeaderboard
 } from '../services/governance.js';
 import { reflectVoteFromPrompt } from '../lib/voting.js';
 import { getState, checkRateLimit, setRateLimitHeaders, getClientIp } from '../services/state.js';
-import { sanitizeString, sanitizeForHTML, isValidWalletAddress } from '../types/index.js';
+import { sanitizeString, sanitizeForHTML, isValidWalletAddress, detectPromptInjection } from '../types/index.js';
 import { requireWalletWithSignature, optionalWalletAuth } from '../middleware/auth.js';
 
 interface ProposalBody {
@@ -46,7 +47,17 @@ export async function governanceRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/api/governance/stats', async (_request, _reply) => {
-    return { totalProposals: 0, activeProposals: 0, totalVotes: 0 };
+    const stats = getGovernanceStats();
+    return {
+      totalProposals: stats.totalProposals,
+      activeProposals: stats.activeProposalsCount,
+      totalVotes: stats.totalVotes,
+      totalDelegations: stats.totalDelegations,
+      totalSupply: stats.totalSupply.toString(),
+      quorumRequired: stats.quorumRequired.toString(),
+      avgParticipation: stats.avgParticipation,
+      categories: stats.categories
+    };
   });
 
   fastify.post('/api/governance/proposal', async (request: FastifyRequest<{ Body: ProposalBody }>, reply: FastifyReply) => {
@@ -57,6 +68,17 @@ export async function governanceRoutes(fastify: FastifyInstance) {
     const body = request.body;
     const title = sanitizeForHTML(body.title, 200);
     const description = sanitizeForHTML(body.description, 5000);
+
+    const titleInjection = detectPromptInjection(title);
+    if (titleInjection.isInjection) {
+      return reply.status(400).send({ error: 'Proposal title contains suspicious patterns' });
+    }
+
+    const descInjection = detectPromptInjection(description);
+    if (descInjection.isInjection) {
+      return reply.status(400).send({ error: 'Proposal description contains suspicious patterns' });
+    }
+
     const category = sanitizeString(body.category, 50);
     const { deposit, executionData, isEmergency } = body;
 
@@ -190,6 +212,14 @@ export async function governanceRoutes(fastify: FastifyInstance) {
     if (!auth.isValidWallet || !auth.signatureVerified) {
       return reply.status(403).send({ error: 'Admin signature required' });
     }
+    const adminWalletsEnv = process.env.ADMIN_WALLETS || '';
+    if (!adminWalletsEnv) {
+      return reply.status(403).send({ error: 'Unauthorized: admin wallets not configured' });
+    }
+    const adminWallets = adminWalletsEnv.split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
+    if (adminWallets.length > 0 && !adminWallets.includes(auth.wallet.toLowerCase())) {
+      return reply.status(403).send({ error: 'Unauthorized: only admin wallets can finalize proposals' });
+    }
     const result = finalizeProposal(request.params.id);
     return { result };
   });
@@ -198,6 +228,14 @@ export async function governanceRoutes(fastify: FastifyInstance) {
     const auth = requireWalletWithSignature(request, reply);
     if (!auth.isValidWallet || !auth.signatureVerified) {
       return reply.status(403).send({ error: 'Admin signature required' });
+    }
+    const adminWalletsEnv = process.env.ADMIN_WALLETS || '';
+    if (!adminWalletsEnv) {
+      return reply.status(403).send({ error: 'Unauthorized: admin wallets not configured' });
+    }
+    const adminWallets = adminWalletsEnv.split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
+    if (adminWallets.length > 0 && !adminWallets.includes(auth.wallet.toLowerCase())) {
+      return reply.status(403).send({ error: 'Unauthorized: only admin wallets can execute proposals' });
     }
     const result = executeProposal(request.params.id);
     if (!result.success) {

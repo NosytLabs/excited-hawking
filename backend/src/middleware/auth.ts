@@ -1,8 +1,8 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { createHash, randomBytes } from 'crypto';
+import { randomBytes } from 'crypto';
 import { isValidWalletAddress } from '../types/index.js';
+import createKeccakHash from 'keccak';
 
-const CONTROL_STRICT = process.env.CONTROL === 'strict' || process.env.CONTROL_STRICT === 'true';
 const SIGNATURE_LENGTH = 132;
 const NONCE_BYTES = 32;
 
@@ -36,8 +36,6 @@ export function createVoteNonce(wallet: string): { nonce: string; expiresAt: num
 
   const nonce = randomBytes(NONCE_BYTES).toString('hex');
   const expiresAt = Date.now() + 5 * 60 * 1000;
-  const key = `${wallet.toLowerCase()}:${nonce}`;
-  usedVoteNonces.add(key);
 
   return { nonce, expiresAt };
 }
@@ -97,60 +95,113 @@ function verifySignatureFormat(signature: string): boolean {
   return true;
 }
 
-function recoverPublicKey(r: Buffer, s: Buffer, v: number): Buffer | null {
-  const p = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
+const SECP256K1_P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2Fn;
+const SECP256K1_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
+const SECP256K1_GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798n;
+const SECP256K1_GY = 0x483ADA7726A9C465ECBB4CB10B4A8112C80B4E5C3D6832250C5DC3B112EC9B3En;
 
+function modPow(base: bigint, exp: bigint, mod: bigint): bigint | null {
+  if (mod === 0n) return null;
+  let result = 1n;
+  let b = ((base % mod) + mod) % mod;
+  let e = exp;
+  while (e > 0n) {
+    if ((e & 1n) === 1n) {
+      result = (result * b) % mod;
+    }
+    e >>= 1n;
+    b = (b * b) % mod;
+  }
+  return result;
+}
+
+function pointAdd(P: { x: bigint; y: bigint } | null, Q: { x: bigint; y: bigint } | null): { x: bigint; y: bigint } | null {
+  if (P === null) return Q;
+  if (Q === null) return P;
+  if (P.x === Q.x) {
+    if ((P.y + Q.y) % SECP256K1_P === 0n) return null;
+    return pointDouble(P);
+  }
+  const num = ((Q.y - P.y) % SECP256K1_P + SECP256K1_P) % SECP256K1_P;
+  const den = ((Q.x - P.x) % SECP256K1_P + SECP256K1_P) % SECP256K1_P;
+  const lam = (num * modPow(den, SECP256K1_P - 2n, SECP256K1_P)!) % SECP256K1_P;
+  const x3 = (((lam * lam) % SECP256K1_P - P.x - Q.x) % SECP256K1_P + SECP256K1_P) % SECP256K1_P;
+  const y3 = ((lam * (P.x - x3) - P.y) % SECP256K1_P + SECP256K1_P) % SECP256K1_P;
+  return { x: x3, y: y3 };
+}
+
+function pointDouble(P: { x: bigint; y: bigint }): { x: bigint; y: bigint } | null {
+  if (P.y === 0n) return null;
+  const num = (3n * P.x * P.x) % SECP256K1_P;
+  const den = (2n * P.y) % SECP256K1_P;
+  const lam = (num * modPow(den, SECP256K1_P - 2n, SECP256K1_P)!) % SECP256K1_P;
+  const x3 = (((lam * lam) % SECP256K1_P - 2n * P.x) % SECP256K1_P + SECP256K1_P) % SECP256K1_P;
+  const y3 = ((lam * (P.x - x3) - P.y) % SECP256K1_P + SECP256K1_P) % SECP256K1_P;
+  return { x: x3, y: y3 };
+}
+
+function pointMul(k: bigint, P: { x: bigint; y: bigint }): { x: bigint; y: bigint } | null {
+  let result: { x: bigint; y: bigint } | null = null;
+  let addend: { x: bigint; y: bigint } | null = { x: P.x, y: P.y };
+  let scalar = ((k % SECP256K1_N) + SECP256K1_N) % SECP256K1_N;
+  while (scalar > 0n) {
+    if (scalar & 1n) {
+      result = pointAdd(result, addend);
+    }
+    addend = pointDouble(addend!);
+    scalar >>= 1n;
+  }
+  return result;
+}
+
+function recoverPublicKey(messageHash: Buffer, r: Buffer, s: Buffer, v: number): Buffer | null {
   const rBig = BigInt('0x' + r.toString('hex'));
   const sBig = BigInt('0x' + s.toString('hex'));
+  const e = BigInt('0x' + messageHash.toString('hex'));
 
-  if (rBig < BigInt(1) || rBig >= p || sBig < BigInt(1) || sBig >= p) {
+  if (rBig < 1n || rBig >= SECP256K1_N || sBig < 1n || sBig >= SECP256K1_N) {
     return null;
   }
 
   const x = rBig;
-  const ySquared = (x * x * x % p + BigInt(7)) % p;
-  const y = modPow(ySquared, (p + BigInt(1)) / BigInt(4), p);
+  const ySquared = (x * x * x + 7n) % SECP256K1_P;
 
-  if (y === null) {
-    return null;
+  let y = modPow(ySquared, (SECP256K1_P + 1n) / 4n, SECP256K1_P);
+  if (y === null) return null;
+
+  const yParity = BigInt(v - 27);
+  if ((y & 1n) !== yParity) {
+    y = SECP256K1_P - y;
   }
 
-  const expectedYParity = BigInt(v - 27);
-  if (y % BigInt(2) !== expectedYParity) {
-    return null;
-  }
+  const R = { x, y };
+  const rInv = modPow(rBig, SECP256K1_N - 2n, SECP256K1_N);
+  if (rInv === null) return null;
 
-  const publicKeyX = x.toString(16).padStart(64, '0');
-  const publicKeyY = y.toString(16).padStart(64, '0');
+  const sR = pointMul(sBig, R);
+  const eG = pointMul(e, { x: SECP256K1_GX, y: SECP256K1_GY });
+  if (!sR || !eG) return null;
 
-  return Buffer.from('04' + publicKeyX + publicKeyY, 'hex');
+  const negEG = { x: eG.x, y: (SECP256K1_P - eG.y) % SECP256K1_P };
+  const sRminusEG = pointAdd(sR, negEG);
+  if (!sRminusEG) return null;
+
+  const Q = pointMul(rInv, sRminusEG);
+  if (!Q) return null;
+
+  return Buffer.concat([
+    Buffer.from([0x04]),
+    Buffer.from(Q.x.toString(16).padStart(64, '0'), 'hex'),
+    Buffer.from(Q.y.toString(16).padStart(64, '0'), 'hex')
+  ]);
 }
 
-function deriveAddress(publicKey: Buffer): string {
-  const hash = createHash('sha256').update(publicKey).digest();
-  const addressHash = createHash('ripemd160').update(hash).digest();
-  return '0x' + addressHash.toString('hex');
+function publicKeyToAddress(publicKey: Buffer): string {
+  const hash = createKeccakHash('keccak256').update(publicKey.subarray(1)).digest();
+  return '0x' + hash.subarray(-20).toString('hex');
 }
 
-function modPow(base: bigint, exp: bigint, mod: bigint): bigint | null {
-  if (mod === BigInt(0)) return null;
-
-  let result = BigInt(1);
-  let b = base % mod;
-  let e = exp;
-
-  while (e > BigInt(0)) {
-    if ((e & BigInt(1)) === BigInt(1)) {
-      result = (result * b) % mod;
-    }
-    e = e >> BigInt(1);
-    b = (b * b) % mod;
-  }
-
-  return result;
-}
-
-function recoverAddressFromSignature(_message: string, signature: string, wallet: string): boolean {
+function recoverAddressFromSignature(message: string, signature: string, wallet: string): boolean {
   if (!isValidWalletAddress(wallet)) {
     return false;
   }
@@ -159,30 +210,24 @@ function recoverAddressFromSignature(_message: string, signature: string, wallet
     return false;
   }
 
+  const prefix = `\x19Ethereum Signed Message:\n${message.length}`;
+  const messageHash = createKeccakHash('keccak256')
+    .update(Buffer.from(prefix, 'utf8'))
+    .update(Buffer.from(message, 'utf8'))
+    .digest();
+
   const sigBytes = Buffer.from(signature.slice(2), 'hex');
-  const r = sigBytes.slice(0, 32);
-  const s = sigBytes.slice(32, 64);
+  const r = sigBytes.subarray(0, 32);
+  const s = sigBytes.subarray(32, 64);
   const v = sigBytes[64];
 
-  const publicKey = recoverPublicKey(r, s, v);
+  const publicKey = recoverPublicKey(messageHash, r, s, v);
   if (!publicKey) {
     return false;
   }
 
-  const derivedAddress = deriveAddress(publicKey);
-  const expectedAddress = wallet.toLowerCase();
-
-  if (derivedAddress.length !== expectedAddress.length) {
-    return false;
-  }
-
-  for (let i = 0; i < derivedAddress.length; i++) {
-    if (derivedAddress[i] !== expectedAddress[i]) {
-      return false;
-    }
-  }
-
-  return true;
+  const derivedAddress = publicKeyToAddress(publicKey);
+  return derivedAddress.toLowerCase() === wallet.toLowerCase();
 }
 
 export function verifyMessageSignature(
@@ -195,10 +240,7 @@ export function verifyMessageSignature(
   }
 
   if (!signature || !message) {
-    if (CONTROL_STRICT) {
-      return false;
-    }
-    return true;
+    return false;
   }
 
   const sigValidation = verifySignatureFormat(signature);
@@ -219,39 +261,26 @@ export function verifyChallenge(
   }
 
   if (!nonce || !signature) {
-    if (CONTROL_STRICT) {
-      console.warn(`[AUTH] CRITICAL: Signature verification bypass attempted for ${wallet}`);
-      return false;
-    }
-    console.warn(`[AUTH] WARNING: Signature verification bypassed for ${wallet} (CONTROL not strict)`);
-    return true;
+    console.warn(`[AUTH] CRITICAL: Signature verification bypass attempted for ${wallet}`);
+    return false;
   }
 
   const challenge = getChallenge(wallet);
 
   if (!challenge) {
     console.warn(`[AUTH] No active challenge found for wallet: ${wallet}`);
-    if (CONTROL_STRICT) {
-      return false;
-    }
-    return true;
+    return false;
   }
 
   if (Date.now() > challenge.expiresAt) {
     console.warn(`[AUTH] Challenge expired for wallet: ${wallet}`);
     clearChallenge(wallet);
-    if (CONTROL_STRICT) {
-      return false;
-    }
-    return true;
+    return false;
   }
 
   if (nonce !== challenge.nonce) {
     console.warn(`[AUTH] Nonce mismatch for wallet: ${wallet}`);
-    if (CONTROL_STRICT) {
-      return false;
-    }
-    return true;
+    return false;
   }
 
   const messageToVerify = `Sign this nonce to prove wallet ownership:\n${nonce}\n\nWallet: ${wallet}\nTimestamp: ${challenge.expiresAt}`;
@@ -260,16 +289,13 @@ export function verifyChallenge(
 
   if (!isValid) {
     console.warn(`[AUTH] Signature verification FAILED for wallet: ${wallet}`);
-    if (CONTROL_STRICT) {
-      return false;
-    }
-  } else {
-    console.log(`[AUTH] Signature verification SUCCESS for wallet: ${wallet}`);
+    clearChallenge(wallet);
+    return false;
   }
 
+  console.log(`[AUTH] Signature verification SUCCESS for wallet: ${wallet}`);
   clearChallenge(wallet);
-
-  return isValid;
+  return true;
 }
 
 export function verifyWalletSignature(
@@ -320,14 +346,11 @@ export function requireWalletWithSignature(
   const signatureVerified = verifyChallenge(wallet, signature, nonce);
 
   if (!signatureVerified) {
-    if (CONTROL_STRICT) {
-      reply.status(403).send({
-        error: 'Signature verification failed',
-        message: 'Invalid or missing wallet signature. Set CONTROL=permissive to allow bypass.'
-      });
-      return { wallet, isValidWallet: true, signatureVerified: false };
-    }
-    console.warn(`[AUTH] STRICT mode disabled - allowing request without valid signature for ${wallet}`);
+    reply.status(403).send({
+      error: 'Signature verification failed',
+      message: 'Invalid or missing wallet signature.'
+    });
+    return { wallet, isValidWallet: true, signatureVerified: false };
   }
 
   return {

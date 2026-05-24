@@ -1,11 +1,25 @@
-const BASE_URL = 'http://localhost:3001';
+const BASE_URL = import.meta.env.VITE_API_URL || window.location.origin;
 
-interface StatusResponse {
+type StatusResponse = {
   diemStaked: number;
   treasuryUSDC: number;
   tier: string;
   connected: boolean;
-}
+};
+
+type ApiStatusEnvelope = {
+  agent: {
+    diemStaked: number;
+    treasuryUSDC: number;
+    tier: string;
+    status: string;
+    uptime: number;
+    version: string;
+  };
+  wallet: string;
+  balance: string;
+  timestamp: number;
+};
 
 interface QueueResponse {
   prompts: Array<{
@@ -25,7 +39,17 @@ interface LogsResponse {
     message: string;
     type: 'info' | 'action' | 'success' | 'warning' | 'error';
   }>;
+  total?: number;
 }
+
+type SignedVoteRequest = {
+  promptId: string;
+  vote: 'up' | 'down';
+  walletAddress: string;
+  signature: string;
+  nonce: string;
+  wallet?: string;
+};
 
 interface Proposal {
   id: string;
@@ -53,13 +77,49 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+function normalizeStatusResponse(payload: ApiStatusEnvelope): StatusResponse {
+  return {
+    diemStaked: payload.agent.diemStaked,
+    treasuryUSDC: payload.agent.treasuryUSDC,
+    tier: payload.agent.tier,
+    connected: payload.wallet !== 'anonymous',
+  };
+}
+
+async function vote(request: SignedVoteRequest): Promise<{ success: boolean }>;
+async function vote(promptId: string, vote: 'for' | 'against'): Promise<{ success: boolean }>;
+async function vote(requestOrPromptId: SignedVoteRequest | string, legacyVote?: 'for' | 'against'): Promise<{ success: boolean }> {
+  if (typeof requestOrPromptId === 'string') {
+    return fetchJson<{ success: boolean }>(`${BASE_URL}/api/vote`, {
+      method: 'POST',
+      body: JSON.stringify({
+        promptId: requestOrPromptId,
+        vote: legacyVote === 'against' ? 'down' : 'up',
+      }),
+    });
+  }
+
+  const { promptId, vote, walletAddress, signature, nonce, wallet } = requestOrPromptId;
+
+  return fetchJson<{ success: boolean }>(`${BASE_URL}/api/vote`, {
+    method: 'POST',
+    headers: {
+      'x-wallet-address': walletAddress,
+      'x-signature': signature,
+      'x-nonce': nonce,
+    },
+    body: JSON.stringify({ promptId, vote, wallet }),
+  });
+}
+
 export const api = {
   async getStatus(): Promise<StatusResponse> {
-    return fetchJson<StatusResponse>(`${BASE_URL}/api/status`);
+    const payload = await fetchJson<ApiStatusEnvelope>(`${BASE_URL}/api/status`);
+    return normalizeStatusResponse(payload);
   },
 
   async submitPrompt(content: string): Promise<{ promptId: string }> {
-    return fetchJson<{ promptId: string }>(`${BASE_URL}/api/prompts`, {
+    return fetchJson<{ promptId: string }>(`${BASE_URL}/api/prompt`, {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
@@ -69,34 +129,37 @@ export const api = {
     return fetchJson<QueueResponse>(`${BASE_URL}/api/queue`);
   },
 
-  async vote(promptId: string, vote: 'for' | 'against'): Promise<{ success: boolean }> {
-    return fetchJson<{ success: boolean }>(`${BASE_URL}/api/prompts/${promptId}/vote`, {
-      method: 'POST',
-      body: JSON.stringify({ vote }),
-    });
-  },
+  vote,
 
   async getLogs(): Promise<LogsResponse> {
-    return fetchJson<LogsResponse>(`${BASE_URL}/api/logs`);
+    return fetchJson<LogsResponse>(`${BASE_URL}/api/logs/list`);
   },
 
   async getGovernanceProposals(): Promise<ProposalsResponse> {
     return fetchJson<ProposalsResponse>(`${BASE_URL}/api/governance/proposals`);
   },
 
-  async createProposal(title: string, description: string): Promise<{ proposalId: string }> {
-    return fetchJson<{ proposalId: string }>(`${BASE_URL}/api/governance/proposals`, {
+  async createProposal(title: string, description: string, category: string, deposit: number): Promise<{ proposalId: string }> {
+    return fetchJson<{ proposalId: string }>(`${BASE_URL}/api/governance/proposal`, {
       method: 'POST',
-      body: JSON.stringify({ title, description }),
+      body: JSON.stringify({ title, description, category, deposit: deposit.toString() }),
     });
   },
 
-  async voteOnProposal(proposalId: string, vote: 'for' | 'against'): Promise<{ success: boolean }> {
+  async voteOnProposal(proposalId: string, vote: 'for' | 'against' | 'abstain'): Promise<{ success: boolean }> {
     return fetchJson<{ success: boolean }>(`${BASE_URL}/api/governance/proposals/${proposalId}/vote`, {
       method: 'POST',
       body: JSON.stringify({ vote }),
     });
   },
+
+  async delegateStake(delegateAddress: string, power?: string): Promise<{ success: boolean; delegation?: unknown }> {
+    return fetchJson<{ success: boolean; delegation?: unknown }>(`${BASE_URL}/api/governance/delegate`, {
+      method: 'POST',
+      body: JSON.stringify({ delegate: delegateAddress, power }),
+    });
+  },
 };
 
-export type { StatusResponse, QueueResponse, LogsResponse, ProposalsResponse, Proposal };
+export { normalizeStatusResponse };
+export type { StatusResponse, ApiStatusEnvelope, SignedVoteRequest, QueueResponse, LogsResponse, ProposalsResponse, Proposal };

@@ -42,6 +42,12 @@ export function checkRateLimit(
   const now = Date.now();
   const config = RATE_LIMITS[action];
 
+  for (const [key, entry] of ipRateLimits.entries()) {
+    if (now >= entry.resetAt) {
+      ipRateLimits.delete(key);
+    }
+  }
+
   let ipEntry = ipRateLimits.get(ip);
   if (!ipEntry || now >= ipEntry.resetAt) {
     ipEntry = { count: 0, resetAt: now + config.windowMs };
@@ -58,6 +64,12 @@ export function checkRateLimit(
   let walletRemaining = config.maxRequests;
 
   if (wallet && wallet !== 'anonymous') {
+    for (const [key, entry] of walletRateLimits.entries()) {
+      if (now >= entry.windowStart + config.windowMs) {
+        walletRateLimits.delete(key);
+      }
+    }
+
     walletEntry = walletRateLimits.get(wallet);
     if (!walletEntry || now >= walletEntry.windowStart + config.windowMs) {
       walletEntry = { count: 0, windowStart: now, ips: new Set() };
@@ -104,7 +116,21 @@ export function getClientIp(request: { ip?: string; headers: Record<string, stri
   const forwarded = request.headers['x-forwarded-for'];
   if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
   if (Array.isArray(forwarded)) return String(forwarded[0]).split(',')[0].trim();
-  return request.ip || 'unknown';
+  let ip = request.ip || 'unknown';
+  if (ip.startsWith('::ffff:')) {
+    const normalized = ip.slice(7);
+    if (normalized.includes(':')) {
+      const parts = normalized.split(':');
+      ip = parts[parts.length - 1];
+    } else {
+      ip = normalized;
+    }
+  }
+  const lastColon = ip.lastIndexOf(':');
+  if (lastColon > 0 && ip.includes(':')) {
+    ip = ip.slice(lastColon + 1);
+  }
+  return ip || 'unknown';
 }
 
 interface State {
@@ -193,6 +219,8 @@ export function votePrompt(id: string): void {
   }
 }
 
+const MAX_LOGS = 10000;
+
 export function addLog(message: string, level: LogEntry['level'] = 'info', wallet?: string): void {
   state.logs.push({
     id: generateId(),
@@ -201,6 +229,9 @@ export function addLog(message: string, level: LogEntry['level'] = 'info', walle
     message,
     wallet
   });
+  if (state.logs.length > MAX_LOGS) {
+    state.logs = state.logs.slice(-MAX_LOGS);
+  }
   triggerPersist();
 }
 

@@ -26,6 +26,8 @@ interface SocialMetrics {
   topSharers: { wallet: string; shares: number }[];
 }
 
+const MAX_REFERRALS = 10000;
+
 class SocialEngine {
   private shares: Map<string, SocialShare[]> = new Map();
   private referrals: Referral[] = [];
@@ -84,6 +86,9 @@ class SocialEngine {
       timestamp: Date.now()
     };
     this.referrals.push(referral);
+    if (this.referrals.length > MAX_REFERRALS) {
+      this.referrals = this.referrals.slice(-MAX_REFERRALS);
+    }
     return referral;
   }
 

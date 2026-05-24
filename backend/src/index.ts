@@ -1,8 +1,9 @@
-import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
+import { sanitizeForHTML } from './types/index.js';
 import { buildApp } from './app.js';
 import { initWebSocket, getIO } from './services/websocket.js';
-import { getLogs, loadPersistedState, initPersistence, getPrompts } from './services/state.js';
+import { getLogs, loadPersistedState, initPersistence, getPrompts, checkRateLimit } from './services/state.js';
+import { conwayEngine } from './lib/emergence.js';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
@@ -60,6 +61,16 @@ async function setupWebSocketHandlers(io: Server): Promise<void> {
     const validWallet = wallet && isValidWalletAddress(wallet) ? wallet : undefined;
 
     console.log(`[WS] Client connected: ${socket.id}, Wallet: ${validWallet || 'anonymous'}`);
+
+    const clientIp = socket.handshake.address || socket.handshake.headers?.['x-forwarded-for'] as string || 'unknown';
+    const rateLimitKey = typeof clientIp === 'string' ? clientIp.split(',')[0].trim() : String(clientIp);
+    const wsRateLimit = checkRateLimit(rateLimitKey, 'general', undefined);
+
+    if (!wsRateLimit.allowed) {
+      socket.emit('error', { code: 'RATE_LIMITED', message: 'Too many connections' });
+      socket.disconnect(true);
+      return;
+    }
 
     if (validWallet) {
       if (!checkConnectionLimit(validWallet)) {
@@ -185,6 +196,62 @@ async function setupWebSocketHandlers(io: Server): Promise<void> {
       }
     });
 
+    socket.on('emergence:cell-toggle', (data: { x: number; y: number; alive: boolean }) => {
+      conwayEngine.toggleCell(data.x, data.y, data.alive);
+      getIO().to('emergence').emit('emergence:cell-toggle', data);
+    });
+
+    const MAX_GUESTBOOK_ENTRIES = 1000;
+    const guestbookEntries: Map<string, { id: string; author: string; content: string; upvotes: number; timestamp: string; replies: Array<{ id: string; author: string; content: string; timestamp: string }> }> = new Map();
+    const guestbookOrder: string[] = [];
+
+    const evictOldEntries = () => {
+      while (guestbookOrder.length >= MAX_GUESTBOOK_ENTRIES) {
+        const oldestId = guestbookOrder.shift();
+        if (oldestId) guestbookEntries.delete(oldestId);
+      }
+    };
+
+    socket.on('guestbook:entry', (data: { author: string; content: string }) => {
+      evictOldEntries();
+      const entry = {
+        id: `entry-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        author: sanitizeForHTML(data.author, 100) || 'Anonymous',
+        content: sanitizeForHTML(data.content, 500),
+        upvotes: 0,
+        timestamp: new Date().toISOString(),
+        replies: []
+      };
+      guestbookOrder.push(entry.id);
+      guestbookEntries.set(entry.id, entry);
+      getIO().emit('guestbook:entry', entry);
+      console.log(`[WS] Guestbook entry created: ${entry.id}`);
+    });
+
+    socket.on('guestbook:upvote', (data: { entryId: string }) => {
+      const entry = guestbookEntries.get(data.entryId);
+      if (entry) {
+        entry.upvotes += 1;
+        getIO().emit('guestbook:upvote', { entryId: data.entryId, upvotes: entry.upvotes });
+        console.log(`[WS] Guestbook entry upvoted: ${data.entryId}, new count: ${entry.upvotes}`);
+      }
+    });
+
+    socket.on('guestbook:reply', (data: { entryId: string; author: string; content: string }) => {
+      const entry = guestbookEntries.get(data.entryId);
+      if (entry) {
+        const reply = {
+          id: `reply-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          author: sanitizeForHTML(data.author, 100) || 'Anonymous',
+          content: sanitizeForHTML(data.content, 500),
+          timestamp: new Date().toISOString()
+        };
+        entry.replies.push(reply);
+        getIO().emit('guestbook:entry', entry);
+        console.log(`[WS] Guestbook reply added to: ${data.entryId}`);
+      }
+    });
+
     socket.on('ping', (callback: (data: { timestamp: number }) => void) => {
       callback({ timestamp: Date.now() });
     });
@@ -208,9 +275,7 @@ async function setupWebSocketHandlers(io: Server): Promise<void> {
 async function startServer(): Promise<void> {
   const app = await buildApp();
 
-  const httpServer = createServer(app.server);
-
-  initWebSocket(httpServer);
+  initWebSocket(app.server);
   await setupWebSocketHandlers(getIO());
 
   await loadPersistedState();
@@ -254,10 +319,6 @@ async function startServer(): Promise<void> {
     });
   });
 
-  httpServer.on('error', (error: Error) => {
-    console.error('[SERVER] HTTP Server error:', error);
-  });
-
   try {
     await app.listen({ port: PORT, host: '0.0.0.0' });
 
@@ -274,7 +335,6 @@ async function startServer(): Promise<void> {
       console.log(`\n[SERVER] Received ${signal}, shutting down gracefully...`);
 
       getIO().close();
-      httpServer.close();
       await app.close();
 
       console.log('[SERVER] Shutdown complete');

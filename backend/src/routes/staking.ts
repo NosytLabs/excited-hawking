@@ -12,6 +12,7 @@ import {
   getStakeStats,
   calculateInferenceBudget
 } from '../services/staking.js';
+import { requireWalletWithSignature } from '../middleware/auth.js';
 import { checkRateLimit, setRateLimitHeaders, getClientIp } from '../services/state.js';
 import { getBalance } from '../services/state.js';
 
@@ -42,7 +43,12 @@ interface ConfigBody {
 
 export async function stakingRoutes(fastify: FastifyInstance) {
   fastify.post('/api/staking/stake', async (request: FastifyRequest<{ Body: StakeBody }>, reply: FastifyReply) => {
-    const { wallet, amount } = request.body;
+    const auth = requireWalletWithSignature(request, reply);
+    if (!auth.isValidWallet || !auth.signatureVerified) {
+      return;
+    }
+    const { amount } = request.body;
+    const wallet = auth.wallet;
     const clientIp = getClientIp(request);
 
     const rateLimit = checkRateLimit(clientIp, 'general', wallet);
@@ -59,7 +65,12 @@ export async function stakingRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'wallet and amount are required' });
     }
 
-    const amountBigInt = BigInt(amount);
+    let amountBigInt: bigint;
+    try {
+      amountBigInt = BigInt(amount);
+    } catch {
+      return reply.status(400).send({ error: 'Invalid amount format' });
+    }
 
     if (amountBigInt <= 0n) {
       return reply.status(400).send({ error: 'Amount must be positive' });
@@ -85,7 +96,12 @@ export async function stakingRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/api/staking/unstake-request', async (request: FastifyRequest<{ Body: UnstakeBody }>, reply: FastifyReply) => {
-    const { wallet, amount } = request.body;
+    const auth = requireWalletWithSignature(request, reply);
+    if (!auth.isValidWallet || !auth.signatureVerified) {
+      return;
+    }
+    const { amount } = request.body;
+    const wallet = auth.wallet;
     const clientIp = getClientIp(request);
 
     const rateLimit = checkRateLimit(clientIp, 'general', wallet);
@@ -102,7 +118,12 @@ export async function stakingRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'wallet and amount are required' });
     }
 
-    const amountBigInt = BigInt(amount);
+    let amountBigInt: bigint;
+    try {
+      amountBigInt = BigInt(amount);
+    } catch {
+      return reply.status(400).send({ error: 'Invalid amount format' });
+    }
 
     if (amountBigInt <= 0n) {
       return reply.status(400).send({ error: 'Amount must be positive' });
@@ -128,7 +149,12 @@ export async function stakingRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/api/staking/unstake-process', async (request: FastifyRequest<{ Body: UnstakeProcessBody }>, reply: FastifyReply) => {
-    const { wallet, requestId } = request.body;
+    const auth = requireWalletWithSignature(request, reply);
+    if (!auth.isValidWallet || !auth.signatureVerified) {
+      return;
+    }
+    const { requestId } = request.body;
+    const wallet = auth.wallet;
 
     if (!wallet || !requestId) {
       return reply.status(400).send({ error: 'wallet and requestId are required' });
@@ -215,6 +241,16 @@ export async function stakingRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/api/staking/config', async (request: FastifyRequest<{ Body: ConfigBody }>, reply: FastifyReply) => {
+    const auth = requireWalletWithSignature(request, reply);
+    if (!auth.isValidWallet || !auth.signatureVerified) {
+      return;
+    }
+
+    const adminWallets = (process.env.ADMIN_WALLETS || '').split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
+    if (adminWallets.length > 0 && !adminWallets.includes(auth.wallet.toLowerCase())) {
+      return reply.status(403).send({ error: 'Unauthorized: only admin wallets can modify staking configuration' });
+    }
+
     const { updates } = request.body;
 
     if (!updates) {

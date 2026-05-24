@@ -13,10 +13,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@fastify/cors": "^9.0.0",
+    "@fastify/cors": "^11.0.0",
     "@fastify/websocket": "^11.0.0",
+    "@types/keccak": "^3.0.5",
     "chromadb": "^3.4.3",
     "fastify": "^5.2.0",
+    "keccak": "^3.0.4",
     "socket.io": "^4.8.0"
   },
   "devDependencies": {

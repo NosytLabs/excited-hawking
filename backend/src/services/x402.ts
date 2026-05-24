@@ -1,6 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 import { getStakedBalance, getInferenceBudget } from './staking.js';
 import { isValidWalletAddress } from '../types/index.js';
+import { verifyMessageSignature } from '../middleware/auth.js';
 
 export interface X402Payment {
   version: string;
@@ -81,9 +82,8 @@ function validateSignaturePattern(signature: string | undefined): { valid: boole
   return { valid: true };
 }
 
-async function mockBlockchainVerify(wallet: string, signature: string, _message: string): Promise<boolean> {
-  await new Promise(resolve => setTimeout(resolve, 10));
-  return wallet.length === 42 && signature.length === 132;
+function verifySignature(wallet: string, signature: string, message: string): boolean {
+  return verifyMessageSignature(wallet, signature, message);
 }
 
 export async function validatePayment(
@@ -129,7 +129,7 @@ export async function validatePayment(
       return { valid: false, error: `Signature validation failed: ${sigValidation.error}` };
     }
 
-    const isValidSignature = await mockBlockchainVerify(wallet, signature, message);
+    const isValidSignature = verifySignature(wallet, signature, message);
     if (!isValidSignature) {
       return { valid: false, error: 'Signature verification failed: signature does not match wallet' };
     }

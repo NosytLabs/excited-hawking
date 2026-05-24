@@ -33,6 +33,24 @@ export const AgentStream: React.FC = React.memo(() => {
 
   const consciousness = Math.min(100, Math.max(0, (diemStaked / 500) * 100));
 
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas || gridCells.length === 0) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const cellSize = canvas.width / gridCells.length;
+    const x = Math.floor((e.clientX - rect.left) / cellSize);
+    const y = Math.floor((e.clientY - rect.top) / cellSize);
+    
+    if (x >= 0 && x < gridCells[0].length && y >= 0 && y < gridCells.length) {
+      const newGrid = gridCells.map((row, ri) => 
+        row.map((cell, ci) => (ri === y && ci === x) ? { ...cell, alive: !cell.alive } : cell)
+      );
+      setGridCells(newGrid);
+      websocketService.emit(WSEvents.EMERGENCE_CELL_TOGGLE, { x, y, alive: newGrid[y][x].alive });
+    }
+  }, [gridCells]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs.length]);
@@ -40,15 +58,23 @@ export const AgentStream: React.FC = React.memo(() => {
   useEffect(() => {
     const handleEmergenceUpdate = (data: { grid: boolean[][]; generation: number; patterns: string[] }) => {
       setGridCells(data.grid.map(row => 
-        row.map(alive => ({ alive, color: alive ? '#14fe17' : '' }))
+        row.map(alive => ({ alive, color: alive ? 'var(--canvas-alive)' : '' }))
       ));
       setGeneration(data.generation);
     };
 
+    const handleCellToggle = (data: { x: number; y: number; alive: boolean }) => {
+      setGridCells(prev => prev.map((row, ri) => 
+        row.map((cell, ci) => (ri === data.y && ci === data.x) ? { ...cell, alive: data.alive } : cell)
+      ));
+    };
+
     websocketService.on(WSEvents.EMERGENCE_UPDATE, handleEmergenceUpdate);
+    websocketService.on(WSEvents.EMERGENCE_CELL_TOGGLE, handleCellToggle);
 
     return () => {
       websocketService.off(WSEvents.EMERGENCE_UPDATE);
+      websocketService.off(WSEvents.EMERGENCE_CELL_TOGGLE);
     };
   }, []);
 
@@ -161,21 +187,43 @@ export const AgentStream: React.FC = React.memo(() => {
           <div className="flex items-center gap-2">
             <Terminal size={16} style={{ color: tierConfig.color }} aria-hidden="true" />
             <h2 
-              className="font-mono text-sm font-bold tracking-wider uppercase"
+              className="text-lg font-bold tracking-tight m-0"
               style={{ 
-                fontFamily: 'var(--font-terminal)',
-                color: 'var(--term-green)'
+                fontFamily: 'var(--font-display)',
+                color: 'var(--shell-text)'
               }}
             >
-              AGENT_STREAM.EXE
+              Agent stream
             </h2>
           </div>
           <div className="flex items-center gap-3 mt-1">
             <span 
-              className="text-xs font-mono"
-              style={{ color: tierConfig.color, fontFamily: 'var(--font-terminal)' }}
+              className="text-xs font-mono uppercase tracking-wider px-2 py-0.5 rounded"
+              style={{ 
+                backgroundColor: 'var(--shell-surface-2)',
+                color: 'var(--shell-text-muted)'
+              }}
             >
-              TIER: {tier.toUpperCase()}
+              TIER: {tier}
+            </span>
+            <span className="text-xs" style={{ color: 'var(--shell-border)' }}>|</span>
+            <span 
+              className="text-xs font-mono px-2 py-0.5 rounded"
+              style={{ 
+                backgroundColor: 'var(--shell-surface-2)',
+                color: 'var(--shell-text-muted)'
+              }}
+            >
+              STAKE: {diemStaked.toFixed(1)} DIEM
+            </span>
+            <span className="text-xs" style={{ color: 'var(--shell-border)' }}>|</span>
+            <span 
+              className="text-xs font-mono"
+              style={{ 
+                color: isConnected ? 'var(--shell-success)' : 'var(--shell-text-muted)'
+              }}
+            >
+              {isConnected ? 'Connected' : 'Offline preview'}
             </span>
             <span className="text-xs" style={{ color: 'var(--term-ash)' }}>|</span>
             <span 
@@ -231,6 +279,10 @@ export const AgentStream: React.FC = React.memo(() => {
               <canvas 
                 ref={canvasRef} 
                 className="block w-full h-full"
+                style={{ cursor: 'crosshair' }}
+                onClick={handleCanvasClick}
+                role="img"
+                aria-label="Emergence grid"
               />
             </div>
           </div>
@@ -265,9 +317,10 @@ export const AgentStream: React.FC = React.memo(() => {
               }}
             >
               <div 
-                className="h-full transition-all duration-500"
+                className="h-full"
                 style={{ 
                   width: `${consciousness}%`,
+                  transition: 'width 500ms var(--ease-out)',
                   backgroundColor: 'var(--term-green)',
                   boxShadow: '0 0 8px var(--term-green)'
                 }}
@@ -287,11 +340,11 @@ export const AgentStream: React.FC = React.memo(() => {
                   MEMORY
                 </span>
               </div>
-              <span 
-                className="text-[10px] font-mono"
-                style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-amber)' }}
-              >
-                {memoryUsage.toFixed(0)}%
+<span 
+              className="text-[10px] font-mono"
+              style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-amber)', fontVariantNumeric: 'tabular-nums' }}
+            >
+              {memoryUsage.toFixed(0)}%
               </span>
             </div>
             <div 
@@ -302,9 +355,10 @@ export const AgentStream: React.FC = React.memo(() => {
               }}
             >
               <div 
-                className="h-full transition-all duration-500"
+                className="h-full"
                 style={{ 
                   width: `${memoryUsage}%`,
+                  transition: 'width 500ms var(--ease-out)',
                   backgroundColor: 'var(--term-amber)',
                   boxShadow: '0 0 8px var(--term-amber)'
                 }}
@@ -343,9 +397,10 @@ export const AgentStream: React.FC = React.memo(() => {
               }}
             >
               <div 
-                className="h-full transition-all duration-500"
+                className="h-full"
                 style={{ 
                   width: '100%', 
+                  transition: 'background-color var(--dur-short)',
                   backgroundColor: MOOD_COLORS[mood],
                   opacity: 0.8,
                   boxShadow: `0 0 8px ${MOOD_COLORS[mood]}`
@@ -367,7 +422,7 @@ export const AgentStream: React.FC = React.memo(() => {
             key={log.id} 
             className="animate-fade-in flex gap-3"
           >
-            <span style={{ color: 'var(--term-ash)' }}>
+            <span style={{ color: 'var(--term-ash)', fontVariantNumeric: 'tabular-nums' }}>
               {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}
             </span>
             <span style={{ color: getColor(log.type) }}>

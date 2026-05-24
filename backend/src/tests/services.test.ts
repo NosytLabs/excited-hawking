@@ -19,9 +19,26 @@ import {
   getVotes,
   resetGovernance
 } from '../services/governance.js';
+import type { Proposal, Vote } from '../types/index.js';
 
 import { conwayEngine } from '../lib/emergence.js';
 import { socialEngine } from '../lib/social.js';
+
+function expectProposalResult(result: Proposal | { error: string }): Proposal {
+  if ('error' in result) {
+    throw new Error(`Expected proposal, got error: ${result.error}`);
+  }
+
+  return result;
+}
+
+function expectVoteResult(result: Vote | { error: string }): Vote {
+  if ('error' in result) {
+    throw new Error(`Expected vote, got error: ${result.error}`);
+  }
+
+  return result;
+}
 
 describe('State Service', () => {
   beforeEach(() => {
@@ -78,7 +95,7 @@ describe('Governance Service', () => {
   });
 
   it('should create a proposal', () => {
-    const result = createProposal(
+    const result = expectProposalResult(createProposal(
       'proposer_wallet',
       'Test Proposal',
       'Test description',
@@ -86,13 +103,13 @@ describe('Governance Service', () => {
       5000n,
       null,
       false
-    );
-    expect('id' in result).toBe(true);
-    expect((result as any).title).toBe('Test Proposal');
+    ));
+    expect(result.id).toBeDefined();
+    expect(result.title).toBe('Test Proposal');
   });
 
   it('should get a proposal', () => {
-    const created = createProposal(
+    const created = expectProposalResult(createProposal(
       'proposer_wallet',
       'Get Test',
       'Description',
@@ -100,10 +117,10 @@ describe('Governance Service', () => {
       5000n,
       null,
       false
-    );
-    const proposal = getProposal((created as any).id);
+    ));
+    const proposal = getProposal(created.id);
     expect(proposal).not.toBeNull();
-    expect((proposal as any).title).toBe('Get Test');
+    expect(proposal?.title).toBe('Get Test');
   });
 
   it('should get all proposals', () => {
@@ -112,7 +129,7 @@ describe('Governance Service', () => {
   });
 
   it('should cast a vote', () => {
-    const proposal = createProposal(
+    const proposal = expectProposalResult(createProposal(
       'voter_wallet',
       'Vote Test',
       'Description',
@@ -120,14 +137,14 @@ describe('Governance Service', () => {
       5000n,
       null,
       false
-    );
+    ));
 
-    const result = castVote('voter_wallet', (proposal as any).id, 'for');
-    expect('id' in result).toBe(true);
+    const result = expectVoteResult(castVote('voter_wallet', proposal.id, 'for'));
+    expect(result.id).toBeDefined();
   });
 
   it('should get votes for a proposal', () => {
-    const proposal = createProposal(
+    const proposal = expectProposalResult(createProposal(
       'voter_wallet',
       'Votes Test',
       'Description',
@@ -135,10 +152,10 @@ describe('Governance Service', () => {
       5000n,
       null,
       false
-    );
+    ));
 
-    castVote('voter_wallet', (proposal as any).id, 'for');
-    const votes = getVotes((proposal as any).id);
+    expectVoteResult(castVote('voter_wallet', proposal.id, 'for'));
+    const votes = getVotes(proposal.id);
     expect(Array.isArray(votes)).toBe(true);
     expect(votes.length).toBeGreaterThan(0);
   });

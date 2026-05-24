@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { promisify } from 'util';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const STATE_FILE = path.join(DATA_DIR, 'state.json');
@@ -10,6 +11,15 @@ const SAVE_INTERVAL = 30000;
 
 let saveTimer: ReturnType<typeof setInterval> | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+const fsExists = promisify(fs.exists.bind(fs));
+const fsMkdir = promisify(fs.mkdir.bind(fs));
+const fsCopyFile = promisify(fs.copyFile.bind(fs));
+const fsWriteFile = promisify(fs.writeFile.bind(fs));
+const fsRename = promisify(fs.rename.bind(fs));
+const fsUnlink = promisify(fs.unlink.bind(fs));
+const fsReadFile = promisify(fs.readFile.bind(fs));
+const fsStat = promisify(fs.stat.bind(fs));
 
 interface PersistedState {
   balances: [string, { wallet: string; diemBalance: string; vvvStaked: string; tier: string }][];
@@ -74,9 +84,9 @@ interface PersistedState {
   version: number;
 }
 
-function ensureDataDir(): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+async function ensureDataDir(): Promise<void> {
+  if (!(await fsExists(DATA_DIR))) {
+    await fsMkdir(DATA_DIR, { recursive: true });
   }
 }
 
@@ -170,18 +180,18 @@ export async function saveState(state: {
     );
   }
 
-  const json = JSON.stringify(bigintToString(serialized), null, 2);
+  const json = JSON.stringify(bigintToString(serialized));
 
-  if (fs.existsSync(STATE_FILE)) {
+  if (await fsExists(STATE_FILE)) {
     try {
-      if (fs.existsSync(BACKUP_FILE)) {
-        const stats = fs.statSync(BACKUP_FILE);
+      if (await fsExists(BACKUP_FILE)) {
+        const stats = await fsStat(BACKUP_FILE);
         const ageMs = Date.now() - stats.mtimeMs;
         if (ageMs > SAVE_INTERVAL) {
-          fs.copyFileSync(STATE_FILE, BACKUP_FILE);
+          await fsCopyFile(STATE_FILE, BACKUP_FILE);
         }
       } else {
-        fs.copyFileSync(STATE_FILE, BACKUP_FILE);
+        await fsCopyFile(STATE_FILE, BACKUP_FILE);
       }
     } catch {
       console.warn('[PERSISTENCE] Failed to create backup');
@@ -190,12 +200,12 @@ export async function saveState(state: {
 
   const tempFile = path.join(DATA_DIR, 'state.tmp');
   try {
-    fs.writeFileSync(tempFile, json, 'utf-8');
-    fs.renameSync(tempFile, STATE_FILE);
+    await fsWriteFile(tempFile, json, 'utf-8');
+    await fsRename(tempFile, STATE_FILE);
   } catch (err) {
     console.error('[PERSISTENCE] Failed to save state:', err);
-    if (fs.existsSync(tempFile)) {
-      try { fs.unlinkSync(tempFile); } catch { /* ignore */ }
+    if (await fsExists(tempFile)) {
+      try { await fsUnlink(tempFile); } catch { /* ignore */ }
     }
   }
 }
@@ -225,13 +235,13 @@ interface LoadedState {
 }
 
 export async function loadState(): Promise<LoadedState | null> {
-  ensureDataDir();
+  await ensureDataDir();
 
   let filePath = STATE_FILE;
   let usedBackup = false;
 
-  if (!fs.existsSync(STATE_FILE)) {
-    if (fs.existsSync(BACKUP_FILE)) {
+  if (!await fsExists(STATE_FILE)) {
+    if (await fsExists(BACKUP_FILE)) {
       filePath = BACKUP_FILE;
       usedBackup = true;
     } else {
@@ -240,7 +250,7 @@ export async function loadState(): Promise<LoadedState | null> {
   }
 
   try {
-    const content = fs.readFileSync(filePath, 'utf-8');
+    const content = await fsReadFile(filePath, 'utf-8');
     const parsed = JSON.parse(content) as PersistedState;
     const data = stringToBigint(parsed) as PersistedState;
 
@@ -286,12 +296,12 @@ export async function loadState(): Promise<LoadedState | null> {
   } catch (err) {
     console.error('[PERSISTENCE] Failed to load state:', err);
 
-    if (!usedBackup && fs.existsSync(BACKUP_FILE)) {
+    if (!usedBackup && await fsExists(BACKUP_FILE)) {
       console.warn('[PERSISTENCE] Attempting to recover from backup...');
       try {
-        const backupContent = fs.readFileSync(BACKUP_FILE, 'utf-8');
+        const backupContent = await fsReadFile(BACKUP_FILE, 'utf-8');
         const backupData = JSON.parse(backupContent) as PersistedState;
-        fs.copyFileSync(BACKUP_FILE, CORRUPT_FILE);
+        await fsCopyFile(BACKUP_FILE, CORRUPT_FILE);
         console.warn(`[PERSISTENCE] Corrupted state backed up to ${CORRUPT_FILE}`);
         const data = stringToBigint(backupData) as PersistedState;
         return {
@@ -365,4 +375,22 @@ export function stopAutoSave(): void {
     clearTimeout(debounceTimer);
     debounceTimer = null;
   }
+}
+
+export async function persistToFile(filename: string, data: unknown): Promise<void> {
+  await ensureDataDir();
+  const filePath = path.join(DATA_DIR, filename);
+  await fsWriteFile(filePath, JSON.stringify(data, null, 2));
+}
+
+export async function loadFromFile<T>(filename: string, defaultValue: T): Promise<T> {
+  try {
+    const filePath = path.join(DATA_DIR, filename);
+    if (await fsExists(filePath)) {
+      return JSON.parse(await fsReadFile(filePath, 'utf-8')) as T;
+    }
+  } catch {
+    // Return default on error
+  }
+  return defaultValue;
 }

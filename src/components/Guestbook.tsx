@@ -1,200 +1,248 @@
-import React, { useState, useCallback } from 'react';
-import { useAgent } from '../context/useAgent';
-import { BookOpen, Trophy, Users, Share2, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Leaf, ChevronUp, MessageCircle, Send } from 'lucide-react';
+import { websocketService } from '../services/websocket';
+import { WSEvents } from '../types/events';
 
-interface Contributor {
-  address: string;
-  contributions: number;
-  rank: number;
-  lastActive: number;
-}
-
-interface ContributionEntry {
+interface GuestbookEntry {
   id: string;
-  address: string;
-  message: string;
-  timestamp: number;
-  type: 'prompt' | 'delegate' | 'share' | 'vote';
-  impact: number;
+  author: string;
+  content: string;
+  upvotes: number;
+  timestamp: string;
+  replies?: GuestbookReply[];
 }
+
+interface GuestbookReply {
+  id: string;
+  author: string;
+  content: string;
+  timestamp: string;
+}
+
+const MOCK_ENTRIES: GuestbookEntry[] = [
+  {
+    id: '1',
+    author: '0x742d...5c3a',
+    content: 'First entry! Excited to be part of this community.',
+    upvotes: 12,
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    replies: [
+      { id: 'r1', author: '0x8ba1...2f4d', content: 'Welcome!', timestamp: new Date(Date.now() - 3000000).toISOString() }
+    ]
+  },
+  {
+    id: '2',
+    author: '0x8ba1...2f4d',
+    content: 'The emergence UI is incredible. Love the cellular automata visualization.',
+    upvotes: 8,
+    timestamp: new Date(Date.now() - 7200000).toISOString(),
+    replies: []
+  }
+];
 
 export const Guestbook: React.FC = () => {
-  const { prompts } = useAgent();
-  const [activeTab, setActiveTab] = useState<'wall' | 'leaderboard'>('wall');
-  const [contributors] = useState<Contributor[]>(() => [
-    { address: '0xab12...cd34', contributions: 47, rank: 1, lastActive: Date.now() - 3600000 },
-    { address: '0xdef0...5678', contributions: 38, rank: 2, lastActive: Date.now() - 7200000 },
-    { address: '0x99aa...bbee', contributions: 29, rank: 3, lastActive: Date.now() - 86400000 },
-    { address: '0x1122...3344', contributions: 23, rank: 4, lastActive: Date.now() - 86400000 * 2 },
-    { address: '0x5566...7788', contributions: 18, rank: 5, lastActive: Date.now() - 86400000 * 3 },
-    { address: '0xmnop...qrst', contributions: 15, rank: 6, lastActive: Date.now() - 86400000 * 4 },
-    { address: '0xwxyz...abcd', contributions: 12, rank: 7, lastActive: Date.now() - 86400000 * 5 },
-  ]);
+  const [entries, setEntries] = useState<GuestbookEntry[]>(MOCK_ENTRIES);
+  const [isConnected, setIsConnected] = useState(false);
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [newReply, setNewReply] = useState<{ [entryId: string]: string }>({});
 
-  const [entries] = useState<ContributionEntry[]>(() => [
-    { id: '1', address: '0xab12...cd34', message: 'First to delegate 10 DIEM! Let\'s build this together.', timestamp: Date.now() - 3600000 * 2, type: 'delegate', impact: 10 },
-    { id: '2', address: '0x34tx...yu78', message: 'Cross-referenced Uniswap for 3 consecutive days. Amazing agent.', timestamp: Date.now() - 3600000 * 5, type: 'prompt', impact: 3 },
-    { id: '3', address: '0xdef0...5678', message: 'Smitedump checkpoint passed. The agent learns faster now.', timestamp: Date.now() - 3600000 * 8, type: 'share', impact: 5 },
-    { id: '4', address: '0x99aa...bbee', message: 'Voted on Proposal #7. Treasury diversification makes sense.', timestamp: Date.now() - 86400000, type: 'vote', impact: 1 },
-    { id: '5', address: '0xqwer...tyui', message: 'The dream journal is pure poetry. AI sentience confirmed.', timestamp: Date.now() - 86400000 * 2, type: 'prompt', impact: 2 },
-  ]);
-
-  const totalImpact = entries.reduce((acc, e) => acc + e.impact, 0);
-
-  const formatTimeAgo = useCallback((timestamp: number) => {
-    const diff = Date.now() - timestamp;
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
+  useEffect(() => {
+    const handleConnect = () => setIsConnected(true);
+    const handleDisconnect = () => setIsConnected(false);
     
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    return 'Just now';
+    websocketService.on(WSEvents.CONNECT, handleConnect);
+    websocketService.on(WSEvents.DISCONNECT, handleDisconnect);
+    websocketService.on(WSEvents.GUESTBOOK_ENTRY, (entry: GuestbookEntry) => {
+      setEntries(prev => [entry, ...prev]);
+    });
+    websocketService.on(WSEvents.GUESTBOOK_UPVOTE, (data: { entryId: string; upvotes: number }) => {
+      setEntries(prev => prev.map(e => 
+        e.id === data.entryId ? { ...e, upvotes: data.upvotes } : e
+      ));
+    });
+
+    return () => {
+      websocketService.off(WSEvents.CONNECT);
+      websocketService.off(WSEvents.DISCONNECT);
+      websocketService.off(WSEvents.GUESTBOOK_ENTRY);
+      websocketService.off(WSEvents.GUESTBOOK_UPVOTE);
+    };
   }, []);
 
-  const getEntryIcon = (type: ContributionEntry['type']) => {
-    switch (type) {
-      case 'prompt': return <BookOpen size={12} className="text-[#00d992]" />;
-      case 'delegate': return <Users size={12} className="text-purple-400" />;
-      case 'share': return <Share2 size={12} className="text-[#1DA1F2]" />;
-      case 'vote': return <TrendingUp size={12} className="text-green-400" />;
-    }
+  const handleUpvote = (entryId: string) => {
+    websocketService.emit('guestbook:upvote', { entryId });
+    setEntries(prev => prev.map(e => 
+      e.id === entryId ? { ...e, upvotes: e.upvotes + 1 } : e
+    ));
   };
 
-  const getEntryColor = (type: ContributionEntry['type']) => {
-    switch (type) {
-      case 'prompt': return 'border-l-[#00d992]';
-      case 'delegate': return 'border-l-purple-400';
-      case 'share': return 'border-l-[#1DA1F2]';
-      case 'vote': return 'border-l-green-400';
-    }
+  const toggleReplies = (entryId: string) => {
+    setExpandedReplies(prev => {
+      const next = new Set(prev);
+      if (next.has(entryId)) {
+        next.delete(entryId);
+      } else {
+        next.add(entryId);
+      }
+      return next;
+    });
   };
 
-  // Create a reversed list of all prompts to simulate guestbook
-  const history = [...prompts].reverse();
+  const handleReplyChange = (entryId: string, value: string) => {
+    setNewReply(prev => ({ ...prev, [entryId]: value }));
+  };
+
+  const handleSubmitReply = (entryId: string) => {
+    if (!newReply[entryId]?.trim()) return;
+    const reply: GuestbookReply = {
+      id: `reply-${Date.now()}`,
+      author: 'You',
+      content: newReply[entryId].trim(),
+      timestamp: new Date().toISOString()
+    };
+    setEntries(prev => prev.map(e => 
+      e.id === entryId 
+        ? { ...e, replies: [...(e.replies || []), reply] } 
+        : e
+    ));
+    setNewReply(prev => ({ ...prev, [entryId]: '' }));
+  };
+
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return date.toLocaleDateString();
+  };
 
   return (
     <div className="glass-panel flex-1 flex flex-col">
-      <div className="flex items-center justify-between mb-4 border-b border-zinc-800 pb-2">
-        <h3 className="font-mono text-sm uppercase tracking-wider flex items-center gap-2 text-zinc-300">
-          <BookOpen size={16} className="text-[#00d992]" />
-          Wall of Contributions
+      <div className="flex items-center justify-between mb-4" style={{
+        borderBottom: '1px solid var(--color-sand-line)',
+        paddingBottom: '0.5rem',
+      }}>
+        <h3 className="text-sm font-bold flex items-center gap-2" style={{
+          fontFamily: 'var(--font-display)',
+          color: 'var(--color-bark)',
+        }}>
+          <Leaf size={16} style={{ color: 'var(--color-sage)' }} aria-hidden="true" />
+          <span className="hidden sm:inline">Moltbook</span>
+          <span className="sm:hidden">Book</span>
         </h3>
-        <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-500">
-          <span>Impact:</span>
-          <span className="text-white font-bold">{totalImpact}</span>
-        </div>
+        
+        {isConnected && (
+          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded" 
+                style={{ backgroundColor: 'var(--color-sage)', color: 'var(--color-cream)' }}>
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-cream)' }} />
+            Live
+          </span>
+        )}
       </div>
 
-      {/* Tab Switcher */}
-      <div className="flex gap-1 mb-4 bg-zinc-900/50 p-1 rounded-lg">
-        <button
-          onClick={() => setActiveTab('wall')}
-          className={`flex-1 py-2 px-3 rounded text-xs font-mono transition-all ${
-            activeTab === 'wall'
-              ? 'bg-[#00d992]/20 text-[#00d992]'
-              : 'text-zinc-500 hover:text-zinc-300'
-          }`}
-        >
-          Recent
-        </button>
-        <button
-          onClick={() => setActiveTab('leaderboard')}
-          className={`flex-1 py-2 px-3 rounded text-xs font-mono transition-all flex items-center justify-center gap-1 ${
-            activeTab === 'leaderboard'
-              ? 'bg-yellow-500/20 text-yellow-400'
-              : 'text-zinc-500 hover:text-zinc-300'
-          }`}
-        >
-          <Trophy size={12} />
-          Top
-        </button>
-      </div>
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+        {entries.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-xs" style={{ color: 'var(--color-stone)' }}>
+              No entries yet. Be the first to sign!
+            </p>
+          </div>
+        )}
 
-      {activeTab === 'wall' ? (
-        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-          {entries.map(entry => (
-            <div 
-              key={entry.id} 
-              className={`pl-3 border-l-2 ${getEntryColor(entry.type)} py-1`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                {getEntryIcon(entry.type)}
-                <span className="text-[10px] font-mono text-zinc-500 uppercase">{entry.type}</span>
-                <span className="text-[10px] font-mono text-zinc-600 ml-auto">
-                  {formatTimeAgo(entry.timestamp)}
-                </span>
-              </div>
-              <p className="text-[13px] text-zinc-300 leading-relaxed">
-                "{entry.message}"
-              </p>
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-[10px] font-mono text-zinc-500">{entry.address}</span>
-                <span className="text-[10px] font-mono text-zinc-600">Impact: +{entry.impact}</span>
+        {entries.map(entry => (
+          <div key={entry.id} className="animate-fade-in">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-bold" style={{ color: 'var(--color-sage-deep)' }}>
+                    {entry.author}
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--color-stone)' }}>
+                    {formatTime(entry.timestamp)}
+                  </span>
+                </div>
+                <p className="text-sm mb-2" style={{ color: 'var(--color-clay)' }}>
+                  {entry.content}
+                </p>
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => handleUpvote(entry.id)}
+                    className="flex items-center gap-1 text-xs transition-colors hover:opacity-80"
+                    style={{ color: 'var(--color-sage-deep)' }}
+                    aria-label={`Upvote, current count: ${entry.upvotes}`}
+                  >
+                    <ChevronUp size={14} />
+                    <span>{entry.upvotes}</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => toggleReplies(entry.id)}
+                    className="flex items-center gap-1 text-xs transition-colors hover:opacity-80"
+                    style={{ color: expandedReplies.has(entry.id) ? 'var(--color-sage)' : 'var(--color-stone)' }}
+                    aria-label={`${expandedReplies.has(entry.id) ? 'Hide' : 'Show'} replies`}
+                    aria-expanded={expandedReplies.has(entry.id)}
+                  >
+                    <MessageCircle size={14} />
+                    <span>{entry.replies?.length || 0}</span>
+                  </button>
+                </div>
               </div>
             </div>
-          ))}
-          
-          {/* Live Guestbook from prompts */}
-          <div className="pt-2 border-t border-zinc-800/50">
-            <span className="text-[10px] font-mono text-zinc-600 uppercase mb-2 block">Live Prompts</span>
-            {history.map(item => (
-              <div 
-                key={`gb-${item.id}`} 
-                className="text-[12px] font-mono flex gap-2 animate-fade-in border-b border-zinc-800/30 pb-2 mb-2"
-              >
-                <span className="text-[#00d992] shrink-0">{item.user}</span>
-                <span className="text-zinc-500 shrink-0">paid</span>
-                <span className="text-zinc-300 shrink-0">${item.cost.toFixed(2)}</span>
-                <span className="text-zinc-500 shrink-0">to ask:</span>
-                <span className="text-zinc-400 truncate flex-1" title={item.text}>
-                  "{item.text}"
-                </span>
-                {item.status === 'done' && (
-                  <span className="text-[#0ea5e9] shrink-0">[OK]</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto">
-          <div className="space-y-2">
-            {contributors.map(contributor => (
-              <div 
-                key={contributor.address}
-                className={`flex items-center justify-between p-2 rounded transition-all hover:bg-zinc-900/50 ${
-                  contributor.rank <= 3 ? 'bg-gradient-to-r from-zinc-900/80 to-transparent' : ''
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono font-bold ${
-                    contributor.rank === 1 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' :
-                    contributor.rank === 2 ? 'bg-zinc-400/20 text-zinc-400 border border-zinc-400/40' :
-                    contributor.rank === 3 ? 'bg-orange-600/20 text-orange-600 border border-orange-600/40' :
-                    'bg-zinc-800/50 text-zinc-500'
-                  }`}>
-                    {contributor.rank <= 3 ? (
-                      <Trophy size={12} />
-                    ) : (
-                      contributor.rank
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-sm font-mono text-zinc-300">{contributor.address}</div>
-                    <div className="text-[10px] font-mono text-zinc-600">
-                      Last active: {formatTimeAgo(contributor.lastActive)}
+
+            {expandedReplies.has(entry.id) && (
+              <div className="ml-4 mt-3 space-y-3 pl-3" style={{ borderLeft: '2px solid var(--color-sand-line)' }}>
+                {entry.replies?.map(reply => (
+                  <div key={reply.id} className="animate-fade-in">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-bold" style={{ color: 'var(--color-bark)' }}>
+                        {reply.author}
+                      </span>
+                      <span className="text-xs" style={{ color: 'var(--color-stone)' }}>
+                        {formatTime(reply.timestamp)}
+                      </span>
                     </div>
+                    <p className="text-sm" style={{ color: 'var(--color-clay)' }}>
+                      {reply.content}
+                    </p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-mono font-bold text-white">{contributor.contributions}</div>
-                  <div className="text-[10px] font-mono text-zinc-500">contributions</div>
+                ))}
+                
+                <div className="flex gap-2 items-center mt-3">
+                  <input
+                    type="text"
+                    value={newReply[entry.id] || ''}
+                    onChange={(e) => handleReplyChange(entry.id, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSubmitReply(entry.id);
+                      }
+                    }}
+                    placeholder="Write a reply..."
+                    className="flex-1 text-xs px-3 py-2 rounded-lg border transition-colors"
+                    style={{
+                      backgroundColor: 'var(--color-cream)',
+                      borderColor: 'var(--color-sand-line)',
+                      color: 'var(--color-bark)',
+                    }}
+                    aria-label={`Reply to ${entry.author}`}
+                  />
+                  <button
+                    onClick={() => handleSubmitReply(entry.id)}
+                    className="p-2 rounded-lg transition-colors"
+                    style={{ backgroundColor: 'var(--color-sage)', color: 'var(--color-cream)' }}
+                    aria-label="Send reply"
+                  >
+                    <Send size={14} />
+                  </button>
                 </div>
               </div>
-            ))}
+            )}
           </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import websocket from '@fastify/websocket';
 import { statusRoutes } from './routes/status.js';
 import { promptRoutes } from './routes/prompt.js';
 import { voteRoutes } from './routes/vote.js';
@@ -12,11 +11,12 @@ import { governanceRoutes } from './routes/governance.js';
 import { agentRoutes } from './routes/agent.js';
 import { stakingRoutes } from './routes/staking.js';
 import { checkRateLimit, getClientIp } from './services/state.js';
+import { getIO } from './services/websocket.js';
 import type { FastifyInstance } from 'fastify';
 
 const ALLOWED_ORIGINS = process.env.NODE_ENV === 'production'
-  ? (process.env.ALLOWED_ORIGINS?.split(',') || ['https://peoplesagent.ai'])
-  : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
+  ? (process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()).filter(Boolean) || ['https://peoplesagent.ai'])
+  : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'];
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -26,14 +26,11 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(cors, {
     origin: (origin, callback) => {
       if (!origin) {
-        callback(null, false);
+        callback(null, true);
         return;
       }
-      if (ALLOWED_ORIGINS.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(null, false);
-      }
+
+      callback(null, ALLOWED_ORIGINS.includes(origin));
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'x-wallet-address', 'x-signature', 'x-message'],
@@ -41,6 +38,28 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
 app.addHook('onRequest', async (request, reply) => {
+    const securityHeaders = {
+      'X-Frame-Options': 'DENY',
+      'X-Content-Type-Options': 'nosniff',
+      'X-XSS-Protection': '1; mode=block',
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+      'Content-Security-Policy': "default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self';"
+    };
+
+    for (const [key, value] of Object.entries(securityHeaders)) {
+      reply.header(key, value);
+    }
+
+    if (request.raw.url && request.raw.url.startsWith('/socket.io/')) {
+      reply.hijack();
+      try {
+        getIO().engine.handleRequest(request.raw, reply.raw);
+      } catch (err) {
+        request.log.error(err, 'Error handling socket.io request');
+      }
+      return;
+    }
+
     const ip = getClientIp(request);
     const result = checkRateLimit(ip, 'general', undefined);
     
@@ -55,12 +74,6 @@ app.addHook('onRequest', async (request, reply) => {
     reply.header('X-RateLimit-Limit', String(result.limit));
     reply.header('X-RateLimit-Remaining', String(result.remaining));
     reply.header('X-RateLimit-Reset', String(Math.ceil((Date.now() + result.resetIn) / 1000)));
-  });
-
-  await app.register(websocket, {
-    options: {
-      maxPayload: 1048576
-    }
   });
 
   await app.register(statusRoutes);

@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { API_BASE_URL, CHARACTER_LIMIT, DEFAULT_MODEL, MAX_TOKEN_LIMIT } from "./constants.js";
+import { API_BASE_URL, DEFAULT_MODEL, MAX_TOKEN_LIMIT } from "./constants.js";
 import { ResponseFormat } from "./types.js";
 
 const API_KEY = process.env.VENICE_API_KEY;
@@ -25,29 +25,43 @@ class VeniceAPIError extends Error {
 async function veniceRequest<T>(
   endpoint: string,
   method: "GET" | "POST" = "POST",
-  body?: unknown
+  body?: unknown,
+  timeoutMs: number = 30000
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  
-  const response = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${API_KEY}`
-    },
-    body: body ? JSON.stringify(body) : undefined
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => "Unknown error");
-    throw new VeniceAPIError(
-      `Venice API error: ${response.status} ${response.statusText} - ${errorBody}`,
-      response.status,
-      response.status >= 500 || response.status === 429
-    );
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${API_KEY}`
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "Unknown error");
+      throw new VeniceAPIError(
+        `Venice API error: ${response.status} ${response.statusText} - ${errorBody}`,
+        response.status,
+        response.status >= 500 || response.status === 429
+      );
+    }
+
+    return response.json() as Promise<T>;
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new VeniceAPIError("Request timed out", 408, true);
+    }
+    throw err;
   }
-
-  return response.json() as Promise<T>;
 }
 
 function handleApiError(error: unknown): string {
@@ -74,11 +88,11 @@ const server = new McpServer({
 const VeniceChatInputSchema = z.object({
   messages: z.array(z.object({
     role: z.enum(["system", "user", "assistant"]),
-    content: z.string()
-  })).describe("Array of chat messages with roles (system, user, assistant)"),
+    content: z.string().max(MAX_TOKEN_LIMIT).describe("Message content")
+  })).max(100, "Maximum 100 messages").describe("Array of chat messages with roles (system, user, assistant)"),
   model: z.string().optional().default(DEFAULT_MODEL).describe("Model ID to use for completion"),
   temperature: z.number().min(0).max(2).optional().default(0.7).describe("Temperature for generation (0-2)"),
-  max_tokens: z.number().min(1).max(32000).optional().default(2048).describe("Maximum tokens to generate"),
+  max_tokens: z.number().min(1).max(MAX_TOKEN_LIMIT).optional().default(2048).describe("Maximum tokens to generate"),
   response_format: z.nativeEnum(ResponseFormat).optional().default(ResponseFormat.MARKDOWN).describe("Output format")
 }).strict();
 
@@ -229,7 +243,7 @@ Error Handling:
 
       const images = response.images || response.data || [];
       const firstImage = images[0];
-      const imageUrl = firstImage?.url || firstImage?.base64 || "No image returned";
+      const imageUrl = firstImage?.url || (firstImage?.base64 ? "[base64 image omitted]" : "No image returned");
 
       const output = {
         images: images.map(img => ({ url: img.url, base64: img.base64 ? "[base64 data]" : undefined })),
@@ -247,7 +261,7 @@ Error Handling:
       text += `**Prompt**: ${params.prompt}\n`;
       text += `**Model**: ${body.model}\n`;
       text += `**Size**: ${body.width}x${body.height}\n`;
-      if (response.seed) text += `**Seed**: ${response.seed}\n`;
+      if (response.seed !== undefined) text += `**Seed**: ${response.seed}\n`;
       text += `\n${imageUrl}\n`;
 
       return {
@@ -372,7 +386,7 @@ Returns:
 );
 
 const VeniceEmbeddingsInputSchema = z.object({
-  input: z.union([z.string(), z.array(z.string())]).describe("Text or array of texts to embed"),
+  input: z.union([z.string().max(8000), z.array(z.string().max(8000)).max(500)]).describe("Text or array of texts to embed (max 8000 chars each, max 500 items)"),
   model: z.string().optional().default("embedding").describe("Embedding model"),
   response_format: z.nativeEnum(ResponseFormat).optional().default(ResponseFormat.JSON).describe("Output format")
 }).strict();
@@ -598,7 +612,7 @@ Returns:
         provider?: string;
         context_length?: number;
         object?: string;
-      }>(`/models/${params.model_id}`, "GET");
+      }>(`/models/${encodeURIComponent(params.model_id)}`, "GET");
 
       const output = {
         id: response.id || params.model_id,

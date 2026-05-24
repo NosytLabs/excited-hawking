@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { votePrompt, getPrompts, checkRateLimit, setRateLimitHeaders, getClientIp } from '../services/state.js';
 import { emitQueueUpdate } from '../services/websocket.js';
 import { sanitizeString } from '../types/index.js';
+import { requireWalletWithSignature } from '../middleware/auth.js';
 
 interface VoteBody {
   promptId: string;
@@ -11,7 +12,12 @@ interface VoteBody {
 
 export async function voteRoutes(fastify: FastifyInstance) {
   fastify.post('/api/vote', async (request: FastifyRequest<{ Body: VoteBody }>, reply: FastifyReply) => {
-    const { promptId, vote, wallet = 'anonymous' } = request.body;
+    const auth = requireWalletWithSignature(request, reply);
+    if (!auth.isValidWallet || !auth.signatureVerified) {
+      return;
+    }
+    const { promptId, vote } = request.body;
+    const wallet = auth.wallet;
     const sanitizedPromptId = sanitizeString(promptId, 50);
     const clientIp = getClientIp(request);
 

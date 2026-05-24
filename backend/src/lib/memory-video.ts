@@ -1,4 +1,9 @@
 import { randomBytes } from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const DATA_DIR = path.join(process.cwd(), 'data');
+const MEMVID_FILE = path.join(DATA_DIR, 'memvid.json');
 
 const veniceConfig = {
   apiKey: process.env.VENICE_API_KEY || '',
@@ -122,7 +127,43 @@ export class MemvidService {
   private episodeFrames: Map<string, MemvidFrame[]> = new Map();
 
   async initialize(): Promise<void> {
+    this.restore();
     console.log('[Memvid] Initialized - Episodic video memory system ready');
+  }
+
+  persist(): void {
+    try {
+      const dataDir = path.join(process.cwd(), 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      const serialized = {
+        episodes: Array.from(this.episodes.entries()),
+        frameIndex: Array.from(this.frameIndex.entries()).map(([k, v]) => [k, Array.from(v)]),
+        embeddingIndex: Array.from(this.embeddingIndex.entries()),
+        keywordIndex: Array.from(this.keywordIndex.entries()).map(([k, v]) => [k, Array.from(v)]),
+        episodeFrames: Array.from(this.episodeFrames.entries()).map(([k, v]) => [k, v])
+      };
+      fs.writeFileSync(MEMVID_FILE, JSON.stringify(serialized), 'utf-8');
+    } catch (err) {
+      console.error('[Memvid] Persist failed:', err);
+    }
+  }
+
+  restore(): void {
+    try {
+      if (!fs.existsSync(MEMVID_FILE)) return;
+      const content = fs.readFileSync(MEMVID_FILE, 'utf-8');
+      const data = JSON.parse(content);
+      this.episodes = new Map(data.episodes);
+      this.frameIndex = new Map(data.frameIndex.map(([k, v]: [string, string[]]) => [k, v]));
+      this.embeddingIndex = new Map(data.embeddingIndex);
+      this.keywordIndex = new Map(data.keywordIndex.map(([k, v]: [string, string[]]) => [k, new Set(v)]));
+      this.episodeFrames = new Map(data.episodeFrames);
+      console.log('[Memvid] State restored');
+    } catch (err) {
+      console.error('[Memvid] Restore failed:', err);
+    }
   }
 
   async storeEpisode(
@@ -163,6 +204,7 @@ export class MemvidService {
 
     this.episodes.set(episodeId, episode);
     this.episodeFrames.set(episodeId, frames);
+    this.persist();
 
     for (const frame of frames) {
       this.embeddingIndex.set(frame.id, frame.embedding);
@@ -432,10 +474,17 @@ export class MemvidService {
   private cosineSimilarity(a: number[], b: number[]): number {
     if (a.length !== b.length) return 0;
     let dotProduct = 0;
+    let magA = 0;
+    let magB = 0;
     for (let i = 0; i < a.length; i++) {
       dotProduct += a[i] * b[i];
+      magA += a[i] * a[i];
+      magB += b[i] * b[i];
     }
-    return dotProduct;
+    const magnitudeA = Math.sqrt(magA);
+    const magnitudeB = Math.sqrt(magB);
+    if (magnitudeA === 0 || magnitudeB === 0) return 0;
+    return dotProduct / (magnitudeA * magnitudeB);
   }
 
   getStats(): MemvidStats {
@@ -523,6 +572,7 @@ export class MemvidService {
         }
       }
     }
+    this.persist();
   }
 }
 

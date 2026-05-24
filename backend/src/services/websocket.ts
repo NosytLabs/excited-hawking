@@ -101,6 +101,10 @@ export function emitEmergenceUpdate(data: { grid: boolean[][]; generation: numbe
   io?.to('emergence').emit(WSEvents.EMERGENCE_UPDATE, { ...data, timestamp: Date.now() });
 }
 
+export function emitEmergenceCellToggle(data: { x: number; y: number; alive: boolean }): void {
+  io?.to('emergence').emit(WSEvents.EMERGENCE_CELL_TOGGLE, data);
+}
+
 export function emitProposalNew(proposal: unknown): void {
   io?.emit(WSEvents.GOVERNANCE_PROPOSAL_NEW, { proposal, timestamp: Date.now() });
 }
@@ -111,4 +115,8 @@ export function emitProposalUpdate(proposal: unknown): void {
 
 export function emitGovernanceUpdate(data: Record<string, unknown>): void {
   io?.emit(WSEvents.GOVERNANCE_UPDATE, { ...data, timestamp: Date.now() });
+}
+
+export function emitMemoryNew(data: { id: string; type: string; content: string; timestamp: number; connections: string[] }): void {
+  io?.emit(WSEvents.MEMORY_NEW, { ...data, timestamp: Date.now() });
 }

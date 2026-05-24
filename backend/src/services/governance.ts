@@ -9,7 +9,7 @@ import type {
   VoterWeight,
   ProposalResult
 } from '../types/index.js';
-import { getState } from './state.js';
+import { getState, addVote } from './state.js';
 import { emitGovernanceUpdate, emitProposalNew, emitProposalUpdate } from './websocket.js';
 import { generateId } from '../lib/crypto.js';
 import { 
@@ -43,6 +43,7 @@ let config = { ...DEFAULT_CONFIG };
 const votes = new Map<string, Vote[]>();
 const delegations = new Map<string, Delegation>();
 const activeProposals = new Map<string, Proposal>();
+const expirationTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 export function getConfig(): GovernanceConfig {
   return { ...config };
@@ -121,9 +122,15 @@ function sqrt(value: bigint): bigint {
 }
 
 function getDelegationsTo(wallet: string): DelegationRecord[] {
+  const now = Date.now();
   const result: DelegationRecord[] = [];
-  for (const del of delegations.values()) {
-    if (del.delegate === wallet && del.expiresAt > Date.now()) {
+  
+  for (const [delegatorWallet, del] of delegations.entries()) {
+    if (del.expiresAt <= now) {
+      delegations.delete(delegatorWallet);
+      continue;
+    }
+    if (del.delegate === wallet) {
       result.push({
         delegate: del.delegate,
         power: del.power,
@@ -131,6 +138,7 @@ function getDelegationsTo(wallet: string): DelegationRecord[] {
       });
     }
   }
+  
   return result;
 }
 
@@ -195,15 +203,18 @@ export function createProposal(
   
   emitProposalNew(proposal);
   emitGovernanceUpdate({ type: 'proposal:created', proposal });
-  
-  setTimeout(() => checkProposalExpiration(proposal.id), proposal.deadline - now + 1000);
-  
+
+  const timer = setTimeout(() => checkProposalExpiration(proposal.id), proposal.deadline - now + 1000);
+  expirationTimers.set(proposal.id, timer);
+
   return proposal;
 }
 
 function checkProposalExpiration(proposalId: string): void {
   const proposal = activeProposals.get(proposalId);
   if (!proposal) return;
+  
+  expirationTimers.delete(proposalId);
   
   if (proposal.status === 'submitted' || proposal.status === 'review' || proposal.status === 'voting') {
     if (Date.now() >= proposal.deadline) {
@@ -250,7 +261,8 @@ export function castVote(
   
   proposalVotes.push(voteRecord);
   votes.set(proposalId, proposalVotes);
-  
+  addVote(voteRecord);
+
   if (vote === 'for') {
     proposal.votesFor += voterWeight.quadraticWeight;
   } else if (vote === 'against') {
@@ -324,10 +336,15 @@ export function delegate(
 }
 
 export function getDelegations(wallet: string): DelegationRecord[] {
+  const now = Date.now();
   const result: DelegationRecord[] = [];
   
-  for (const [, del] of delegations.entries()) {
-    if (del.delegate === wallet && del.expiresAt > Date.now()) {
+  for (const [delegatorWallet, del] of delegations.entries()) {
+    if (del.expiresAt <= now) {
+      delegations.delete(delegatorWallet);
+      continue;
+    }
+    if (del.delegate === wallet) {
       result.push({
         delegate: del.delegate,
         power: del.power,
@@ -340,10 +357,15 @@ export function getDelegations(wallet: string): DelegationRecord[] {
 }
 
 export function getDelegators(delegator: string): { wallet: string; power: bigint }[] {
+  const now = Date.now();
   const result: { wallet: string; power: bigint }[] = [];
   
   for (const [delegatorWallet, del] of delegations.entries()) {
-    if (del.delegator === delegator && del.expiresAt > Date.now()) {
+    if (del.expiresAt <= now) {
+      delegations.delete(delegatorWallet);
+      continue;
+    }
+    if (del.delegator === delegator) {
       result.push({
         wallet: delegatorWallet,
         power: del.power
@@ -406,7 +428,9 @@ export function finalizeProposal(proposalId: string): ProposalResult {
     passed,
     reason: !quorumMet ? 'Quorum not reached' : !thresholdMet ? 'Threshold not reached' : 'Passed'
   });
-  
+
+  votes.delete(proposalId);
+
   return buildResult(proposal, !quorumMet ? 'Quorum not reached' : !thresholdMet ? 'Threshold not reached' : 'Passed');
 }
 
@@ -532,7 +556,12 @@ export function getGovernanceStats(): {
   };
 }
 
-export function slashForSpam(wallet: string, _amount: bigint): void {
+export function slashForSpam(adminWallet: string, wallet: string, _amount: bigint): { success: boolean; error?: string } {
+  const adminWallets = (process.env.ADMIN_WALLETS || '').split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
+  if (adminWallets.length > 0 && !adminWallets.includes(adminWallet.toLowerCase())) {
+    return { success: false, error: 'Unauthorized: only admin wallets can slash' };
+  }
+
   const state = getState();
   const user = state.balances.get(wallet);
   if (user) {
@@ -543,12 +572,17 @@ export function slashForSpam(wallet: string, _amount: bigint): void {
       diemBalance: newBalance
     });
   }
+  return { success: true };
 }
 
 export function resetGovernance(): void {
   votes.clear();
   delegations.clear();
   activeProposals.clear();
+  for (const timer of expirationTimers.values()) {
+    clearTimeout(timer);
+  }
+  expirationTimers.clear();
 }
 
 export function castPublicVote(
@@ -569,11 +603,12 @@ export function castPublicVote(
     return { error: 'Voting period has ended' };
   }
 
-  const voterWeight = { totalWeight: 0n, quadraticWeight: 0n, baseStake: 0n, delegations: [] };
+  const sessionId = generateId();
+  const voterWeight = { totalWeight: 1000n, quadraticWeight: 316n, baseStake: 1000n, delegations: [] };
   const voteRecord: Vote = {
     id: generateId(),
     proposalId,
-    voter: 'public',
+    voter: `public:${sessionId}`,
     vote,
     weight: voterWeight.totalWeight,
     quadraticWeight: voterWeight.quadraticWeight,

@@ -1,5 +1,77 @@
 import { generateId } from './crypto.js';
 import { MemvidService, createMemvidService } from './memory-video.js';
+import { emitMemoryNew } from '../services/websocket.js';
+import { persistToFile, loadFromFile } from './persistence.js';
+
+// Bounded snapshot system - frozen memory files for session injection
+// Inspired by Hermes Agent's MEMORY.md / USER.md bounded stores
+const MAX_COLLECTIVE_CHARS = 2200;
+const MAX_USER_CHARS = 1375;
+const DELIMITER = '§';
+
+class BoundedSnapshot {
+  private collective: string = '';
+  private user: string = '';
+  private dirty: boolean = false;
+
+  getCollective(): string {
+    return this.collective;
+  }
+
+  getUser(wallet: string): string {
+    const userEntry = this.user.split(DELIMITER).find(e => e.startsWith(`${wallet}:`));
+    return userEntry ? userEntry.split(':')[1] || '' : '';
+  }
+
+  updateCollective(content: string): void {
+    if (content.length > MAX_COLLECTIVE_CHARS) {
+      content = content.slice(-MAX_COLLECTIVE_CHARS);
+    }
+    this.collective = content;
+    this.dirty = true;
+  }
+
+  updateUser(wallet: string, content: string): void {
+    if (content.length > MAX_USER_CHARS) {
+      content = content.slice(-MAX_USER_CHARS);
+    }
+    const existing = this.user.split(DELIMITER).filter(e => !e.startsWith(`${wallet}:`));
+    existing.push(`${wallet}:${content}`);
+    this.user = existing.join(DELIMITER);
+    this.dirty = true;
+  }
+
+  appendToCollective(entry: string): void {
+    const separator = this.collective ? ' | ' : '';
+    this.updateCollective(this.collective + separator + entry);
+  }
+
+  appendToUser(wallet: string, entry: string): void {
+    const current = this.getUser(wallet);
+    const separator = current ? ' | ' : '';
+    this.updateUser(wallet, current + separator + entry);
+  }
+
+  isDirty(): boolean {
+    return this.dirty;
+  }
+
+  clearDirty(): void {
+    this.dirty = false;
+  }
+
+  toJSON(): { collective: string; user: string } {
+    return { collective: this.collective, user: this.user };
+  }
+
+  fromJSON(data: { collective: string; user: string }): void {
+    this.collective = data.collective || '';
+    this.user = data.user || '';
+    this.dirty = false;
+  }
+}
+
+const boundedSnapshot = new BoundedSnapshot();
 
 interface MemoryEntry {
   id: string;
@@ -26,6 +98,43 @@ class MemoryEngine {
   private memvid: MemvidService;
   private recentEpisodes: string[] = [];
 
+  persist(): void {
+    try {
+      const serialized = {
+        memories: Array.from(this.memories.entries()),
+        dreamState: this.dreamState,
+        recentEpisodes: this.recentEpisodes,
+        boundedSnapshot: boundedSnapshot.toJSON()
+      };
+      persistToFile('memory.json', serialized).catch(err => {
+        console.error('[Memory] Persist failed:', err);
+      });
+    } catch (err) {
+      console.error('[Memory] Persist failed:', err);
+    }
+  }
+
+  async restore(): Promise<void> {
+    const data = await loadFromFile<{
+      memories: [string, MemoryEntry[]][];
+      dreamState: { dreams: string[]; dreamDepth: number; lastDream: number };
+      recentEpisodes: string[];
+      boundedSnapshot: unknown;
+    } | null>('memory.json', null);
+    if (!data) return;
+    try {
+      this.memories = new Map<string, MemoryEntry[]>(data.memories as [string, MemoryEntry[]][]);
+      this.dreamState = data.dreamState as { dreams: string[]; dreamDepth: number; lastDream: number };
+      this.recentEpisodes = data.recentEpisodes || [];
+      if (data.boundedSnapshot) {
+        boundedSnapshot.fromJSON(data.boundedSnapshot as { collective: string; user: string });
+      }
+      console.log('[Memory] State restored');
+    } catch (err) {
+      console.error('[Memory] Restore failed:', err);
+    }
+  }
+
   constructor() {
     this.memvid = createMemvidService();
   }
@@ -35,6 +144,7 @@ class MemoryEngine {
   }
 
   async initialize(): Promise<void> {
+    await this.restore();
     await this.memvid.initialize();
   }
 
@@ -58,18 +168,35 @@ class MemoryEngine {
       const sorted = this.memories.get(wallet)!.sort((a, b) => b.importance - a.importance);
       this.memories.set(wallet, sorted.slice(0, 500));
     }
+    this.persist();
 
     if (type === 'interaction' && this.memvid) {
-      const { episodeId } = await this.memvid.storeEpisode(content, {
-        wallet,
-        type,
-        importance,
-        timestamp: Date.now()
-      });
-      this.recentEpisodes.unshift(episodeId);
-      if (this.recentEpisodes.length > 100) {
-        this.recentEpisodes = this.recentEpisodes.slice(0, 100);
+      try {
+        const { episodeId } = await this.memvid.storeEpisode(content, {
+          wallet,
+          type,
+          importance,
+          timestamp: Date.now()
+        });
+        this.recentEpisodes.unshift(episodeId);
+        if (this.recentEpisodes.length > 100) {
+          this.recentEpisodes = this.recentEpisodes.slice(0, 100);
+        }
+      } catch (err) {
+        console.error('[Memory] Memvid storeEpisode failed:', err);
       }
+    }
+
+    try {
+      emitMemoryNew({
+        id,
+        type,
+        content,
+        timestamp: Date.now(),
+        connections: []
+      });
+    } catch (err) {
+      console.error('[Memory] Failed to emit memory:new event:', err);
     }
   }
 
@@ -123,6 +250,7 @@ class MemoryEngine {
     this.dreamState.dreams.push(dream);
     this.dreamState.dreamDepth = Math.min(this.dreamState.dreamDepth + 1, 10);
     this.dreamState.lastDream = now;
+    this.persist();
 
     for (const memories of this.memories.values()) {
       memories.push({
@@ -166,7 +294,24 @@ class MemoryEngine {
 
     return segment.id;
   }
+
+  // Bounded snapshot methods - for session injection
+  getBoundedSnapshot(): { collective: string; user: string } {
+    return boundedSnapshot.toJSON();
+  }
+
+  updateBoundedFromExperience(wallet: string, content: string, type: string): void {
+    if (type === 'interaction' && content.length < 200) {
+      boundedSnapshot.appendToCollective(content.slice(0, 100));
+      boundedSnapshot.appendToUser(wallet, content.slice(0, 80));
+    }
+    if (boundedSnapshot.isDirty()) {
+      this.persist();
+      boundedSnapshot.clearDirty();
+    }
+  }
 }
 
 export const memoryEngine = new MemoryEngine();
 export type { MemoryEntry, DreamState };
+export { boundedSnapshot };

@@ -390,7 +390,13 @@ export class SelfEvolutionEngine {
   async taskEvaluate(changes: CodeChange[], testCases: string[]): Promise<EvaluationResult | null> {
     this.log('Stage 6: Task-Evaluate - Running tests against fix in ephemeral workers');
 
-    const worker = this.spawnEphemeralWorker();
+    let worker: EphemeralWorker;
+    try {
+      worker = this.spawnEphemeralWorker();
+    } catch (error) {
+      this.log(`Failed to spawn ephemeral worker: ${error}`);
+      return null;
+    }
 
     try {
       const result = await this.runTestsInWorker(worker, changes, testCases);
@@ -582,7 +588,12 @@ export class SelfEvolutionEngine {
       return false;
     }
 
-    return Math.random() > 0.2;
+    let hash = 0;
+    for (let i = 0; i < normalized.length; i++) {
+      hash = (hash * 31 + normalized.charCodeAt(i)) >>> 0;
+    }
+
+    return (hash % 10) >= 2;
   }
 
   private cleanupWorker(workerId: string): void {

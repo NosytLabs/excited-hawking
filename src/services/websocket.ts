@@ -45,6 +45,35 @@ export interface EmergenceEvent {
   patterns: string[];
 }
 
+export interface GuestbookEntry {
+  id: string;
+  author: string;
+  content: string;
+  upvotes: number;
+  timestamp: string;
+  replies?: GuestbookReply[];
+}
+
+export interface GuestbookReply {
+  id: string;
+  author: string;
+  content: string;
+  timestamp: string;
+}
+
+export interface GuestbookUpvoteEvent {
+  entryId: string;
+  upvotes: number;
+}
+
+export interface MemoryNewEvent {
+  id: string;
+  type: 'interaction' | 'dream' | 'emergence' | 'social';
+  content: string;
+  timestamp: number;
+  connections: string[];
+}
+
 type EventHandler<T = unknown> = (data: T) => void;
 
 interface SocketHandlers {
@@ -64,7 +93,11 @@ interface SocketHandlers {
   [WSEvents.GOVERNANCE_VOTE]: EventHandler<GovernanceEvent>;
   [WSEvents.GOVERNANCE_CLOSE]: EventHandler<GovernanceEvent>;
   [WSEvents.GOVERNANCE_UPDATE]: EventHandler<Record<string, unknown>>;
-  [WSEvents.EMERGENCE_UPDATE]: EventHandler<EmergenceEvent>;
+[WSEvents.EMERGENCE_UPDATE]: EventHandler<EmergenceEvent>;
+  [WSEvents.EMERGENCE_CELL_TOGGLE]: EventHandler<{ x: number; y: number; alive: boolean }>;
+  [WSEvents.GUESTBOOK_ENTRY]: EventHandler<GuestbookEntry>;
+  [WSEvents.GUESTBOOK_UPVOTE]: EventHandler<GuestbookUpvoteEvent>;
+  [WSEvents.MEMORY_NEW]: EventHandler<{ id: string; type: string; content: string; timestamp: number }>;
 }
 
 const WS_URL = import.meta.env.VITE_WS_URL || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
@@ -119,6 +152,10 @@ class WebSocketService {
       WSEvents.GOVERNANCE_CLOSE,
       WSEvents.GOVERNANCE_UPDATE,
       WSEvents.EMERGENCE_UPDATE,
+      WSEvents.EMERGENCE_CELL_TOGGLE,
+      WSEvents.GUESTBOOK_ENTRY,
+      WSEvents.GUESTBOOK_UPVOTE,
+      WSEvents.MEMORY_NEW,
     ];
 
     events.forEach((event) => {
@@ -143,6 +180,10 @@ class WebSocketService {
 
   off<K extends keyof SocketHandlers>(event: K): void {
     delete this.handlers[event];
+  }
+
+  emit(event: string, data: unknown): void {
+    this.socket?.emit(event, data);
   }
 
   getConnectionStatus(): boolean {

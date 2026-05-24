@@ -1,5 +1,6 @@
 import { generateId } from './crypto.js';
 import { emitEmergenceUpdate } from '../services/websocket.js';
+import { persistToFile, loadFromFile } from './persistence.js';
 
 interface Cell {
   x: number;
@@ -25,6 +26,41 @@ class ConwayEngine {
 
   constructor() {
     this.grid = new Uint8Array(this.gridSize * this.gridSize);
+    this.restore().catch(err => {
+      console.error('[Emergence] Restore failed:', err);
+    });
+  }
+
+  persist(): void {
+    try {
+      const serialized = {
+        grid: Array.from(this.grid),
+        generation: this.generation,
+        events: this.events
+      };
+      persistToFile('emergence.json', serialized).catch(err => {
+        console.error('[Emergence] Persist failed:', err);
+      });
+    } catch (err) {
+      console.error('[Emergence] Persist failed:', err);
+    }
+  }
+
+  async restore(): Promise<void> {
+    const data = await loadFromFile<{
+      grid: number[];
+      generation: number;
+      events: EmergenceEvent[];
+    } | null>('emergence.json', null);
+    if (!data) return;
+    try {
+      this.grid = new Uint8Array(data.grid);
+      this.generation = data.generation;
+      this.events = data.events;
+      console.log('[Emergence] State restored');
+    } catch (err) {
+      console.error('[Emergence] Restore failed:', err);
+    }
   }
 
   private idx(x: number, y: number): number {
@@ -104,6 +140,7 @@ class ConwayEngine {
 
     this.grid = newGrid;
     this.generation++;
+    this.persist();
 
     const grid2D: boolean[][] = [];
     for (let i = 0; i < this.gridSize; i++) {
@@ -187,6 +224,11 @@ class ConwayEngine {
 
   getRecentEvents(limit = 10): EmergenceEvent[] {
     return this.events.slice(-limit);
+  }
+
+  toggleCell(x: number, y: number, alive: boolean): void {
+    this.setCell(x, y, alive);
+    this.persist();
   }
 
   reset(): void {
