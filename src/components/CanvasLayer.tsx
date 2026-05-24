@@ -184,7 +184,7 @@ export const CanvasLayer: React.FC = () => {
         </div>
         <div className="flex items-center gap-2" style={{ color: 'var(--shell-text-muted)' }}>
           {events.length > 0 && (
-            <span style={{ color: 'var(--shell-accent)' }}>
+            <span style={{ color: 'var(--vault-teal)' }}>
               +{events.filter(e => e.type === 'birth').length}
             </span>
           )}
