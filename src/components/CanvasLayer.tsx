@@ -18,6 +18,20 @@ export const CanvasLayer: React.FC = () => {
   const [containerSize, setContainerSize] = useState({ width: 200, height: 200 });
   const [events, setEvents] = useState<EmergenceEvent[]>([]);
 
+  const canvasColors = useMemo(() => {
+    if (typeof document === 'undefined') {
+      return { bg: '#0d1117', border: '#21262d', teal: '#00ff41', tealDim: '#005500', textMuted: '#8b949e' };
+    }
+    const s = getComputedStyle(document.documentElement);
+    return {
+      bg: s.getPropertyValue('--shell-bg').trim() || '#0d1117',
+      border: s.getPropertyValue('--shell-border').trim() || '#21262d',
+      teal: s.getPropertyValue('--vault-teal').trim() || '#00ff41',
+      tealDim: s.getPropertyValue('--vault-teal-dim').trim() || '#005500',
+      textMuted: s.getPropertyValue('--shell-text-muted').trim() || '#8b949e',
+    };
+  }, []);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -83,10 +97,10 @@ export const CanvasLayer: React.FC = () => {
 
     const cellSize = containerSize.width / GRID_SIZE;
 
-    ctx.fillStyle = 'var(--shell-bg)';
+    ctx.fillStyle = canvasColors.bg;
     ctx.fillRect(0, 0, containerSize.width, containerSize.height);
 
-    ctx.strokeStyle = 'var(--shell-border)';
+    ctx.strokeStyle = canvasColors.border;
     ctx.lineWidth = 0.5;
     for (let i = 0; i <= GRID_SIZE; i++) {
       ctx.beginPath();
@@ -102,19 +116,19 @@ export const CanvasLayer: React.FC = () => {
     grid.forEach((row, y) => {
       row.forEach((color, x) => {
         if (color) {
-          const accentColor = 'var(--vault-teal)';
-          ctx.shadowColor = 'var(--vault-teal)';
+          const accentColor = canvasColors.teal;
+          ctx.shadowColor = canvasColors.teal;
           ctx.shadowBlur = 8;
           ctx.fillStyle = accentColor;
           ctx.fillRect(x * cellSize + 1, y * cellSize + 1, cellSize - 2, cellSize - 2);
 
           ctx.shadowBlur = 0;
-          ctx.fillStyle = 'var(--vault-teal-dim)';
+          ctx.fillStyle = canvasColors.tealDim;
           ctx.fillRect(x * cellSize + 2, y * cellSize + 2, (cellSize - 2) / 3, (cellSize - 2) / 3);
         }
       });
     });
-  }, [grid, containerSize]);
+  }, [grid, containerSize, canvasColors]);
 
   useEffect(() => {
     const scanlines = scanlinesRef.current;
@@ -130,11 +144,11 @@ export const CanvasLayer: React.FC = () => {
 
     ctx.clearRect(0, 0, containerSize.width, containerSize.height);
 
-    ctx.fillStyle = 'var(--shell-text-muted)';
+    ctx.fillStyle = canvasColors.textMuted;
     for (let i = 0; i < containerSize.height; i += 3) {
       ctx.fillRect(0, i, containerSize.width, 0.5);
     }
-  }, [containerSize]);
+  }, [canvasColors, containerSize]);
 
   const totalPixels = canvasPixels.filter(c => c).length;
   const density = (totalPixels / (GRID_SIZE * GRID_SIZE) * 100).toFixed(1);
