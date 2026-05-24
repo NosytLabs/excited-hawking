@@ -230,22 +230,17 @@
   }
 }
 
-/* Neutralize CRT/Scanline Noise */
-.terminal-frame {
-  background: var(--shell-surface);
-  border: 1px solid var(--shell-border);
-  border-radius: 1rem;
-  position: relative;
-}
-
 .crt-screen {
   position: relative;
   background: var(--shell-bg);
   overflow: hidden;
 }
 
-.crt-screen::before, .crt-screen::after, .scanlines::before {
-  display: none;
+.terminal-frame {
+  background: var(--shell-surface);
+  border: 1px solid var(--shell-border);
+  border-radius: 1rem;
+  position: relative;
 }
 
 /* Progress bar - warm style */
