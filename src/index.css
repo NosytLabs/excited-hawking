@@ -230,6 +230,7 @@
   }
 }
 
+/* CRT/terminal frame styles */
 .crt-screen {
   position: relative;
   background: var(--shell-bg);
