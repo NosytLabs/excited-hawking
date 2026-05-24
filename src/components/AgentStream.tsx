@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useAgent } from '../context/useAgent';
 import type { LogItem } from '../context/AgentContext';
 import { websocketService } from '../services/websocket';
@@ -111,6 +111,16 @@ export const AgentStream: React.FC = React.memo(() => {
     };
   }, [updateCanvasSize]);
 
+  const canvasColors = useMemo(() => {
+    if (typeof document === 'undefined') return { bg: '#0a0a0a', alive: '#00ff41', grid: '#1a1a2e' };
+    const s = getComputedStyle(document.documentElement);
+    return {
+      bg: s.getPropertyValue('--canvas-bg').trim() || '#0a0a0a',
+      alive: s.getPropertyValue('--canvas-alive').trim() || '#00ff41',
+      grid: s.getPropertyValue('--canvas-grid').trim() || '#1a1a2e',
+    };
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -120,27 +130,27 @@ export const AgentStream: React.FC = React.memo(() => {
 
     const cellSize = canvas.width / gridCells.length;
     
-    ctx.fillStyle = 'var(--canvas-bg)';
+    ctx.fillStyle = canvasColors.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     gridCells.forEach((row, i) => {
       row.forEach((cell, j) => {
         if (cell.alive) {
-          ctx.fillStyle = 'var(--canvas-alive)';
+          ctx.fillStyle = canvasColors.alive;
           ctx.globalAlpha = 0.9;
           ctx.fillRect(j * cellSize + 1, i * cellSize + 1, cellSize - 2, cellSize - 2);
-          ctx.shadowColor = 'var(--canvas-alive)';
+          ctx.shadowColor = canvasColors.alive;
           ctx.shadowBlur = 6;
           ctx.fillRect(j * cellSize + 1, i * cellSize + 1, cellSize - 2, cellSize - 2);
           ctx.shadowBlur = 0;
         } else {
-          ctx.fillStyle = 'var(--canvas-grid)';
+          ctx.fillStyle = canvasColors.grid;
           ctx.fillRect(j * cellSize + 1, i * cellSize + 1, cellSize - 2, cellSize - 2);
         }
         ctx.globalAlpha = 1;
       });
     });
-  }, [gridCells]);
+  }, [gridCells, canvasColors]);
 
   const getColor = (type: LogItem['type']) => {
     switch (type) {
