@@ -10,3 +10,17 @@
 | `/api/memory/*` handlers in `routes/emergence.ts` | Dedicated `routes/memory.ts` | Separation of concerns: memory != emergence | No behavior change; same route paths preserved |
 | `@testing-library/user-event` in `package.json` | Removed | Unused in any source/test file | No impact; never imported |
 | `@fastify/websocket` in `backend/package.json` | Removed | Unused in any backend source file | No impact; never registered or imported |
+| `docs/superpowers/plans/2026-05-24-audit-fixes.md` | Removed | Stale pre-refactor plan; referenced non-existent code paths | No impact; no current references |
+| `docs/superpowers/plans/2026-05-24-audit-remediation.md` | Removed | Stale pre-refactor plan; superseded by big-bang design | No impact; no current references |
+| `docs/superpowers/plans/2026-05-24-commons-agent-warm-shell-audit-remediation.md` | Removed | Completed warm-shell audit implementation plan | No impact; work already done |
+| `docs/superpowers/plans/2025-05-23-commons-agent-full-functional.md` | Removed | Year-old plan superseded by current architecture | No impact; no current references |
+| `docs/superpowers/plans/2025-05-23-commons-agent-visual-redesign.md` | Removed | Year-old plan superseded by current architecture | No impact; no current references |
+| `docs/superpowers/specs/2026-05-24-commons-agent-warm-shell-audit-design.md` | Removed | Completed warm-shell audit design spec | No impact; work already done |
+| `docs/superpowers/specs/2025-05-23-commons-agent-visual-redesign.md` | Removed | Year-old spec superseded by current design | No impact; no current references |
+| `src/assets/hero.png` | Removed | Unused asset | No impact; not imported anywhere |
+| `src/assets/react.svg` | Removed | Unused Vite boilerplate | No impact; not imported anywhere |
+| `src/assets/vite.svg` | Removed | Unused Vite boilerplate | No impact; not imported anywhere |
+| `data/memvid.json` | Untracked, gitignored | Runtime data, not source code | No impact; generated at runtime |
+| `backend/data/memvid.json` | Untracked, gitignored | Runtime data, not source code | No impact; generated at runtime |
+
+(End of file)

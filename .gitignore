@@ -26,3 +26,6 @@ dist-ssr
 # Superpowers artifacts
 .superpowers/
 .worktrees/
+
+# Runtime data
+memvid.json
