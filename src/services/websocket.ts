@@ -106,7 +106,7 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 
 class WebSocketService {
   private socket: Socket | null = null;
-  private handlers: Partial<SocketHandlers> = {};
+  private handlers = new Map<keyof SocketHandlers, Set<EventHandler>>();
   private isConnected = false;
 
   connect(): void {
@@ -121,20 +121,20 @@ class WebSocketService {
 
     this.socket.on(WSEvents.CONNECT, () => {
       this.isConnected = true;
-      const handler = this.handlers[WSEvents.CONNECT] as EventHandler | undefined;
-      if (handler) handler({});
+      const handlers = this.handlers.get(WSEvents.CONNECT);
+      if (handlers) handlers.forEach(handler => handler({}));
     });
 
     this.socket.on(WSEvents.DISCONNECT, () => {
       this.isConnected = false;
-      const handler = this.handlers[WSEvents.DISCONNECT] as EventHandler | undefined;
-      if (handler) handler({});
+      const handlers = this.handlers.get(WSEvents.DISCONNECT);
+      if (handlers) handlers.forEach(handler => handler({}));
     });
 
     this.socket.on(WSEvents.CONNECT_ERROR, () => {
       this.isConnected = false;
-      const handler = this.handlers[WSEvents.CONNECT_ERROR] as EventHandler | undefined;
-      if (handler) handler({});
+      const handlers = this.handlers.get(WSEvents.CONNECT_ERROR);
+      if (handlers) handlers.forEach(handler => handler({}));
     });
 
     const events: SocketEvent[] = [
@@ -160,9 +160,9 @@ class WebSocketService {
 
     events.forEach((event) => {
       this.socket?.on(event, (data: unknown) => {
-        const handler = this.handlers[event as keyof SocketHandlers] as EventHandler | undefined;
-        if (handler) {
-          handler(data);
+        const handlers = this.handlers.get(event as keyof SocketHandlers);
+        if (handlers) {
+          handlers.forEach(handler => handler(data));
         }
       });
     });
@@ -175,11 +175,14 @@ class WebSocketService {
   }
 
   on<K extends keyof SocketHandlers>(event: K, handler: SocketHandlers[K]): void {
-    this.handlers[event] = handler;
+    if (!this.handlers.has(event)) {
+      this.handlers.set(event, new Set());
+    }
+    this.handlers.get(event)!.add(handler as unknown as EventHandler);
   }
 
   off<K extends keyof SocketHandlers>(event: K): void {
-    delete this.handlers[event];
+    this.handlers.delete(event);
   }
 
   emit(event: string, data: unknown): void {
