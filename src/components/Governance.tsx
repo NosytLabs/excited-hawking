@@ -207,7 +207,7 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
         isEmergency: false,
         discussionUrl: `/forum/proposal/${result.proposalId}`,
       }, ...prev]);
-    } catch (err) {
+    } catch {
       addLog(`Failed to create proposal: "${newProposal.title}"`, 'error');
       return;
     }
@@ -289,8 +289,8 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
                   await api.delegateStake(delegationAddress);
                   setDelegationAddress('');
                   setShowDelegationPanel(false);
-                } catch (err) {
-                  console.error('Delegation failed:', err);
+    } catch {
+                  console.error('Delegation failed');
                 }
               }
             }}
