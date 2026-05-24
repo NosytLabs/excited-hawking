@@ -362,6 +362,8 @@ export const MemoryBrain = React.memo(function MemoryBrain() {
         height={CANVAS_HEIGHT}
         onClick={handleCanvasClick}
         onMouseMove={handleCanvasMouseMove}
+        aria-label="Interactive neural network visualization of agent memory nodes"
+        role="img"
         style={{ 
           display: 'block',
           width: '100%',
