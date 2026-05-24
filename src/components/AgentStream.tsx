@@ -6,12 +6,19 @@ import { WSEvents } from '../types/events';
 import { Terminal, Brain, Cpu, Wifi, AlertTriangle } from 'lucide-react';
 import { CardSkeleton } from './LoadingSkeleton';
 
-type AgentMood = 'ACTIVE' | 'PROCESSING' | 'STANDBY' | 'CALIBRATING' | 'IDLE';
-
 interface EmergenceCell {
   alive: boolean;
-  color: string;
 }
+
+type AgentMood = 'ACTIVE' | 'PROCESSING' | 'STANDBY' | 'CALIBRATING' | 'IDLE';
+
+const MOOD_COLORS: Record<AgentMood, string> = {
+  ACTIVE: 'var(--mood-active)',
+  PROCESSING: 'var(--mood-processing)',
+  STANDBY: 'var(--mood-standby)',
+  CALIBRATING: 'var(--mood-calibrating)',
+  IDLE: 'var(--mood-idle)',
+};
 
 const TIER_CONFIG = {
   Thriving: { color: 'var(--canvas-alive)', icon: Terminal, glow: true },
@@ -26,8 +33,8 @@ export const AgentStream: React.FC = React.memo(() => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  const [mood] = useState<AgentMood>('IDLE');
-  const [memoryUsage] = useState(0);
+  const mood: AgentMood = 'IDLE';
+  const memoryUsage = Math.min(100, 20 + logs.length * 2);
   const [gridCells, setGridCells] = useState<EmergenceCell[][]>([]);
   const [generation, setGeneration] = useState(0);
 
@@ -57,8 +64,8 @@ export const AgentStream: React.FC = React.memo(() => {
 
   useEffect(() => {
     const handleEmergenceUpdate = (data: { grid: boolean[][]; generation: number; patterns: string[] }) => {
-      setGridCells(data.grid.map(row => 
-        row.map(alive => ({ alive, color: alive ? 'var(--canvas-alive)' : '' }))
+      setGridCells(data.grid.map(row =>
+        row.map(alive => ({ alive }))
       ));
       setGeneration(data.generation);
     };
@@ -119,10 +126,10 @@ export const AgentStream: React.FC = React.memo(() => {
     gridCells.forEach((row, i) => {
       row.forEach((cell, j) => {
         if (cell.alive) {
-          ctx.fillStyle = cell.color;
+          ctx.fillStyle = 'var(--canvas-alive)';
           ctx.globalAlpha = 0.9;
           ctx.fillRect(j * cellSize + 1, i * cellSize + 1, cellSize - 2, cellSize - 2);
-          ctx.shadowColor = cell.color;
+          ctx.shadowColor = 'var(--canvas-alive)';
           ctx.shadowBlur = 6;
           ctx.fillRect(j * cellSize + 1, i * cellSize + 1, cellSize - 2, cellSize - 2);
           ctx.shadowBlur = 0;
@@ -134,14 +141,6 @@ export const AgentStream: React.FC = React.memo(() => {
       });
     });
   }, [gridCells]);
-
-  const MOOD_COLORS: Record<AgentMood, string> = {
-    'ACTIVE': 'var(--mood-active)',
-    'PROCESSING': 'var(--mood-processing)',
-    'STANDBY': 'var(--mood-standby)',
-    'CALIBRATING': 'var(--mood-calibrating)',
-    'IDLE': 'var(--mood-idle)',
-  };
 
   const getColor = (type: LogItem['type']) => {
     switch (type) {
@@ -224,23 +223,6 @@ export const AgentStream: React.FC = React.memo(() => {
               }}
             >
               {isConnected ? 'Connected' : 'Offline preview'}
-            </span>
-            <span className="text-xs" style={{ color: 'var(--term-ash)' }}>|</span>
-            <span 
-              className="text-xs font-mono"
-              style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-green-dim)' }}
-            >
-              STAKE: {diemStaked.toFixed(2)} DIEM
-            </span>
-            <span className="text-xs" style={{ color: 'var(--term-ash)' }}>|</span>
-            <span 
-              className={`text-xs font-mono ${isConnected ? 'animate-blink' : ''}`}
-              style={{ 
-                fontFamily: 'var(--font-terminal)', 
-                color: isConnected ? 'var(--term-green)' : 'var(--term-red)'
-              }}
-            >
-              {isConnected ? 'CONNECTED' : 'OFFLINE'}
             </span>
           </div>
         </div>

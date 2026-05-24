@@ -18,7 +18,7 @@ describe('AppHeader', () => {
       </AgentContext.Provider>
     );
     
-    expect(screen.getByText('Vault-2026')).toBeInTheDocument();
+    expect(screen.getByText(`Vault-${new Date().getFullYear()}`)).toBeInTheDocument();
     expect(screen.getByText('Public Social Experiment')).toBeInTheDocument();
   });
 

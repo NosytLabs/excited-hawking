@@ -1,5 +1,5 @@
 /* Hallmark · macrostructure: Workbench · genre: terminal-aesthetic */
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, type CSSProperties, type ReactNode } from 'react';
 import { AgentProvider } from './context/AgentContext';
 import { Loader2 } from 'lucide-react';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -26,7 +26,44 @@ const LoadingFallback = () => (
   </div>
 );
 
+interface SectionBlockProps {
+  id?: string;
+  title: string;
+  titleClassName: string;
+  titleStyle: CSSProperties;
+  sectionClassName: string;
+  sectionStyle?: CSSProperties;
+  contentName: string;
+  children: ReactNode;
+}
+
+const SectionBlock = ({
+  id,
+  title,
+  titleClassName,
+  titleStyle,
+  sectionClassName,
+  sectionStyle,
+  contentName,
+  children,
+}: SectionBlockProps) => (
+  <section id={id} className={sectionClassName} style={sectionStyle}>
+    <div className="max-w-7xl mx-auto px-6">
+      <h2 className={titleClassName} style={titleStyle}>
+        {title}
+      </h2>
+      <Suspense fallback={<LoadingFallback />}>
+        <LazyErrorBoundary name={contentName}>{children}</LazyErrorBoundary>
+      </Suspense>
+    </div>
+  </section>
+);
+
 function App() {
+  const handleOpenStaking = () => {
+    window.location.href = '/#/stake';
+  };
+
   return (
     <AgentProvider>
       <ErrorBoundary>
@@ -37,7 +74,7 @@ function App() {
         >
           Skip to main content
         </a>
-        <AppHeader onOpenStaking={() => { window.location.href = '/#/stake'; }} />
+        <AppHeader onOpenStaking={handleOpenStaking} />
 
         {/* Main content */}
         <main id="main-content" className="crt-screen">
@@ -61,76 +98,56 @@ function App() {
           </div>
 
           {/* Secondary sections */}
-          <section 
-            id="governance" 
-            className="py-12 border-t"
-            style={{ 
-              backgroundColor: 'var(--shell-surface)',
-              borderColor: 'var(--shell-border)'
+          <SectionBlock
+            id="governance"
+            title="System Governance"
+            titleClassName="text-2xl font-bold tracking-tight mb-6"
+            titleStyle={{
+              fontFamily: 'var(--font-display)',
+              color: 'var(--shell-text)',
             }}
-          >
-            <div className="max-w-7xl mx-auto px-6">
-              <h2 
-                className="text-2xl font-bold tracking-tight mb-6"
-                style={{ 
-                  fontFamily: 'var(--font-display)',
-                  color: 'var(--shell-text)',
-                }}
-              >
-                System Governance
-              </h2>
-              <Suspense fallback={<LoadingFallback />}>
-                <LazyErrorBoundary name="Governance">
-                  <Governance />
-                </LazyErrorBoundary>
-              </Suspense>
-            </div>
-          </section>
-
-          <section id="canvas" className="py-20 border-t" style={{ borderColor: 'var(--shell-border)' }}>
-            <div className="max-w-7xl mx-auto px-6">
-              <h2 
-                className="text-lg font-semibold mb-8 tracking-wider uppercase"
-                style={{ 
-                  fontFamily: 'var(--font-terminal)',
-                  color: 'var(--shell-text)'
-                }}
-              >
-                Public Matrix
-              </h2>
-              <Suspense fallback={<LoadingFallback />}>
-                <LazyErrorBoundary name="CanvasLayer">
-                  <CanvasLayer />
-                </LazyErrorBoundary>
-              </Suspense>
-            </div>
-          </section>
-
-          <section 
-            className="py-16 border-t"
-            style={{ 
+            sectionClassName="py-12 border-t"
+            sectionStyle={{
               backgroundColor: 'var(--shell-surface)',
-              borderColor: 'var(--shell-border)'
+              borderColor: 'var(--shell-border)',
             }}
+            contentName="Governance"
           >
-            <div className="max-w-7xl mx-auto px-6">
-              <h2 
-                className="text-base font-medium mb-8"
-                style={{ 
-                  fontFamily: 'var(--font-display)',
-                  color: 'var(--shell-text)',
-                  letterSpacing: '0.15em'
-                }}
-              >
-                Citizen Log
-              </h2>
-              <Suspense fallback={<LoadingFallback />}>
-                <LazyErrorBoundary name="Guestbook">
-                  <Guestbook />
-                </LazyErrorBoundary>
-              </Suspense>
-            </div>
-          </section>
+            <Governance />
+          </SectionBlock>
+
+          <SectionBlock
+            id="canvas"
+            title="Public Matrix"
+            titleClassName="text-lg font-semibold mb-8 tracking-wider uppercase"
+            titleStyle={{
+              fontFamily: 'var(--font-terminal)',
+              color: 'var(--shell-text)',
+            }}
+            sectionClassName="py-20 border-t"
+            sectionStyle={{ borderColor: 'var(--shell-border)' }}
+            contentName="CanvasLayer"
+          >
+            <CanvasLayer />
+          </SectionBlock>
+
+          <SectionBlock
+            title="Citizen Log"
+            titleClassName="text-base font-medium mb-8"
+            titleStyle={{
+              fontFamily: 'var(--font-display)',
+              color: 'var(--shell-text)',
+              letterSpacing: '0.15em',
+            }}
+            sectionClassName="py-16 border-t"
+            sectionStyle={{
+              backgroundColor: 'var(--shell-surface)',
+              borderColor: 'var(--shell-border)',
+            }}
+            contentName="Guestbook"
+          >
+            <Guestbook />
+          </SectionBlock>
         </main>
 
         {/* Footer */}
