@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useAgent } from '../context/useAgent';
 import type { LogItem } from '../context/AgentContext';
 import { websocketService } from '../services/websocket';
+import { WSEvents } from '../types/events';
 import { Terminal, Brain, Cpu, Wifi, AlertTriangle } from 'lucide-react';
 import { CardSkeleton } from './LoadingSkeleton';
 
@@ -12,7 +13,14 @@ interface EmergenceCell {
   color: string;
 }
 
-export const AgentStream: React.FC = () => {
+const TIER_CONFIG = {
+  Thriving: { color: 'var(--canvas-alive)', icon: Terminal, glow: true },
+  Surviving: { color: 'var(--canvas-surviving)', icon: Cpu, glow: false },
+  Minimal: { color: 'var(--canvas-minimal)', icon: AlertTriangle, glow: false },
+  Dying: { color: 'var(--canvas-dying)', icon: AlertTriangle, glow: false },
+};
+
+export const AgentStream: React.FC = React.memo(() => {
   const { logs, tier, diemStaked, isConnected, backendAvailable } = useAgent();
   const bottomRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -27,7 +35,7 @@ export const AgentStream: React.FC = () => {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
+  }, [logs.length]);
 
   useEffect(() => {
     const handleEmergenceUpdate = (data: { grid: boolean[][]; generation: number; patterns: string[] }) => {
@@ -100,13 +108,6 @@ export const AgentStream: React.FC = () => {
       });
     });
   }, [gridCells]);
-
-  const TIER_CONFIG = {
-    Thriving: { color: 'var(--canvas-alive)', icon: Terminal, glow: true },
-    Surviving: { color: 'var(--canvas-surviving)', icon: Cpu, glow: false },
-    Minimal: { color: 'var(--canvas-minimal)', icon: AlertTriangle, glow: false },
-    Dying: { color: 'var(--canvas-dying)', icon: AlertTriangle, glow: false },
-  };
 
   const MOOD_COLORS: Record<AgentMood, string> = {
     'ACTIVE': 'var(--mood-active)',
@@ -394,4 +395,4 @@ export const AgentStream: React.FC = () => {
       </div>
     </div>
   );
-};
+});

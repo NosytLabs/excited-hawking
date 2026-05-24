@@ -58,7 +58,7 @@ const CATEGORY_LABELS: Record<ProposalCategory, string> = {
   PARTNERSHIP: '[GRAFT]',
 };
 
-export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = ({ proposals: propProposals }) => {
+export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo(({ proposals: propProposals }) => {
   const { voteProposal, diemStaked, proposals: contextProposals, addLog, walletAddress, backendAvailable } = useAgent();
 
   const [filterStatus, setFilterStatus] = useState<ProposalStatus | 'ALL'>('ALL');
@@ -100,9 +100,33 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
     depositAmount: 10,
   });
 
-  const quadraticWeight = Math.sqrt(diemStaked);
+  const quadraticWeight = useMemo(() => Math.sqrt(diemStaked), [diemStaked]);
 
-  const [timeRemaining, setTimeRemaining] = useState<Record<string, string>>({});
+  const [timeRemaining, setTimeRemaining] = useState<Record<string, string>>(() => {
+    const initialTimes: Record<string, string> = {};
+    if (propProposals || contextProposals) {
+      const initProposals = propProposals ?? contextProposals.map(p => ({
+        id: p.id,
+        title: p.title,
+        status: (p.status === 'active' ? 'VOTING' : p.status === 'passed' ? 'PASSED' : p.status === 'failed' ? 'FAILED' : 'DRAFT') as ProposalStatus,
+        votingEnd: 0,
+      }));
+      initProposals.forEach((p) => {
+        if (p.status !== 'VOTING') return;
+        const now = Date.now();
+        if (p.votingEnd > now) {
+          const diff = p.votingEnd - now;
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          initialTimes[p.id] = `${days}d ${hours}h ${minutes}m`;
+        } else {
+          initialTimes[p.id] = 'Ended';
+        }
+      });
+    }
+    return initialTimes;
+  });
 
   useEffect(() => {
     if (proposals.length === 0) return;
@@ -133,32 +157,15 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
       }
     }, 60000); // Run every minute instead of every second
     
-    // Initial calculation
-    const newTimes: Record<string, string> = {};
-    proposals.forEach(p => {
-      if (p.status !== 'VOTING') return;
-      const now = Date.now();
-      if (p.votingEnd > now) {
-        const diff = p.votingEnd - now;
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        newTimes[p.id] = `${days}d ${hours}h ${minutes}m`;
-      } else {
-        newTimes[p.id] = 'Ended';
-      }
-    });
-    setTimeRemaining(newTimes);
-    
     return () => clearInterval(interval);
   }, [proposals]);
 
-  const filteredProposals = proposals.filter(p => {
+  const filteredProposals = useMemo(() => proposals.filter(p => {
     if (filterStatus !== 'ALL' && p.status !== filterStatus) return false;
     if (filterCategory !== 'ALL' && p.category !== filterCategory) return false;
     if (showMyProposals && p.proposer !== (walletAddress ?? '')) return false;
     return true;
-  });
+  }), [proposals, filterStatus, filterCategory, showMyProposals, walletAddress]);
 
   const handleVote = useCallback((proposalId: string, vote: VoteChoice) => {
     voteProposal(proposalId, vote);
@@ -554,4 +561,4 @@ const proposals = useMemo(() => propProposals ?? (contextProposals.length > 0
       </div>
     </div>
   );
-};
+});

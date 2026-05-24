@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 export const WelcomeAgent: React.FC = () => {
   return (

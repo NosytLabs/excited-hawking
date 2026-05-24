@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { WSEvents, WSEvent } from '../types/events';
+import { WSEvents, type WSEvent } from '../types/events';
 
 export type SocketEvent = WSEvent;
 

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useAgent } from '../context/useAgent';
-import { Send, Zap, DollarSign, Shield, Check } from 'lucide-react';
+import { Send, Sprout, Leaf, HelpCircle, Check, Copy, Share2 } from 'lucide-react';
 
 const MAX_LENGTH = 2000;
 const MAX_COST = 1.00;
@@ -10,22 +10,25 @@ interface CostTier {
   name: string;
   price: number;
   features: string[];
+  emoji: string;
+  description: string;
 }
 
 const COST_TIERS: CostTier[] = [
-  { name: 'Basic', price: 0.01, features: ['Simple queries', '5s timeout'] },
-  { name: 'Standard', price: 0.05, features: ['Complex queries', '30s timeout', 'Priority'] },
-  { name: 'Premium', price: 0.25, features: ['Deep research', '60s timeout', 'Priority', 'Memory'] },
-  { name: 'API Access', price: 1.00, features: ['Full API', 'Webhooks', 'Dedicated'] },
+  { name: 'Seed', price: 0.01, features: ['Simple questions', 'Fast response'], emoji: '🌱', description: 'Just want a quick answer?' },
+  { name: 'Sprout', price: 0.05, features: ['Complex queries', 'Deep analysis'], emoji: '🌿', description: 'Good for most conversations' },
+  { name: 'Bloom', price: 0.25, features: ['Research', 'Detailed response'], emoji: '🌸', description: 'Thorough exploration of topics' },
+  { name: 'Grove', price: 1.00, features: ['Full access', 'Priority'], emoji: '🌳', description: 'For serious growth' },
 ];
 
-export const PromptBox: React.FC = () => {
+export const PromptBox: React.FC = React.memo(() => {
   const { addPrompt, diemStaked } = useAgent();
   const [text, setText] = useState('');
   const [isPaying, setIsPaying] = useState(false);
   const [selectedTier, setSelectedTier] = useState<number>(1);
   const [showShare, setShowShare] = useState(false);
   const [sharedPrompt, setSharedPrompt] = useState<string | null>(null);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
   const [copied, setCopied] = useState(false);
   const lastSubmitRef = useRef<number>(0);
 
@@ -33,7 +36,6 @@ export const PromptBox: React.FC = () => {
   const baseCost = Math.min(MAX_COST, Math.max(0.01, text.length * 0.0005));
   const finalCost = Math.max(cost, baseCost).toFixed(2);
 
-  // Voting power calculation
   const votingPower = Math.sqrt(diemStaked);
   const quadraticWeight = votingPower.toFixed(2);
 
@@ -47,13 +49,10 @@ export const PromptBox: React.FC = () => {
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || text.length > MAX_LENGTH) return;
-
     const now = Date.now();
     if (now - lastSubmitRef.current < DEBOUNCE_MS) return;
     lastSubmitRef.current = now;
-
     setIsPaying(true);
-
     setTimeout(() => {
       setIsPaying(false);
       setSharedPrompt(text);
@@ -76,100 +75,179 @@ export const PromptBox: React.FC = () => {
 
   const handleTwitterShare = useCallback(() => {
     if (!sharedPrompt) return;
-    const text = encodeURIComponent(`Just prompted The Peoples Agent: "${sharedPrompt.slice(0, 100)}..."`);
-    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'width=550,height=420');
+    const text = encodeURIComponent(`Just talked to @TheCommonsAgent! "${sharedPrompt.slice(0, 100)}..." #PublicAI`);
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener,noreferrer,width=550,height=420');
   }, [sharedPrompt]);
 
   return (
-    <div className="glass-panel">
-      <h3 className="font-mono text-sm uppercase tracking-wider mb-4 flex items-center gap-2 text-zinc-300">
-        <Zap size={16} className="text-yellow-400" />
-        Prompt the Agent
-      </h3>
-      
+    <div style={{
+      backgroundColor: 'var(--color-cream-deep)',
+      border: '1px solid var(--color-sand-line)',
+      borderRadius: '16px',
+      padding: '1.5rem',
+      transition: 'all 300ms var(--ease-out)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-bark)' }}>
+          <Sprout size={20} style={{ color: 'var(--color-sage)' }} aria-hidden="true" />
+          Plant an Idea
+        </h3>
+        <div
+          style={{ position: 'relative', display: 'inline-block', cursor: 'help' }}
+          onMouseEnter={() => setTooltipVisible(true)}
+          onMouseLeave={() => setTooltipVisible(false)}
+          onFocus={() => setTooltipVisible(true)}
+          onBlur={() => setTooltipVisible(false)}
+          tabIndex={0}
+          role="tooltip"
+        >
+          <HelpCircle size={16} style={{ color: 'var(--color-stone)' }} />
+          {tooltipVisible && (
+            <div style={{
+              position: 'absolute',
+              bottom: 'calc(100% + 6px)',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              backgroundColor: 'var(--color-bark)',
+              borderRadius: '8px',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.75rem',
+              color: 'var(--color-cream)',
+              whiteSpace: 'nowrap',
+              zIndex: 50,
+              boxShadow: '0 4px 12px oklch(0% 0% 0% / 0.15)',
+            }}>
+              Costs feed the garden: 80% nurtures scarcity, 20% grows the treasury
+            </div>
+          )}
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit}>
-        <div className="relative mb-4">
+        <div style={{ position: 'relative', marginBottom: '1rem' }}>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, MAX_LENGTH))}
-            placeholder="e.g. Verify the total value locked on Aave across all chains..."
-            className="w-full bg-[#0a0a0c] border border-zinc-800 rounded-lg p-4 text-sm font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-[#00d992] transition-colors resize-none h-24"
+            placeholder="Plant an idea in the garden... What shall we grow today?"
+            className="input"
+            style={{
+              width: '100%',
+              height: '7rem',
+              resize: 'none',
+              fontSize: '0.875rem',
+              fontFamily: 'var(--font-body)',
+            }}
             disabled={isPaying}
             maxLength={MAX_LENGTH}
-            aria-label="Prompt input for the agent"
+            aria-label="Plant an idea in the garden"
           />
-          <div className="absolute bottom-3 right-3 text-xs font-mono text-zinc-500">
+          <div style={{ position: 'absolute', bottom: '0.75rem', right: '0.75rem', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--color-stone)' }}>
             {text.length}/{MAX_LENGTH}
           </div>
         </div>
 
-        {/* Cost Tiers */}
-        <div className="mb-4">
-          <label className="text-xs font-mono text-zinc-500 uppercase mb-2 block">Service Tier</label>
-          <div className="grid grid-cols-4 gap-2">
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-stone)', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Growth depth</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))', gap: '0.5rem' }}>
             {COST_TIERS.map((tier, idx) => (
               <button
                 key={tier.name}
                 type="button"
                 onClick={() => setSelectedTier(idx)}
-                className={`p-2 rounded text-xs font-mono transition-all ${
-                  selectedTier === idx
-                    ? 'bg-[#00d992]/20 text-[#00d992] border border-[#00d992]/40'
-                    : 'bg-zinc-900/50 text-zinc-400 border border-zinc-800 hover:border-zinc-700'
-                }`}
+                style={{
+                  padding: '0.75rem',
+                  borderRadius: '12px',
+                  textAlign: 'center',
+                  transition: 'all 150ms var(--ease-out)',
+                  cursor: 'pointer',
+                  border: selectedTier === idx
+                    ? '2px solid var(--color-sage)'
+                    : '1px solid var(--color-sand-line)',
+                  backgroundColor: selectedTier === idx
+                    ? 'oklch(65% 15% 145deg / 0.08)'
+                    : 'transparent',
+                }}
               >
-                <div className="font-bold mb-1">${tier.price.toFixed(2)}</div>
-                <div className="text-[10px] opacity-70">{tier.name}</div>
+                <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>{tier.emoji}</div>
+                <div style={{ fontWeight: 700, fontSize: '0.75rem', marginBottom: '0.25rem', color: selectedTier === idx ? 'var(--color-sage-deep)' : 'var(--color-clay)' }}>${tier.price.toFixed(2)}</div>
+                <div style={{ fontSize: '0.625rem', color: 'var(--color-stone)' }}>{tier.name}</div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Voting Power Indicator */}
-        <div className="mb-4 p-3 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield size={14} className="text-purple-400" />
-              <span className="text-xs font-mono text-zinc-400">Your Voting Power</span>
+        <div style={{
+          marginBottom: '1rem',
+          padding: '1rem',
+          background: 'linear-gradient(135deg, oklch(65% 15% 145deg / 0.08), oklch(72% 16% 38deg / 0.06))',
+          border: '1px solid oklch(65% 15% 145deg / 0.15)',
+          borderRadius: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Leaf size={16} style={{ color: 'var(--color-sage)' }} aria-hidden="true" />
+              <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-bark)' }}>Your Garden Influence</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-mono font-bold text-purple-400">
-                {quadraticWeight} sqrt(DIEM)
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-sage-deep)' }}>
+                {quadraticWeight}x
               </span>
-              <span className="text-[10px] font-mono text-zinc-600">
-                ({diemStaked.toFixed(2)} DIEM staked)
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-stone)' }}>
+                ({diemStaked.toFixed(2)} staked)
               </span>
             </div>
           </div>
-          <div className="mt-2 h-1 bg-zinc-800 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-purple-500 to-purple-400"
-              style={{ width: `${Math.min(100, (diemStaked / 500) * 100)}%` }}
+          <div style={{ height: '8px', backgroundColor: 'var(--color-cream)', borderRadius: '100px', overflow: 'hidden' }}>
+            <div
+              style={{
+                height: '100%',
+                borderRadius: '100px',
+                transition: 'width 0.5s ease',
+                background: 'linear-gradient(90deg, var(--color-sage), var(--color-terra))',
+                width: `${Math.min(100, (diemStaked / 500) * 100)}%`,
+              }}
             />
           </div>
+          <p style={{ fontSize: '0.625rem', color: 'var(--color-stone)', marginTop: '0.25rem' }}>More seeds planted = more influence, but costs grow quadratically</p>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-mono text-zinc-400 flex items-center gap-2">
-            <span>Cost:</span>
-            <span className="text-white bg-zinc-800 px-2 py-1 rounded border border-zinc-700">
-              ${finalCost} USDC
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-stone)' }}>Cost:</span>
+            <span style={{
+              backgroundColor: 'var(--color-parchment)',
+              padding: '0.375rem 0.75rem',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              color: 'var(--color-bark)',
+              border: '1px solid var(--color-sand-line)',
+            }}>
+              ${finalCost}
             </span>
-            <span className="text-zinc-600 ml-1">({isPaying ? 'processing' : 'ready'})</span>
+            <span style={{ fontSize: '0.625rem', color: isPaying ? 'var(--color-terra)' : 'var(--color-stone)' }}>
+              {isPaying ? 'growing...' : 'ready'}
+            </span>
           </div>
-          
+
           <button
             type="submit"
             disabled={!text.trim() || isPaying}
-            className="bg-[#00d992] hover:bg-[#00bf80] text-[#050505] font-semibold py-2 px-6 rounded-lg text-sm flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary"
+            style={{
+              fontSize: '0.875rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              opacity: !text.trim() || isPaying ? 0.6 : 1,
+              cursor: !text.trim() || isPaying ? 'not-allowed' : 'pointer',
+            }}
           >
             {isPaying ? (
-              <>
-                <span className="animate-pulse">Broadcasting...</span>
-              </>
+              <span style={{ opacity: 0.8 }}>Growing...</span>
             ) : (
               <>
-                Send to Agent
+                Plant
                 <Send size={16} />
               </>
             )}
@@ -177,44 +255,87 @@ export const PromptBox: React.FC = () => {
         </div>
       </form>
 
-      {/* Post-Submission Share */}
       {showShare && sharedPrompt && (
-        <div className="mt-4 p-4 bg-[#00d992]/10 border border-[#00d992]/30 rounded-lg animate-fade-in">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-mono text-[#00d992]">Got it. Running...</span>
-            <button 
+        <div style={{
+          marginTop: '1rem',
+          padding: '1rem',
+          background: 'oklch(65% 15% 145deg / 0.08)',
+          border: '1px solid oklch(65% 15% 145deg / 0.2)',
+          borderRadius: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-sage-deep)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              Seed planted! Processing your idea...
+            </span>
+            <button
+              type="button"
               onClick={() => setShowShare(false)}
-              className="text-zinc-500 hover:text-zinc-300 text-xs font-mono"
+              style={{ color: 'var(--color-stone)', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer', background: 'none', border: 'none' }}
             >
               Close
             </button>
           </div>
-          
-          <div className="text-xs font-mono text-zinc-400 mb-3 p-2 bg-black/30 rounded border border-zinc-800">
-            "{sharedPrompt.slice(0, 100)}{sharedPrompt.length > 100 ? '...' : ''}"
+
+          <div style={{
+            fontSize: '0.875rem',
+            color: 'var(--color-bark)',
+            marginBottom: '0.75rem',
+            padding: '0.75rem',
+            backgroundColor: 'var(--color-cream)',
+            borderRadius: '8px',
+            border: '1px solid var(--color-sand-line)',
+          }}>
+            &ldquo;{sharedPrompt.slice(0, 100)}{sharedPrompt.length > 100 ? '...' : ''}&rdquo;
           </div>
-          
-          <div className="flex gap-2">
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button
+              type="button"
               onClick={handleCopyPrompt}
-              className={`flex-1 py-2 px-3 rounded text-xs font-mono flex items-center justify-center gap-1 transition-all ${
-                copied 
-                  ? 'bg-green-500 text-black' 
-                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'
-              }`}
+              style={{
+                flex: 1,
+                padding: '0.625rem 1rem',
+                borderRadius: '12px',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                border: 'none',
+                backgroundColor: copied ? 'var(--color-success)' : 'var(--color-parchment)',
+                color: copied ? 'white' : 'var(--color-bark)',
+                transition: 'all 150ms var(--ease-out)',
+              }}
             >
-              {copied ? <Check size={12} /> : <DollarSign size={12} />}
-              {copied ? 'Copied!' : 'Copy'}
+              {copied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy Link</>}
             </button>
             <button
+              type="button"
               onClick={handleTwitterShare}
-              className="flex-1 py-2 px-3 rounded text-xs font-mono bg-[#1DA1F2]/20 hover:bg-[#1DA1F2]/30 text-[#1DA1F2] flex items-center justify-center gap-1 transition-all"
+              style={{
+                flex: 1,
+                padding: '0.625rem 1rem',
+                borderRadius: '12px',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                border: 'none',
+                backgroundColor: 'oklch(72% 16% 38deg / 0.15)',
+                color: 'var(--color-terra)',
+                transition: 'all 150ms var(--ease-out)',
+              }}
             >
-              Share on X
+              <Share2 size={14} /> Share on X
             </button>
           </div>
         </div>
       )}
     </div>
   );
-};
+});
