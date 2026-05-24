@@ -71,9 +71,6 @@ export const Guestbook: React.FC = () => {
 
   const handleUpvote = (entryId: string) => {
     websocketService.emit('guestbook:upvote', { entryId });
-    setEntries(prev => prev.map(e => 
-      e.id === entryId ? { ...e, upvotes: e.upvotes + 1 } : e
-    ));
   };
 
   const toggleReplies = (entryId: string) => {
