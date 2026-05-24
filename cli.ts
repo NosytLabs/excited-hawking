@@ -170,20 +170,20 @@ ${C.dim}Connecting to The People's Agent...${C.reset}
         this.spinner.stop('Connection failed', false);
       });
 
-      this.socket.on('tier:change', (data: { tier: string }) => {
+      this.socket.on(WSEvents.TIER_CHANGE, (data: { tier: string }) => {
         console.log(`\n${C.green}[TIER CHANGE]${C.reset} Agent tier: ${C.bold}${data.tier}${C.reset}`);
       });
 
-      this.socket.on('balance:update', (data: { diemStaked: number }) => {
+      this.socket.on(WSEvents.BALANCE_UPDATE, (data: { diemStaked: number }) => {
         console.log(`\n${C.cyan}[BALANCE]${C.reset} DIEM staked: ${C.bold}${data.diemStaked.toLocaleString()}${C.reset}`);
       });
 
-      this.socket.on('log:new', (data: { message: string; type: string }) => {
+      this.socket.on(WSEvents.LOG_NEW, (data: { message: string; type: string }) => {
         const color = data.type === 'error' ? C.red : data.type === 'success' ? C.green : C.cyan;
         console.log(`\n${color}[${data.type.toUpperCase()}]${C.reset} ${data.message}`);
       });
 
-      this.socket.on('governance:proposal', (proposal: Proposal) => {
+      this.socket.on(WSEvents.GOVERNANCE_PROPOSAL_NEW, (proposal: Proposal) => {
         console.log(`\n${C.magenta}[NEW PROPOSAL]${C.reset} ${proposal.title}`);
         this.proposals.push(proposal);
       });
@@ -522,7 +522,7 @@ ${C.bold}${C.cyan}╔═══════════════════�
 
         console.log(`  ${C.dim}${i + 1}.${C.reset} [${typeColor}${typeIcon}${C.reset}] ${age} ${m.content.slice(0, 80)}${m.content.length > 80 ? '...' : ''}`);
       });
-    } catch (_err) {
+    } catch {
       this.spinner.stop('Failed to fetch', false);
     }
   }

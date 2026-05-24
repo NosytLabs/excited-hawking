@@ -1,5 +1,6 @@
 import { Server } from 'socket.io';
 import type { Server as HttpServer } from 'http';
+import { WSEvents } from '../types/index.js';
 
 let io: Server | null = null;
 
@@ -11,7 +12,7 @@ function getAllowedOrigins(): string[] {
   if (process.env.NODE_ENV === 'production') {
     return [];
   }
-  return ['localhost:3000', 'localhost:5173'];
+  return ['localhost:3000', 'localhost:5173', 'localhost:5174', '127.0.0.1:3000', '127.0.0.1:5173', '127.0.0.1:5174', 'http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'];
 }
 
 function corsValidator(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void): void {
@@ -69,45 +70,45 @@ export function getIO(): Server {
 }
 
 export function emitPromptNew(promptId: string, content: string, wallet: string): void {
-  io?.emit('prompt:new', { id: promptId, content, wallet, timestamp: Date.now() });
+  io?.emit(WSEvents.PROMPT_NEW, { id: promptId, content, wallet, timestamp: Date.now() });
 }
 
 export function emitPromptComplete(promptId: string): void {
-  io?.emit('prompt:complete', { id: promptId, timestamp: Date.now() });
+  io?.emit(WSEvents.PROMPT_COMPLETE, { id: promptId, timestamp: Date.now() });
 }
 
 export function emitQueueUpdate(prompts: unknown[]): void {
-  io?.emit('queue:update', { prompts, timestamp: Date.now() });
+  io?.emit(WSEvents.QUEUE_UPDATE, { prompts, timestamp: Date.now() });
 }
 
 export function emitBalanceUpdate(wallet: string, balance: string): void {
-  io?.emit('balance:update', { wallet, balance, timestamp: Date.now() });
+  io?.emit(WSEvents.BALANCE_UPDATE, { wallet, balance, timestamp: Date.now() });
 }
 
 export function emitTreasuryUpdate(amount: number): void {
-  io?.emit('treasury:update', { amount, timestamp: Date.now() });
+  io?.emit(WSEvents.TREASURY_UPDATE, { amount, timestamp: Date.now() });
 }
 
 export function emitLogNew(message: string, level: string): void {
-  io?.emit('log:new', { message, level, timestamp: Date.now() });
+  io?.emit(WSEvents.LOG_NEW, { message, level, timestamp: Date.now() });
 }
 
 export function emitTierChange(tier: string): void {
-  io?.emit('tier:change', { tier, timestamp: Date.now() });
+  io?.emit(WSEvents.TIER_CHANGE, { tier, timestamp: Date.now() });
 }
 
 export function emitEmergenceUpdate(data: { grid: boolean[][]; generation: number; patterns: string[] }): void {
-  io?.to('emergence').emit('emergence:update', { ...data, timestamp: Date.now() });
+  io?.to('emergence').emit(WSEvents.EMERGENCE_UPDATE, { ...data, timestamp: Date.now() });
 }
 
 export function emitProposalNew(proposal: unknown): void {
-  io?.emit('governance:proposal:new', { proposal, timestamp: Date.now() });
+  io?.emit(WSEvents.GOVERNANCE_PROPOSAL_NEW, { proposal, timestamp: Date.now() });
 }
 
 export function emitProposalUpdate(proposal: unknown): void {
-  io?.emit('governance:proposal:update', { proposal, timestamp: Date.now() });
+  io?.emit(WSEvents.GOVERNANCE_PROPOSAL_UPDATE, { proposal, timestamp: Date.now() });
 }
 
 export function emitGovernanceUpdate(data: Record<string, unknown>): void {
-  io?.emit('governance:update', { ...data, timestamp: Date.now() });
+  io?.emit(WSEvents.GOVERNANCE_UPDATE, { ...data, timestamp: Date.now() });
 }

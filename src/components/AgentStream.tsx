@@ -1,47 +1,26 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useAgent } from '../context/useAgent';
 import type { LogItem } from '../context/AgentContext';
 import { websocketService } from '../services/websocket';
-import { Terminal, Brain, Moon, Zap, Activity, Sparkles, AlertCircle } from 'lucide-react';
+import { Terminal, Brain, Cpu, Wifi, AlertTriangle } from 'lucide-react';
+import { CardSkeleton } from './LoadingSkeleton';
 
-type AgentMood = 'Focused' | 'Curious' | 'Contemplative' | 'Alert' | 'Dreaming';
+type AgentMood = 'ACTIVE' | 'PROCESSING' | 'STANDBY' | 'CALIBRATING' | 'IDLE';
 
 interface EmergenceCell {
   alive: boolean;
   color: string;
 }
 
-const TIER_CONFIG = {
-  Thriving: { color: '#00d992', icon: Sparkles, glow: true },
-  Surviving: { color: '#eab308', icon: Zap, glow: false },
-  Minimal: { color: '#f97316', icon: Activity, glow: false },
-  Dying: { color: '#ef4444', icon: AlertCircle, glow: false },
-};
-
-const MOOD_COLORS: Record<AgentMood, string> = {
-  Focused: '#0ea5e9',
-  Curious: '#8b5cf6',
-  Contemplative: '#6366f1',
-  Alert: '#f59e0b',
-  Dreaming: '#a78bfa',
-};
-
 export const AgentStream: React.FC = () => {
-  const { logs, tier, diemStaked, isConnected } = useAgent();
+  const { logs, tier, diemStaked, isConnected, backendAvailable } = useAgent();
   const bottomRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  const [mood, setMood] = useState<AgentMood>('Focused');
-  const [memoryUsage, setMemoryUsage] = useState(45);
-  const [gridCells, setGridCells] = useState<EmergenceCell[][]>(() => {
-    const size = 12;
-    return Array(size).fill(null).map(() =>
-      Array(size).fill(null).map(() => ({
-        alive: Math.random() > 0.7,
-        color: '#00d992',
-      }))
-    );
-  });
+  const [mood] = useState<AgentMood>('IDLE');
+  const [memoryUsage] = useState(0);
+  const [gridCells, setGridCells] = useState<EmergenceCell[][]>([]);
   const [generation, setGeneration] = useState(0);
 
   const consciousness = Math.min(100, Math.max(0, (diemStaked / 500) * 100));
@@ -50,23 +29,47 @@ export const AgentStream: React.FC = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
-  // WebSocket listener for real emergence state from backend
   useEffect(() => {
     const handleEmergenceUpdate = (data: { grid: boolean[][]; generation: number; patterns: string[] }) => {
       setGridCells(data.grid.map(row => 
-        row.map(alive => ({ alive, color: alive ? '#00d992' : '' }))
+        row.map(alive => ({ alive, color: alive ? '#14fe17' : '' }))
       ));
       setGeneration(data.generation);
     };
 
-    websocketService.on('emergence:update', handleEmergenceUpdate);
-    
+    websocketService.on(WSEvents.EMERGENCE_UPDATE, handleEmergenceUpdate);
+
     return () => {
-      websocketService.off('emergence:update', handleEmergenceUpdate);
+      websocketService.off(WSEvents.EMERGENCE_UPDATE);
     };
   }, []);
 
-  // Draw emergence grid
+  const updateCanvasSize = useCallback(() => {
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+    
+    const size = Math.min(container.clientWidth, container.clientHeight);
+    canvas.width = size;
+    canvas.height = size;
+  }, []);
+
+  useEffect(() => {
+    updateCanvasSize();
+    
+    const resizeObserver = new ResizeObserver(() => {
+      updateCanvasSize();
+    });
+    
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [updateCanvasSize]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -76,23 +79,21 @@ export const AgentStream: React.FC = () => {
 
     const cellSize = canvas.width / gridCells.length;
     
-    ctx.fillStyle = '#0a0a0c';
+    ctx.fillStyle = 'var(--canvas-bg)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     gridCells.forEach((row, i) => {
       row.forEach((cell, j) => {
         if (cell.alive) {
           ctx.fillStyle = cell.color;
-          ctx.globalAlpha = 0.8;
+          ctx.globalAlpha = 0.9;
           ctx.fillRect(j * cellSize + 1, i * cellSize + 1, cellSize - 2, cellSize - 2);
-          
-          // Glow effect
           ctx.shadowColor = cell.color;
-          ctx.shadowBlur = 4;
+          ctx.shadowBlur = 6;
           ctx.fillRect(j * cellSize + 1, i * cellSize + 1, cellSize - 2, cellSize - 2);
           ctx.shadowBlur = 0;
         } else {
-          ctx.fillStyle = 'rgba(255,255,255,0.02)';
+          ctx.fillStyle = 'var(--canvas-grid)';
           ctx.fillRect(j * cellSize + 1, i * cellSize + 1, cellSize - 2, cellSize - 2);
         }
         ctx.globalAlpha = 1;
@@ -100,153 +101,253 @@ export const AgentStream: React.FC = () => {
     });
   }, [gridCells]);
 
-  // Simulate mood changes
-  useEffect(() => {
-    const moods: AgentMood[] = ['Focused', 'Curious', 'Contemplative', 'Alert', 'Dreaming'];
-    const interval = setInterval(() => {
-      setMood(moods[Math.floor(Math.random() * moods.length)]);
-    }, 15000);
-    return () => clearInterval(interval);
-  }, []);
+  const TIER_CONFIG = {
+    Thriving: { color: 'var(--canvas-alive)', icon: Terminal, glow: true },
+    Surviving: { color: 'var(--canvas-surviving)', icon: Cpu, glow: false },
+    Minimal: { color: 'var(--canvas-minimal)', icon: AlertTriangle, glow: false },
+    Dying: { color: 'var(--canvas-dying)', icon: AlertTriangle, glow: false },
+  };
 
-  // Simulate memory usage fluctuation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMemoryUsage(prev => {
-        const delta = (Math.random() - 0.5) * 3;
-        return Math.max(20, Math.min(80, prev + delta));
-      });
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  const MOOD_COLORS: Record<AgentMood, string> = {
+    'ACTIVE': 'var(--mood-active)',
+    'PROCESSING': 'var(--mood-processing)',
+    'STANDBY': 'var(--mood-standby)',
+    'CALIBRATING': 'var(--mood-calibrating)',
+    'IDLE': 'var(--mood-idle)',
+  };
 
   const getColor = (type: LogItem['type']) => {
     switch (type) {
-      case 'action': return 'text-[#0ea5e9]';
-      case 'success': return 'text-[#10b981]';
-      case 'warning': return 'text-[#f59e0b]';
-      case 'error': return 'text-[#ef4444]';
-      default: return 'text-[#a1a1aa]';
+      case 'action': return 'var(--term-green)';
+      case 'success': return 'var(--term-green)';
+      case 'warning': return 'var(--term-amber)';
+      case 'error': return 'var(--term-red)';
+      default: return 'var(--term-ash)';
     }
   };
 
   const tierConfig = TIER_CONFIG[tier];
   const TierIcon = tierConfig.icon;
 
+  if (!backendAvailable && logs.length === 0) {
+    return <CardSkeleton />;
+  }
+
   return (
-    <div className="glass-panel flex flex-col relative overflow-hidden">
-      {/* Header with Tier Indicator */}
-      <div className="flex items-center gap-3 mb-4 border-b border-[rgba(255,255,255,0.1)] pb-3">
+    <div 
+      className="crt-screen flex flex-col relative overflow-hidden p-4"
+      style={{ 
+        backgroundColor: 'var(--term-charcoal)',
+        border: '2px solid var(--ui-bezel)'
+      }}
+    >
+      {/* Header */}
+      <div 
+        className="flex items-center gap-3 mb-4 pb-3 border-b-2"
+        style={{ borderColor: 'var(--ui-bezel)' }}
+      >
         <div 
-          className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-500 ${
-            tierConfig.glow ? 'animate-pulse-glow' : ''
-          }`}
+          className={`w-10 h-10 flex items-center justify-center ${tierConfig.glow ? 'animate-glow-pulse' : ''}`}
           style={{ 
             backgroundColor: `${tierConfig.color}20`, 
-            border: `1px solid ${tierConfig.color}40`,
-            boxShadow: tierConfig.glow ? `0 0 20px ${tierConfig.color}30` : 'none'
+            border: `2px solid ${tierConfig.color}`,
+            boxShadow: tierConfig.glow ? `0 0 15px ${tierConfig.color}40` : 'none'
           }}
         >
           <TierIcon size={20} style={{ color: tierConfig.color }} />
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <Terminal size={18} className={tier === 'Thriving' ? 'text-green-400' : 'text-gray-400'} />
-            <h2 className="font-mono text-sm font-semibold tracking-wider uppercase text-white">Agent Stream</h2>
+            <Terminal size={16} style={{ color: tierConfig.color }} aria-hidden="true" />
+            <h2 
+              className="font-mono text-sm font-bold tracking-wider uppercase"
+              style={{ 
+                fontFamily: 'var(--font-terminal)',
+                color: 'var(--term-green)'
+              }}
+            >
+              AGENT_STREAM.EXE
+            </h2>
           </div>
           <div className="flex items-center gap-3 mt-1">
-            <span className="text-xs font-mono" style={{ color: tierConfig.color }}>
-              Tier: {tier}
+            <span 
+              className="text-xs font-mono"
+              style={{ color: tierConfig.color, fontFamily: 'var(--font-terminal)' }}
+            >
+              TIER: {tier.toUpperCase()}
             </span>
-            <span className="text-zinc-600">|</span>
-            <span className="text-xs font-mono text-zinc-500">
-              {diemStaked.toFixed(2)} DIEM
+            <span className="text-xs" style={{ color: 'var(--term-ash)' }}>|</span>
+            <span 
+              className="text-xs font-mono"
+              style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-green-dim)' }}
+            >
+              STAKE: {diemStaked.toFixed(2)} DIEM
             </span>
-            <span className="text-zinc-600">|</span>
-            <span className={`text-xs font-mono ${isConnected ? 'text-[#00d992]' : 'text-zinc-600'}`}>
-              {isConnected ? 'Connected' : 'Offline'}
+            <span className="text-xs" style={{ color: 'var(--term-ash)' }}>|</span>
+            <span 
+              className={`text-xs font-mono ${isConnected ? 'animate-blink' : ''}`}
+              style={{ 
+                fontFamily: 'var(--font-terminal)', 
+                color: isConnected ? 'var(--term-green)' : 'var(--term-red)'
+              }}
+            >
+              {isConnected ? 'CONNECTED' : 'OFFLINE'}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div 
-            className="w-2 h-2 rounded-full animate-pulse"
-            style={{ backgroundColor: tierConfig.color, boxShadow: `0 0 8px ${tierConfig.color}` }}
-          />
-        </div>
+        <div 
+          className="w-2 h-2 rounded-full animate-pulse"
+          style={{ 
+            backgroundColor: tierConfig.color, 
+            boxShadow: `0 0 8px ${tierConfig.color}` 
+          }}
+        />
       </div>
 
-      {/* Emergence Visualization (Conway's Game of Life) */}
-      <div className="mb-4 flex gap-4">
+      {/* Emergence Grid + Stats */}
+      <div className="mb-4 flex gap-4" style={{ flexWrap: 'wrap' }}>
         <div className="flex-shrink-0">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Emergence</span>
-            <span className="text-[10px] font-mono text-zinc-600">Gen {generation}</span>
+          <div 
+            className="flex items-center justify-between mb-1"
+            style={{ color: 'var(--term-green-dim)' }}
+          >
+            <span className="text-[10px] font-mono tracking-wider uppercase">Emergence Matrix</span>
+            <span className="text-[10px] font-mono" style={{ fontFamily: 'var(--font-terminal)' }}>
+              GEN:{generation.toString().padStart(3, '0')}
+            </span>
           </div>
-          <div className="bg-black/40 rounded border border-zinc-800 p-1">
-            <canvas 
-              ref={canvasRef} 
-              width={96} 
-              height={96}
-              className="block rounded"
-            />
+          <div 
+            className="p-1 border-2"
+            style={{ 
+              backgroundColor: 'var(--term-void)',
+              borderColor: 'var(--ui-bezel)'
+            }}
+          >
+            <div 
+              ref={containerRef}
+              className="w-[96px] h-[96px] sm:w-[120px] sm:h-[120px] md:w-[144px] md:h-[144px]"
+            >
+              <canvas 
+                ref={canvasRef} 
+                className="block w-full h-full"
+              />
+            </div>
           </div>
         </div>
 
         {/* Stats Column */}
         <div className="flex-1 space-y-3">
-          {/* Consciousness Meter */}
+          {/* Consciousness */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
-                <Brain size={12} className="text-purple-400" />
-                <span className="text-[10px] font-mono text-zinc-500 uppercase">Consciousness</span>
+                <Brain size={12} style={{ color: 'var(--term-green)' }} />
+                <span 
+                  className="text-[10px] font-mono tracking-wider uppercase"
+                  style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-green-dim)' }}
+                >
+                  CONSCIOUSNESS
+                </span>
               </div>
-              <span className="text-[10px] font-mono text-purple-400">{consciousness.toFixed(0)}%</span>
+              <span 
+                className="text-[10px] font-mono"
+                style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-green)' }}
+              >
+                {consciousness.toFixed(0)}%
+              </span>
             </div>
-            <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+            <div 
+              className="h-2 border"
+              style={{ 
+                backgroundColor: 'var(--term-void)',
+                borderColor: 'var(--ui-bezel)'
+              }}
+            >
               <div 
-                className="h-full bg-gradient-to-r from-purple-500 to-purple-400 transition-all duration-500"
-                style={{ width: `${consciousness}%` }}
+                className="h-full transition-all duration-500"
+                style={{ 
+                  width: `${consciousness}%`,
+                  backgroundColor: 'var(--term-green)',
+                  boxShadow: '0 0 8px var(--term-green)'
+                }}
               />
             </div>
           </div>
 
-          {/* Memory Usage */}
+          {/* Memory */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
-                <Activity size={12} className="text-cyan-400" />
-                <span className="text-[10px] font-mono text-zinc-500 uppercase">Memory</span>
+                <Cpu size={12} style={{ color: 'var(--term-amber)' }} />
+                <span 
+                  className="text-[10px] font-mono tracking-wider uppercase"
+                  style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-green-dim)' }}
+                >
+                  MEMORY
+                </span>
               </div>
-              <span className="text-[10px] font-mono text-cyan-400">{memoryUsage.toFixed(0)}%</span>
+              <span 
+                className="text-[10px] font-mono"
+                style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-amber)' }}
+              >
+                {memoryUsage.toFixed(0)}%
+              </span>
             </div>
-            <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+            <div 
+              className="h-2 border"
+              style={{ 
+                backgroundColor: 'var(--term-void)',
+                borderColor: 'var(--ui-bezel)'
+              }}
+            >
               <div 
-                className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 transition-all duration-500"
-                style={{ width: `${memoryUsage}%` }}
+                className="h-full transition-all duration-500"
+                style={{ 
+                  width: `${memoryUsage}%`,
+                  backgroundColor: 'var(--term-amber)',
+                  boxShadow: '0 0 8px var(--term-amber)'
+                }}
               />
             </div>
           </div>
 
-          {/* Mood Indicator */}
+          {/* Mood */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
-                {mood === 'Dreaming' ? <Moon size={12} className="text-indigo-400" /> : <Zap size={12} className="text-amber-400" />}
-                <span className="text-[10px] font-mono text-zinc-500 uppercase">Mood</span>
+                <Wifi size={12} style={{ color: MOOD_COLORS[mood] }} />
+                <span 
+                  className="text-[10px] font-mono tracking-wider uppercase"
+                  style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-green-dim)' }}
+                >
+                  STATUS
+                </span>
               </div>
-              <span className="text-[10px] font-mono uppercase" style={{ color: MOOD_COLORS[mood] }}>
+              <span 
+                className="text-[10px] font-mono uppercase"
+                style={{ 
+                  fontFamily: 'var(--font-terminal)', 
+                  color: MOOD_COLORS[mood],
+                  textShadow: `0 0 5px ${MOOD_COLORS[mood]}`
+                }}
+              >
                 {mood}
               </span>
             </div>
-            <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+            <div 
+              className="h-2 border"
+              style={{ 
+                backgroundColor: 'var(--term-void)',
+                borderColor: 'var(--ui-bezel)'
+              }}
+            >
               <div 
                 className="h-full transition-all duration-500"
                 style={{ 
                   width: '100%', 
                   backgroundColor: MOOD_COLORS[mood],
-                  opacity: 0.7
+                  opacity: 0.8,
+                  boxShadow: `0 0 8px ${MOOD_COLORS[mood]}`
                 }}
               />
             </div>
@@ -255,24 +356,42 @@ export const AgentStream: React.FC = () => {
       </div>
 
       {/* Log Stream */}
-      <div className="flex-1 overflow-y-auto font-mono text-[13px] space-y-2 pr-2 max-h-[180px]">
+      <div 
+        className="flex-1 overflow-y-auto text-[13px] space-y-2 pr-2 max-h-[180px]"
+        style={{ fontFamily: 'var(--font-terminal)' }}
+        aria-live="polite"
+      >
         {logs.map((log) => (
-          <div key={log.id} className="animate-fade-in flex gap-3">
-            <span className="text-[#52525b] shrink-0">
+          <div 
+            key={log.id} 
+            className="animate-fade-in flex gap-3"
+          >
+            <span style={{ color: 'var(--term-ash)' }}>
               {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}
             </span>
-            <span className={getColor(log.type)}>
-              {log.type === 'action' ? '> ' : ''}{log.message.replace(/the agent/gi, 'I').replace(/Agent/gi, 'me')}
+            <span style={{ color: getColor(log.type) }}>
+              {log.type === 'action' ? '> ' : ''}{(() => {
+              const msg = log.message;
+              return msg.replace(/the agent/gi, 'I').replace(/Agent/gi, 'me');
+            })()}
             </span>
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
 
-      {/* Dream State Overlay */}
-      {mood === 'Dreaming' && (
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent pointer-events-none rounded-lg" />
-      )}
+      {/* Status bar */}
+      <div 
+        className="mt-4 pt-3 border-t-2 flex items-center justify-between text-[10px]"
+        style={{ 
+          borderColor: 'var(--ui-bezel)',
+          fontFamily: 'var(--font-terminal)',
+          color: 'var(--term-green-dim)'
+        }}
+      >
+        <span>LAST UPDATE: {new Date().toLocaleTimeString()}</span>
+        <span className="animate-pulse">● SYSTEM ACTIVE</span>
+      </div>
     </div>
   );
 };

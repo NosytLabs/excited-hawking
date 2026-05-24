@@ -1,6 +1,7 @@
 import { createContext, useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { websocketService } from '../services/websocket';
+import { WSEvents } from '../types/events';
 import type { PromptEvent, BalanceEvent, TreasuryEvent, TierEvent, LogEvent, GovernanceEvent } from '../services/websocket';
 import { api } from '../services/api';
 
@@ -41,8 +42,12 @@ interface AgentState {
   addPrompt: (text: string, cost: number) => void;
   votePrompt: (id: string) => void;
   addLog: (message: string, type?: LogItem['type']) => void;
-  voteProposal: (id: string, vote: 'for' | 'against') => void;
+  voteProposal: (id: string, vote: 'for' | 'against' | 'abstain') => void;
   isConnected: boolean;
+  backendAvailable: boolean;
+  walletAddress: string | null;
+  connectWallet: (wallet: string) => void;
+  disconnectWallet: () => void;
 }
 
 const AgentContext = createContext<AgentState | undefined>(undefined);
@@ -53,34 +58,21 @@ export type { AgentState };
 
 const generateId = () => crypto.randomUUID();
 
-const COLORS = ['#ef4444', '#00d992', '#0ea5e9', '#eab308'];
 
-const MOCK_PROMPTS: PromptItem[] = [
-  { id: generateId(), user: '0x12..34', text: 'Cross-reference ETH/USDC price on Uniswap', votes: 12, cost: 0.05, status: 'queued' },
-  { id: generateId(), user: 'anon', text: 'Verify if Solana mainnet is up', votes: 8, cost: 0.02, status: 'queued' },
-];
-
-const MOCK_LOGS: LogItem[] = [
-  { id: generateId(), timestamp: new Date().toISOString(), message: 'Agent initialized. Tier: Surviving.', type: 'info' },
-];
-
-const MOCK_PROPOSALS: Proposal[] = [
-  { id: generateId(), title: 'Route 10% treasury to buy $VVV stake', votesFor: 145, votesAgainst: 12, status: 'active' },
-  { id: generateId(), title: 'Increase prompt price floor to $0.05', votesFor: 89, votesAgainst: 210, status: 'active' },
-];
 
 export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [diemStaked, setDiemStaked] = useState<number>(12.5);
-  const [treasuryUSDC, setTreasuryUSDC] = useState<number>(45.2);
-  const [prompts, setPrompts] = useState<PromptItem[]>(MOCK_PROMPTS);
-  const [logs, setLogs] = useState<LogItem[]>(MOCK_LOGS);
-  const [canvasPixels, setCanvasPixels] = useState<string[]>(() => {
-    return Array(400).fill('').map(() => Math.random() > 0.9 ? COLORS[Math.floor(Math.random() * COLORS.length)] : '');
-  });
-  const [proposals, setProposals] = useState<Proposal[]>(MOCK_PROPOSALS);
+  const [diemStaked, setDiemStaked] = useState<number>(0);
+  const [treasuryUSDC, setTreasuryUSDC] = useState<number>(0);
+  const [prompts, setPrompts] = useState<PromptItem[]>([]);
+  const [logs, setLogs] = useState<LogItem[]>([]);
+  const [canvasPixels] = useState<string[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [backendAvailable, setBackendAvailable] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const initRef = useRef(false);
+
+  const timeoutIds = useRef<Array<ReturnType<typeof setTimeout>>>([]);
 
   useEffect(() => {
     if (initRef.current) return;
@@ -106,48 +98,63 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     websocketService.on('disconnect', handleDisconnect);
     websocketService.on('connect_error', handleDisconnect);
 
-    websocketService.on('prompt:new', (data: PromptEvent) => {
+    websocketService.on(WSEvents.PROMPT_NEW, (data: PromptEvent) => {
       setPrompts(prev => [...prev, { ...data, status: 'queued' }]);
     });
 
-    websocketService.on('prompt:complete', (data: PromptEvent) => {
+    websocketService.on(WSEvents.PROMPT_COMPLETE, (data: PromptEvent) => {
       setPrompts(prev => prev.map(p => p.id === data.id ? data : p));
     });
 
-    websocketService.on('queue:update', (data: PromptEvent[]) => {
+    websocketService.on(WSEvents.QUEUE_UPDATE, (data: PromptEvent[]) => {
       setPrompts(data);
     });
 
-    websocketService.on('balance:update', (data: BalanceEvent) => {
+    websocketService.on(WSEvents.BALANCE_UPDATE, (data: BalanceEvent) => {
       setDiemStaked(data.diemStaked);
     });
 
-    websocketService.on('treasury:update', (data: TreasuryEvent) => {
+    websocketService.on(WSEvents.TREASURY_UPDATE, (data: TreasuryEvent) => {
       setTreasuryUSDC(data.treasuryUSDC);
     });
 
-    websocketService.on('tier:change', (_data: TierEvent) => {
-      // tier computed from diemStaked, no action needed
+    websocketService.on(WSEvents.TIER_CHANGE, (_data: TierEvent) => {
+      // Tier is computed from diemStaked via useMemo - no direct action needed
     });
 
-    websocketService.on('log:new', (data: LogEvent) => {
+    websocketService.on(WSEvents.LOG_NEW, (data: LogEvent) => {
       setLogs(prev => [...prev, data]);
     });
 
-    websocketService.on('governance:proposal', (data: GovernanceEvent) => {
+    websocketService.on(WSEvents.GOVERNANCE_PROPOSAL, (data: GovernanceEvent) => {
       setProposals(prev => [...prev, data]);
     });
 
-    websocketService.on('governance:vote', (data: GovernanceEvent) => {
+    websocketService.on(WSEvents.GOVERNANCE_VOTE, (data: GovernanceEvent) => {
       setProposals(prev => prev.map(p => p.id === data.id ? data : p));
     });
 
-    websocketService.on('governance:close', (data: GovernanceEvent) => {
+    websocketService.on(WSEvents.GOVERNANCE_CLOSE, (data: GovernanceEvent) => {
       setProposals(prev => prev.map(p => p.id === data.id ? data : p));
     });
 
     return () => {
+      websocketService.off('connect');
+      websocketService.off('disconnect');
+      websocketService.off('connect_error');
+      websocketService.off(WSEvents.PROMPT_NEW);
+      websocketService.off(WSEvents.PROMPT_COMPLETE);
+      websocketService.off(WSEvents.QUEUE_UPDATE);
+      websocketService.off(WSEvents.BALANCE_UPDATE);
+      websocketService.off(WSEvents.TREASURY_UPDATE);
+      websocketService.off(WSEvents.TIER_CHANGE);
+      websocketService.off(WSEvents.LOG_NEW);
+      websocketService.off(WSEvents.GOVERNANCE_PROPOSAL);
+      websocketService.off(WSEvents.GOVERNANCE_VOTE);
+      websocketService.off(WSEvents.GOVERNANCE_CLOSE);
       websocketService.disconnect();
+      timeoutIds.current.forEach(clearTimeout);
+      timeoutIds.current = [];
     };
   }, []);
 
@@ -173,42 +180,22 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     if (backendAvailable) {
-      api.submitPrompt(text).catch(() => {});
+      api.submitPrompt(text).catch(err => console.error('[AgentContext] submitPrompt failed:', err));
+    } else {
+      setPrompts(prev => [...prev, newPrompt]);
     }
-
-    setPrompts(prev => [...prev, newPrompt]);
-    setLogs(prev => [...prev, { id: generateId(), timestamp: new Date().toISOString(), message: `Received prompt: "${text}" via x402 payment ($${cost.toFixed(2)})`, type: 'info' }]);
-
-    setCanvasPixels(prev => {
-      const next = [...prev];
-      const idx = Math.floor(Math.random() * 400);
-      next[idx] = '#00d992';
-      return next;
-    });
-
-    setTimeout(() => {
-      setPrompts(prev => prev.map(p => p.id === newPrompt.id ? { ...p, status: 'processing' } : p));
-      setLogs(prev => [...prev, { id: generateId(), timestamp: new Date().toISOString(), message: `Processing prompt: "${text}"`, type: 'action' }]);
-
-      setTimeout(() => {
-        setPrompts(prev => prev.map(p => p.id === newPrompt.id ? { ...p, status: 'done' } : p));
-        setLogs(prev => [...prev, { id: generateId(), timestamp: new Date().toISOString(), message: `Completed prompt: "${text}". Earned fees.`, type: 'success' }]);
-        setTreasuryUSDC(prev => prev + (cost * 0.5));
-        setDiemStaked(prev => prev + (cost * 0.5));
-      }, 3000);
-    }, 2000);
   }, [backendAvailable]);
 
   const votePrompt = useCallback((id: string) => {
     if (backendAvailable) {
-      api.vote(id, 'for').catch(() => {});
+      api.vote(id, 'for').catch(err => console.error('[AgentContext] vote failed:', err));
     }
     setPrompts(prev => prev.map(p => p.id === id ? { ...p, votes: p.votes + 1 } : p));
   }, [backendAvailable]);
 
-  const voteProposal = useCallback((id: string, vote: 'for' | 'against') => {
+  const voteProposal = useCallback((id: string, vote: 'for' | 'against' | 'abstain') => {
     if (backendAvailable) {
-      api.voteOnProposal(id, vote).catch(() => {});
+      api.voteOnProposal(id, vote).catch(err => console.error('[AgentContext] voteOnProposal failed:', err));
     }
     setProposals(prev => prev.map(p => {
       if (p.id === id) {
@@ -221,6 +208,14 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return p;
     }));
   }, [backendAvailable]);
+
+  const connectWallet = useCallback((wallet: string) => {
+    setWalletAddress(wallet);
+  }, []);
+
+  const disconnectWallet = useCallback(() => {
+    setWalletAddress(null);
+  }, []);
 
   return (
     <AgentContext.Provider
@@ -237,6 +232,10 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         addLog,
         voteProposal,
         isConnected,
+        backendAvailable,
+        walletAddress,
+        connectWallet,
+        disconnectWallet,
       }}
     >
       {children}

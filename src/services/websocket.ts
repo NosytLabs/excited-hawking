@@ -1,20 +1,7 @@
 import { io, Socket } from 'socket.io-client';
+import { WSEvents, WSEvent } from '../types/events';
 
-export type SocketEvent =
-  | 'connect'
-  | 'disconnect'
-  | 'connect_error'
-  | 'prompt:new'
-  | 'prompt:complete'
-  | 'queue:update'
-  | 'balance:update'
-  | 'treasury:update'
-  | 'tier:change'
-  | 'log:new'
-  | 'governance:proposal'
-  | 'governance:vote'
-  | 'governance:close'
-  | 'emergence:update';
+export type SocketEvent = WSEvent;
 
 export interface PromptEvent {
   id: string;
@@ -61,23 +48,26 @@ export interface EmergenceEvent {
 type EventHandler<T = unknown> = (data: T) => void;
 
 interface SocketHandlers {
-  'connect': EventHandler<void>;
-  'disconnect': EventHandler<void>;
-  'connect_error': EventHandler<void>;
-  'prompt:new': EventHandler<PromptEvent>;
-  'prompt:complete': EventHandler<PromptEvent>;
-  'queue:update': EventHandler<PromptEvent[]>;
-  'balance:update': EventHandler<BalanceEvent>;
-  'treasury:update': EventHandler<TreasuryEvent>;
-  'tier:change': EventHandler<TierEvent>;
-  'log:new': EventHandler<LogEvent>;
-  'governance:proposal': EventHandler<GovernanceEvent>;
-  'governance:vote': EventHandler<GovernanceEvent>;
-  'governance:close': EventHandler<GovernanceEvent>;
-  'emergence:update': EventHandler<EmergenceEvent>;
+  [WSEvents.CONNECT]: EventHandler<void>;
+  [WSEvents.DISCONNECT]: EventHandler<void>;
+  [WSEvents.CONNECT_ERROR]: EventHandler<void>;
+  [WSEvents.PROMPT_NEW]: EventHandler<PromptEvent>;
+  [WSEvents.PROMPT_COMPLETE]: EventHandler<PromptEvent>;
+  [WSEvents.QUEUE_UPDATE]: EventHandler<PromptEvent[]>;
+  [WSEvents.BALANCE_UPDATE]: EventHandler<BalanceEvent>;
+  [WSEvents.TREASURY_UPDATE]: EventHandler<TreasuryEvent>;
+  [WSEvents.TIER_CHANGE]: EventHandler<TierEvent>;
+  [WSEvents.LOG_NEW]: EventHandler<LogEvent>;
+  [WSEvents.GOVERNANCE_PROPOSAL]: EventHandler<GovernanceEvent>;
+  [WSEvents.GOVERNANCE_PROPOSAL_NEW]: EventHandler<GovernanceEvent>;
+  [WSEvents.GOVERNANCE_PROPOSAL_UPDATE]: EventHandler<GovernanceEvent>;
+  [WSEvents.GOVERNANCE_VOTE]: EventHandler<GovernanceEvent>;
+  [WSEvents.GOVERNANCE_CLOSE]: EventHandler<GovernanceEvent>;
+  [WSEvents.GOVERNANCE_UPDATE]: EventHandler<Record<string, unknown>>;
+  [WSEvents.EMERGENCE_UPDATE]: EventHandler<EmergenceEvent>;
 }
 
-const WS_URL = 'ws://localhost:3001';
+const WS_URL = import.meta.env.VITE_WS_URL || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 const RECONNECT_DELAY = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
@@ -96,34 +86,39 @@ class WebSocketService {
       reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
     });
 
-    this.socket.on('connect', () => {
+    this.socket.on(WSEvents.CONNECT, () => {
       this.isConnected = true;
-      const handler = this.handlers['connect' as keyof SocketHandlers] as EventHandler | undefined;
+      const handler = this.handlers[WSEvents.CONNECT] as EventHandler | undefined;
       if (handler) handler({});
     });
 
-    this.socket.on('disconnect', () => {
+    this.socket.on(WSEvents.DISCONNECT, () => {
       this.isConnected = false;
-      const handler = this.handlers['disconnect' as keyof SocketHandlers] as EventHandler | undefined;
+      const handler = this.handlers[WSEvents.DISCONNECT] as EventHandler | undefined;
       if (handler) handler({});
     });
 
-    this.socket.on('connect_error', () => {
+    this.socket.on(WSEvents.CONNECT_ERROR, () => {
       this.isConnected = false;
+      const handler = this.handlers[WSEvents.CONNECT_ERROR] as EventHandler | undefined;
+      if (handler) handler({});
     });
 
     const events: SocketEvent[] = [
-      'prompt:new',
-      'prompt:complete',
-      'queue:update',
-      'balance:update',
-      'treasury:update',
-      'tier:change',
-      'log:new',
-      'governance:proposal',
-      'governance:vote',
-      'governance:close',
-      'emergence:update',
+      WSEvents.PROMPT_NEW,
+      WSEvents.PROMPT_COMPLETE,
+      WSEvents.QUEUE_UPDATE,
+      WSEvents.BALANCE_UPDATE,
+      WSEvents.TREASURY_UPDATE,
+      WSEvents.TIER_CHANGE,
+      WSEvents.LOG_NEW,
+      WSEvents.GOVERNANCE_PROPOSAL,
+      WSEvents.GOVERNANCE_PROPOSAL_NEW,
+      WSEvents.GOVERNANCE_PROPOSAL_UPDATE,
+      WSEvents.GOVERNANCE_VOTE,
+      WSEvents.GOVERNANCE_CLOSE,
+      WSEvents.GOVERNANCE_UPDATE,
+      WSEvents.EMERGENCE_UPDATE,
     ];
 
     events.forEach((event) => {

@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import createKeccakHash from 'keccak';
 
 export type Tier = 'Thriving' | 'Surviving' | 'Minimal' | 'Dying';
 export type PaymentTier = 'free' | 'light' | 'standard' | 'pro' | 'enterprise';
@@ -187,90 +187,7 @@ export interface RateLimitEntry {
 const WALLET_REGEX = /^0x[a-fA-F0-9]{40}$/;
 
 function keccak256(data: string): string {
-  const hashBuffer = createHash('sha256').update(Buffer.from(data, 'utf8')).digest();
-  const hashHex = hashBuffer.toString('hex');
-  return sha3(hashHex);
-}
-
-function sha3(data: string): string {
-  const K = [
-    0x428a2f98d728ae22n, 0x7137449123ef65bcn, 0xb5c0fbcfec4d3b2fn, 0xe9b5dba58189dbbcn,
-    0x3956c25bf348b538n, 0x59f111f1b605d019n, 0x923f82a4af1948bbn, 0xab1c5ed5d6a7f682n,
-    0xda328557de5e2ce8n, 0x4cc3d4e67ef9e3a1n, 0x2de92c6f592b0275n, 0x240ca1cc77ac9c65n,
-    0x16a3d48e193f9d2fn, 0x4a3c13e5625c1e6cn, 0x5ee67fbdd588bf03n, 0x76e9afa30c913f4dn,
-    0x9b056c2a7abb06e5n, 0x1f83d9abfb41bd6bn, 0x5be0cd19137e2179n
-  ];
-
-  const inputHex = data.replace(/[^a-f0-9]/gi, '');
-  const blocks: bigint[] = [];
-  for (let i = 0; i < inputHex.length; i += 16) {
-    let block = 0n;
-    for (let j = 0; j < 16 && i + j < inputHex.length; j++) {
-      block = (block << 4n) | BigInt(parseInt(inputHex[i + j], 16));
-    }
-    blocks.push(block);
-  }
-
-  const state = [
-    0x6a09e667f3bcc908n, 0xbb67ae8584caa73bn, 0x3c6ef372fe94f82bn, 0xa54ff53a5f1d36f1n,
-    0x510e527fade682d1n, 0x9b05688c2b3e6d1fn, 0x1f9d44c95e2a7e4dn, 0x5d0c2e7d8e1b3f9cn
-  ];
-
-  for (const block of blocks) {
-    const [A, B, C, D, E, F, G, H] = state;
-    const W: bigint[] = [];
-
-    for (let t = 0; t < 16; t++) {
-      W.push((block >> BigInt(240 - t * 16)) & 0xffn);
-    }
-    for (let t = 16; t < 64; t++) {
-      const s0 = rotr(W[t-15], 1) ^ rotr(W[t-15], 8) ^ (W[t-15] >> 7n);
-      const s1 = rotr(W[t-2], 19) ^ rotr(W[t-2], 61) ^ (W[t-2] >> 6n);
-      W.push((W[t-16] + s0 + W[t-7] + s1) & mask(256n));
-    }
-
-    let [a, b, c, d, e, f, g, hh] = [A, B, C, D, E, F, G, H];
-    for (let t = 0; t < 64; t++) {
-      const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
-      const ch = (e & f) ^ (~e & g);
-      const temp1 = (hh + S1 + ch + K[t] + W[t]) & mask(256n);
-      const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
-      const maj = (a & b) ^ (a & c) ^ (b & c);
-      const temp2 = (S0 + maj) & mask(256n);
-
-      hh = g;
-      g = f;
-      f = e;
-      e = (d + temp1) & mask(256n);
-      d = c;
-      c = b;
-      b = a;
-      a = (temp1 + temp2) & mask(256n);
-    }
-
-    state[0] = (state[0] + a) & mask(256n);
-    state[1] = (state[1] + b) & mask(256n);
-    state[2] = (state[2] + c) & mask(256n);
-    state[3] = (state[3] + d) & mask(256n);
-    state[4] = (state[4] + e) & mask(256n);
-    state[5] = (state[5] + f) & mask(256n);
-    state[6] = (state[6] + g) & mask(256n);
-    state[7] = (state[7] + hh) & mask(256n);
-  }
-
-  const result: string[] = [];
-  for (const s of state) {
-    result.push(s.toString(16).padStart(16, '0'));
-  }
-  return result.join('');
-}
-
-function rotr(x: bigint, n: number): bigint {
-  return ((x >> BigInt(n)) | (x << BigInt(256 - n))) & mask(256n);
-}
-
-function mask(bits: bigint): bigint {
-  return (BigInt(1) << bits) - BigInt(1);
+  return createKeccakHash('keccak256').update(Buffer.from(data, 'utf8')).digest('hex');
 }
 
 export function toChecksumAddress(address: string): string {
@@ -550,7 +467,13 @@ const MARKOV_IMAGE_PATTERNS = [
   /<img[^>]*src=[^>]*\.(?:png|jpg|jpeg|gif|webp|bmp|svg)/gi,
 ];
 
-const CONTROL_CHARACTERS_REGEX = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
+function isControlCharacter(charCode: number): boolean {
+  return (charCode >= 0x00 && charCode <= 0x08)
+    || charCode === 0x0B
+    || charCode === 0x0C
+    || (charCode >= 0x0E && charCode <= 0x1F)
+    || charCode === 0x7F;
+}
 
 const MIN_PROMPT_LENGTH = 1;
 const MAX_PROMPT_LENGTH = 10000;
@@ -583,7 +506,9 @@ export function detectImageUrls(content: string): { hasImageUrl: boolean; urls: 
 }
 
 export function stripControlCharacters(content: string): string {
-  return content.replace(CONTROL_CHARACTERS_REGEX, '');
+  return Array.from(content)
+    .filter((character) => !isControlCharacter(character.charCodeAt(0)))
+    .join('');
 }
 
 export function validatePrompt(content: unknown): PromptValidationResult {
@@ -618,4 +543,27 @@ export function validatePrompt(content: unknown): PromptValidationResult {
   return { valid: true, sanitized: stripped };
 }
 
+export const WSEvents = {
+  CONNECT: 'connect',
+  DISCONNECT: 'disconnect',
+  CONNECT_ERROR: 'connect_error',
+  PROMPT_NEW: 'prompt:new',
+  PROMPT_COMPLETE: 'prompt:complete',
+  QUEUE_UPDATE: 'queue:update',
+  BALANCE_UPDATE: 'balance:update',
+  TREASURY_UPDATE: 'treasury:update',
+  TIER_CHANGE: 'tier:change',
+  LOG_NEW: 'log:new',
+  GOVERNANCE_PROPOSAL: 'governance:proposal',
+  GOVERNANCE_PROPOSAL_NEW: 'governance:proposal:new',
+  GOVERNANCE_PROPOSAL_UPDATE: 'governance:proposal:update',
+  GOVERNANCE_VOTE: 'governance:vote',
+  GOVERNANCE_CLOSE: 'governance:close',
+  GOVERNANCE_UPDATE: 'governance:update',
+  EMERGENCE_UPDATE: 'emergence:update'
+} as const;
+
+export type WSEvent = typeof WSEvents[keyof typeof WSEvents];
+
 export { MIN_PROMPT_LENGTH, MAX_PROMPT_LENGTH };
+
