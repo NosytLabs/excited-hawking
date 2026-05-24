@@ -39,9 +39,9 @@
   --term-green: var(--vault-teal);
   --term-green-dim: var(--shell-text-muted);
   --term-green-glow: var(--vault-teal-glow);
-  --term-amber: var(--shell-text);
-  --term-orange: var(--shell-text);
-  --term-blue: var(--shell-text);
+  --term-amber: oklch(65% 10% 75deg);
+  --term-orange: oklch(65% 12% 45deg);
+  --term-blue: oklch(55% 12% 250deg);
   --term-red: var(--shell-danger);
 
   --term-scanline: transparent;
