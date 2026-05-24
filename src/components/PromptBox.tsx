@@ -1,24 +1,25 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useAgent } from '../context/useAgent';
-import { Send, Sprout, Leaf, HelpCircle, Check, Copy, Share2 } from 'lucide-react';
+import { Send, Zap, HelpCircle, Check, Copy, Share2 } from 'lucide-react';
 
 const MAX_LENGTH = 2000;
 const MAX_COST = 1.00;
 const DEBOUNCE_MS = 500;
+const MIN_STAKE_FOR_ACCESS = 10;
 
 interface CostTier {
   name: string;
   price: number;
   features: string[];
-  emoji: string;
+  icon: React.ElementType;
   description: string;
 }
 
 const COST_TIERS: CostTier[] = [
-  { name: 'Seed', price: 0.01, features: ['Simple questions', 'Fast response'], emoji: '🌱', description: 'Just want a quick answer?' },
-  { name: 'Sprout', price: 0.05, features: ['Complex queries', 'Deep analysis'], emoji: '🌿', description: 'Good for most conversations' },
-  { name: 'Bloom', price: 0.25, features: ['Research', 'Detailed response'], emoji: '🌸', description: 'Thorough exploration of topics' },
-  { name: 'Grove', price: 1.00, features: ['Full access', 'Priority'], emoji: '🌳', description: 'For serious growth' },
+  { name: 'Standard', price: 0.01, features: ['Simple questions', 'Fast response'], icon: Zap, description: 'Quick answer' },
+  { name: 'Deep', price: 0.05, features: ['Complex queries', 'Deep analysis'], icon: Zap, description: 'Good for most conversations' },
+  { name: 'Research', price: 0.25, features: ['Research', 'Detailed response'], icon: Zap, description: 'Thorough exploration' },
+  { name: 'Max', price: 1.00, features: ['Full access', 'Priority'], icon: Zap, description: 'Maximum effort' },
 ];
 
 export const PromptBox: React.FC = React.memo(() => {
@@ -36,6 +37,7 @@ export const PromptBox: React.FC = React.memo(() => {
   const baseCost = Math.min(MAX_COST, Math.max(0.01, text.length * 0.0005));
   const finalCost = Math.max(cost, baseCost).toFixed(2);
 
+  const hasStakingAccess = diemStaked >= MIN_STAKE_FOR_ACCESS;
   const votingPower = Math.sqrt(diemStaked);
   const quadraticWeight = votingPower.toFixed(2);
 
@@ -80,20 +82,17 @@ export const PromptBox: React.FC = React.memo(() => {
   }, [sharedPrompt]);
 
   return (
-    <div style={{
-      backgroundColor: 'var(--color-cream-deep)',
-      border: '1px solid var(--color-sand-line)',
-      borderRadius: '16px',
-      padding: '1.5rem',
-      transition: 'all 300ms var(--ease-out)',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-bark)' }}>
-          <Sprout size={20} style={{ color: 'var(--color-sage)' }} aria-hidden="true" />
-          Plant an Idea
+    <section 
+      id="prompt" 
+      className="prompt-box relative overflow-hidden rounded-xl bg-[var(--shell-surface)] border border-[var(--shell-border)] p-6 shadow-sm"
+      aria-label="Prompt composer"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-medium text-[var(--shell-text)]">
+          Start a prompt
         </h3>
         <div
-          style={{ position: 'relative', display: 'inline-block', cursor: 'help' }}
+          className="relative inline-block cursor-help"
           onMouseEnter={() => setTooltipVisible(true)}
           onMouseLeave={() => setTooltipVisible(false)}
           onFocus={() => setTooltipVisible(true)}
@@ -101,241 +100,138 @@ export const PromptBox: React.FC = React.memo(() => {
           tabIndex={0}
           role="tooltip"
         >
-          <HelpCircle size={16} style={{ color: 'var(--color-stone)' }} />
+          <HelpCircle size={16} className="text-[var(--shell-text-muted)]" />
           {tooltipVisible && (
-            <div style={{
-              position: 'absolute',
-              bottom: 'calc(100% + 6px)',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              backgroundColor: 'var(--color-bark)',
-              borderRadius: '8px',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.75rem',
-              color: 'var(--color-cream)',
-              whiteSpace: 'nowrap',
-              zIndex: 50,
-              boxShadow: '0 4px 12px oklch(0% 0% 0% / 0.15)',
-            }}>
-              Costs feed the garden: 80% nurtures scarcity, 20% grows the treasury
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[var(--shell-text)] text-[var(--shell-bg)] rounded-lg px-3 py-2 text-xs whitespace-nowrap z-50 shadow-md">
+              Costs support the system: 80% burns, 20% to treasury
             </div>
           )}
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ position: 'relative', marginBottom: '1rem' }}>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value.slice(0, MAX_LENGTH))}
-            placeholder="Plant an idea in the garden... What shall we grow today?"
-            className="input"
-            style={{
-              width: '100%',
-              height: '7rem',
-              resize: 'none',
-              fontSize: '0.875rem',
-              fontFamily: 'var(--font-body)',
-            }}
-            disabled={isPaying}
-            maxLength={MAX_LENGTH}
-            aria-label="Plant an idea in the garden"
-          />
-          <div style={{ position: 'absolute', bottom: '0.75rem', right: '0.75rem', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--color-stone)' }}>
-            {text.length}/{MAX_LENGTH}
-          </div>
-        </div>
+      <p className="text-sm text-[var(--shell-text-muted)] mb-6 max-w-2xl leading-relaxed">
+        The commons agent runs entirely on contributions. Add to the queue and it will respond when selected.
+      </p>
 
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-stone)', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Growth depth</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))', gap: '0.5rem' }}>
-            {COST_TIERS.map((tier, idx) => (
-              <button
-                key={tier.name}
-                type="button"
-                onClick={() => setSelectedTier(idx)}
-                style={{
-                  padding: '0.75rem',
-                  borderRadius: '12px',
-                  textAlign: 'center',
-                  transition: 'all 150ms var(--ease-out)',
-                  cursor: 'pointer',
-                  border: selectedTier === idx
-                    ? '2px solid var(--color-sage)'
-                    : '1px solid var(--color-sand-line)',
-                  backgroundColor: selectedTier === idx
-                    ? 'oklch(65% 15% 145deg / 0.08)'
-                    : 'transparent',
-                }}
-              >
-                <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>{tier.emoji}</div>
-                <div style={{ fontWeight: 700, fontSize: '0.75rem', marginBottom: '0.25rem', color: selectedTier === idx ? 'var(--color-sage-deep)' : 'var(--color-clay)' }}>${tier.price.toFixed(2)}</div>
-                <div style={{ fontSize: '0.625rem', color: 'var(--color-stone)' }}>{tier.name}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{
-          marginBottom: '1rem',
-          padding: '1rem',
-          background: 'linear-gradient(135deg, oklch(65% 15% 145deg / 0.08), oklch(72% 16% 38deg / 0.06))',
-          border: '1px solid oklch(65% 15% 145deg / 0.15)',
-          borderRadius: '12px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Leaf size={16} style={{ color: 'var(--color-sage)' }} aria-hidden="true" />
-              <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-bark)' }}>Your Garden Influence</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-sage-deep)' }}>
-                {quadraticWeight}x
-              </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-stone)' }}>
-                ({diemStaked.toFixed(2)} staked)
-              </span>
-            </div>
-          </div>
-          <div style={{ height: '8px', backgroundColor: 'var(--color-cream)', borderRadius: '100px', overflow: 'hidden' }}>
-            <div
-              style={{
-                height: '100%',
-                borderRadius: '100px',
-                transition: 'width 0.5s ease',
-                background: 'linear-gradient(90deg, var(--color-sage), var(--color-terra))',
-                width: `${Math.min(100, (diemStaked / 500) * 100)}%`,
-              }}
+      {hasStakingAccess ? (
+        <form onSubmit={handleSubmit}>
+          <div className="relative mb-4">
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value.slice(0, MAX_LENGTH))}
+              placeholder="Write your prompt here..."
+              className="input w-full h-28 resize-none text-sm"
+              disabled={isPaying}
+              maxLength={MAX_LENGTH}
+              aria-label="Prompt text"
             />
-          </div>
-          <p style={{ fontSize: '0.625rem', color: 'var(--color-stone)', marginTop: '0.25rem' }}>More seeds planted = more influence, but costs grow quadratically</p>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-stone)' }}>Cost:</span>
-            <span style={{
-              backgroundColor: 'var(--color-parchment)',
-              padding: '0.375rem 0.75rem',
-              borderRadius: '8px',
-              fontSize: '0.875rem',
-              fontWeight: 700,
-              color: 'var(--color-bark)',
-              border: '1px solid var(--color-sand-line)',
-            }}>
-              ${finalCost}
-            </span>
-            <span style={{ fontSize: '0.625rem', color: isPaying ? 'var(--color-terra)' : 'var(--color-stone)' }}>
-              {isPaying ? 'growing...' : 'ready'}
-            </span>
+            <div className="absolute bottom-3 right-3 text-xs font-mono text-[var(--shell-text-muted)]">
+              {text.length}/{MAX_LENGTH}
+            </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={!text.trim() || isPaying}
-            className="btn-primary"
-            style={{
-              fontSize: '0.875rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              opacity: !text.trim() || isPaying ? 0.6 : 1,
-              cursor: !text.trim() || isPaying ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {isPaying ? (
-              <span style={{ opacity: 0.8 }}>Growing...</span>
-            ) : (
-              <>
-                Plant
-                <Send size={16} />
-              </>
-            )}
+          <div className="mb-4">
+            <label className="text-xs font-medium text-[var(--shell-text-muted)] uppercase block mb-2">Depth</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {COST_TIERS.map((tier, idx) => (
+                <button
+                  key={tier.name}
+                  type="button"
+                  onClick={() => setSelectedTier(idx)}
+                  className={`p-3 rounded-xl text-center transition-colors border ${
+                    selectedTier === idx 
+                      ? 'border-[var(--vault-teal)] bg-[var(--shell-surface-2)]' 
+                      : 'border-[var(--shell-border)] bg-transparent'
+                  }`}
+                >
+                  <div className="mb-1 flex justify-center"><tier.icon size={20} className={selectedTier === idx ? 'text-[var(--vault-teal)]' : 'text-[var(--shell-text-muted)]'} /></div>
+                  <div className={`font-bold text-xs mb-1 ${selectedTier === idx ? 'text-[var(--vault-teal)]' : 'text-[var(--shell-text)]'}`}>${tier.price.toFixed(2)}</div>
+                  <div className="text-[10px] text-[var(--shell-text-muted)]">{tier.name}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-4 p-4 bg-[var(--shell-surface-2)] border border-[var(--shell-border)] rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-[var(--shell-text)]">Your Influence</span>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-bold text-[var(--vault-teal)]">{quadraticWeight}x</span>
+                <span className="text-xs text-[var(--shell-text-muted)]">({diemStaked.toFixed(2)} staked)</span>
+              </div>
+            </div>
+            <div className="h-2 bg-[var(--shell-bg)] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[var(--vault-teal)] transition-all duration-500"
+                style={{ width: `${Math.min(100, (diemStaked / 500) * 100)}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-[var(--shell-text-muted)] mt-1">More stake = more influence</p>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-[var(--shell-text-muted)]">Cost:</span>
+              <span className="bg-[var(--shell-bg)] px-3 py-1.5 rounded-lg text-sm font-bold text-[var(--shell-text)] border border-[var(--shell-border)]">
+                ${finalCost}
+              </span>
+              <span className={`text-[10px] ${isPaying ? 'text-[var(--vault-teal)]' : 'text-[var(--shell-text-muted)]'}`}>
+                {isPaying ? 'Processing...' : 'Ready'}
+              </span>
+            </div>
+
+            <button
+              type="submit"
+              disabled={!text.trim() || isPaying}
+              className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPaying ? (
+                <span>Processing...</span>
+              ) : (
+                <>
+                  Submit
+                  <Send size={16} />
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-6 bg-[var(--shell-surface-2)] border border-[var(--shell-border)] rounded-xl">
+          <div className="flex items-center gap-3">
+            <Zap size={24} className="text-[var(--vault-teal)]" />
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-[var(--shell-text)]">Stake DIEM to unlock submission</span>
+              <span className="text-xs text-[var(--shell-text-muted)]">Staked: {diemStaked.toFixed(2)} DIEM (need {(MIN_STAKE_FOR_ACCESS - diemStaked).toFixed(2)} more)</span>
+            </div>
+          </div>
+          <button onClick={() => window.location.href = '/#/stake'} className="btn-primary text-sm py-2">
+            Stake Now
           </button>
         </div>
-      </form>
+      )}
 
       {showShare && sharedPrompt && (
-        <div style={{
-          marginTop: '1rem',
-          padding: '1rem',
-          background: 'oklch(65% 15% 145deg / 0.08)',
-          border: '1px solid oklch(65% 15% 145deg / 0.2)',
-          borderRadius: '12px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-sage-deep)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              Seed planted! Processing your idea...
+        <div className="mt-4 p-4 bg-[var(--shell-surface-2)] border border-[var(--shell-border)] rounded-xl">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-[var(--vault-teal)] flex items-center gap-1">
+              <Check size={14} /> Success
             </span>
-            <button
-              type="button"
-              onClick={() => setShowShare(false)}
-              style={{ color: 'var(--color-stone)', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer', background: 'none', border: 'none' }}
-            >
-              Close
-            </button>
+            <button type="button" onClick={() => setShowShare(false)} className="text-xs text-[var(--shell-text-muted)] hover:text-[var(--shell-text)]">Close</button>
           </div>
-
-          <div style={{
-            fontSize: '0.875rem',
-            color: 'var(--color-bark)',
-            marginBottom: '0.75rem',
-            padding: '0.75rem',
-            backgroundColor: 'var(--color-cream)',
-            borderRadius: '8px',
-            border: '1px solid var(--color-sand-line)',
-          }}>
-            &ldquo;{sharedPrompt.slice(0, 100)}{sharedPrompt.length > 100 ? '...' : ''}&rdquo;
+          <div className="text-sm text-[var(--shell-text)] mb-3 p-3 bg-[var(--shell-bg)] rounded-lg border border-[var(--shell-border)]">
+            "{sharedPrompt.slice(0, 100)}{sharedPrompt.length > 100 ? '...' : ''}"
           </div>
-
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              type="button"
-              onClick={handleCopyPrompt}
-              style={{
-                flex: 1,
-                padding: '0.625rem 1rem',
-                borderRadius: '12px',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                cursor: 'pointer',
-                border: 'none',
-                backgroundColor: copied ? 'var(--color-success)' : 'var(--color-parchment)',
-                color: copied ? 'white' : 'var(--color-bark)',
-                transition: 'all 150ms var(--ease-out)',
-              }}
-            >
-              {copied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy Link</>}
+          <div className="flex gap-2">
+            <button type="button" onClick={handleCopyPrompt} className="flex-1 btn-secondary text-sm py-2 flex justify-center items-center gap-2">
+              {copied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy</>}
             </button>
-            <button
-              type="button"
-              onClick={handleTwitterShare}
-              style={{
-                flex: 1,
-                padding: '0.625rem 1rem',
-                borderRadius: '12px',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                cursor: 'pointer',
-                border: 'none',
-                backgroundColor: 'oklch(72% 16% 38deg / 0.15)',
-                color: 'var(--color-terra)',
-                transition: 'all 150ms var(--ease-out)',
-              }}
-            >
-              <Share2 size={14} /> Share on X
+            <button type="button" onClick={handleTwitterShare} className="flex-1 btn-secondary text-sm py-2 flex justify-center items-center gap-2">
+              <Share2 size={14} /> Share
             </button>
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 });

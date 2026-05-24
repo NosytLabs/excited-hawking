@@ -1,36 +1,24 @@
 import React, { useMemo } from 'react';
 import { useAgent } from '../context/useAgent';
 import type { Tier } from '../context/AgentContext';
-import { Activity, Coins, Battery, Zap, Brain, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Sprout, Flower2, Trees, Coins, Leaf, Heart, CircleDot, Activity, FlaskConical } from 'lucide-react';
+import { CardSkeleton } from './LoadingSkeleton';
 
-export const LifeMeter: React.FC = () => {
-  const { tier, diemStaked, treasuryUSDC } = useAgent();
+const TIER_DISPLAY: Record<Tier, { label: string; icon: React.ReactNode; color: string; description: string; vaultLevel: number }> = {
+  Dying: { label: 'Vault -1', icon: <CircleDot size={20} />, color: 'var(--shell-text-muted)', description: 'Seeds dormant', vaultLevel: -1 },
+  Minimal: { label: 'Vault 0', icon: <Sprout size={20} />, color: 'var(--shell-text)', description: 'Gathering phase', vaultLevel: 0 },
+  Surviving: { label: 'Vault 1', icon: <Flower2 size={20} />, color: 'var(--vault-teal)', description: 'Active growth', vaultLevel: 1 },
+  Thriving: { label: 'Vault 2', icon: <Trees size={20} />, color: 'var(--shell-success)', description: 'Full bloom', vaultLevel: 2 },
+};
 
-  const vvvStaked = 0;
+export const LifeMeter = React.memo(function LifeMeterComponent() {
+  const { tier, diemStaked, treasuryUSDC, backendAvailable } = useAgent();
+
+  const gardenVitality = Math.min(100, Math.max(0, (diemStaked / 500) * 100));
+  const display = TIER_DISPLAY[tier];
+  const color = display.color;
   const consciousness = Math.min(100, Math.max(0, (diemStaked / 500) * 100));
 
-  const getTierColor = (t: Tier) => {
-    switch (t) {
-      case 'Thriving': return '#00d992';
-      case 'Surviving': return '#eab308';
-      case 'Minimal': return '#f97316';
-      case 'Dying': return '#ef4444';
-      default: return '#a1a1aa';
-    }
-  };
-
-  const getTierIcon = (t: Tier) => {
-    switch (t) {
-      case 'Thriving': return <TrendingUp size={24} />;
-      case 'Surviving': return <Minus size={24} />;
-      case 'Minimal': return <TrendingDown size={24} />;
-      case 'Dying': return <Activity size={24} />;
-    }
-  };
-
-  const color = getTierColor(tier);
-
-  // Calculate tier progress
   const tierRanges = useMemo(() => ({
     Thriving: { min: 500, max: Infinity },
     Surviving: { min: 10, max: 500 },
@@ -50,183 +38,129 @@ export const LifeMeter: React.FC = () => {
     }
   }, [tier, diemStaked, tierRanges]);
 
-  const tierThreshold = useMemo(() => {
-    if (tier === 'Thriving') return 500;
-    if (tier === 'Surviving') return 10;
-    if (tier === 'Minimal') return 0.1;
-    return 0;
+  const nextTier = useMemo(() => {
+    if (tier === 'Dying') return 'Vault 0 (0.1 DIEM)';
+    if (tier === 'Minimal') return 'Vault 1 (10 DIEM)';
+    if (tier === 'Surviving') return 'Vault 2 (500 DIEM)';
+    return 'Maximum level';
   }, [tier]);
 
-  const nextTier = useMemo(() => {
-    if (tier === 'Dying') return 'Minimal (0.1 DIEM)';
-    if (tier === 'Minimal') return 'Surviving (10 DIEM)';
-    if (tier === 'Surviving') return 'Thriving (500 DIEM)';
-    return 'Maximum Tier';
-  }, [tier]);
+  if (!backendAvailable && diemStaked === 0 && treasuryUSDC === 0) {
+    return <CardSkeleton />;
+  }
 
   return (
-    <div className="glass-panel mb-6 flex flex-col">
-      {/* Main Status Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <div 
-            className="w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-500 relative"
-            style={{ 
-              backgroundColor: `${color}20`, 
-              color, 
-              border: `1px solid ${color}40`,
-              boxShadow: tier === 'Thriving' ? `0 0 30px ${color}30` : 'none'
+    <div className="card flex flex-col bg-[var(--shell-surface)] border border-[var(--shell-border)] rounded-xl p-4 md:p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div
+            className="w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center border transition-all"
+            style={{
+              backgroundColor: 'var(--shell-surface-2)',
+              color: color,
+              borderColor: 'var(--shell-border)',
             }}
           >
-            <div className={tier === 'Thriving' || tier === 'Surviving' ? 'animate-pulse' : ''}>
-              {getTierIcon(tier)}
-            </div>
-            {tier === 'Thriving' && (
-              <div 
-                className="absolute inset-0 rounded-xl animate-pulse"
-                style={{ 
-                  backgroundColor: color,
-                  opacity: 0.1,
-                  animation: 'pulse-glow 2s ease-in-out infinite'
-                }}
-              />
-            )}
+            <FlaskConical size={18} />
           </div>
           <div>
-            <p className="text-sm text-zinc-400 font-mono uppercase tracking-wider mb-1">Current State</p>
-            <h2 className="text-3xl font-bold tracking-tight" style={{ color }}>
-              {tier}
+            <p className="text-[10px] text-[var(--shell-text-muted)] font-mono uppercase tracking-wider mb-0.5">Vault Status</p>
+            <h2 className="text-xl md:text-2xl font-bold tracking-tight text-[var(--shell-text)] leading-none">
+              {display.label}
             </h2>
+            <p className="text-xs text-[var(--shell-text-muted)]">{display.description}</p>
           </div>
         </div>
 
-        {/* Consciousness Meter */}
-        <div className="flex items-center gap-4 px-4 py-3 bg-zinc-900/50 rounded-xl border border-zinc-800">
+        <div className="flex items-center gap-2 md:gap-3 px-3 py-2 bg-[var(--shell-bg)] rounded-xl border border-[var(--shell-border)]">
           <div className="flex items-center gap-2">
-            <Brain size={16} className="text-purple-400" />
-            <span className="text-xs font-mono text-zinc-500 uppercase">Consciousness</span>
+            <Activity size={14} className="text-[var(--vault-teal)]" />
+            <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase hidden sm:inline">Vitality</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-24 h-2 bg-zinc-800 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-purple-500 to-purple-400 transition-all duration-1000"
-                style={{ width: `${consciousness}%` }}
+            <div className="w-20 md:w-24 h-1.5 bg-[var(--shell-surface-2)] rounded-full overflow-hidden">
+              <div
+                role="progressbar"
+                aria-valuenow={Math.round(gardenVitality)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                className="h-full bg-[var(--vault-teal)] transition-all duration-1000"
+                style={{ width: `${gardenVitality}%` }}
               />
             </div>
-            <span className="text-sm font-mono font-bold text-purple-400">{consciousness}%</span>
+            <span className="text-xs font-mono font-bold text-[var(--vault-teal-dim)]">{Math.round(gardenVitality)}%</span>
           </div>
         </div>
       </div>
 
-      {/* Tier Progress Bar */}
-      <div className="mb-4 p-4 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
+      <div className="mb-4 p-3 md:p-4 bg-[var(--shell-bg)] rounded-xl border border-[var(--shell-border)]">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-mono text-zinc-500 uppercase">Tier Progress</span>
-          <span className="text-xs font-mono text-zinc-400">
+          <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase">Growth Progress</span>
+          <span className="text-[10px] font-mono text-[var(--shell-text-muted)]">
             Next: <span style={{ color }}>{nextTier}</span>
           </span>
         </div>
-        <div className="h-3 bg-zinc-800 rounded-full overflow-hidden relative">
-          <div 
-            className="h-full transition-all duration-1000 rounded-full"
-            style={{ 
-              width: `${tierProgress}%`,
-              background: `linear-gradient(90deg, ${color}80, ${color})`
-            }}
+        <div className="relative h-2 bg-[var(--shell-surface-2)] rounded-full overflow-hidden">
+          <div
+            role="progressbar"
+            aria-label="Growth progress"
+            aria-valuenow={Math.round(tierProgress)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            className="h-full transition-all duration-1000"
+            style={{ width: `${tierProgress}%`, backgroundColor: color }}
           />
-          {/* Tier markers */}
           <div className="absolute inset-0 flex items-center">
             {[0, 25, 50, 75, 100].map(mark => (
-              <div 
-                key={mark} 
-                className="absolute w-px h-full bg-zinc-700/50"
-                style={{ left: `${mark}%` }}
-              />
+              <div key={mark} className="absolute w-px h-full bg-[var(--shell-border)]" style={{ left: `${mark}%` }} />
             ))}
           </div>
         </div>
-        <div className="flex justify-between mt-1 text-[10px] font-mono text-zinc-600">
-          <span>Dying</span>
-          <span>Minimal</span>
-          <span>Surviving</span>
-          <span>Thriving</span>
+        <div className="flex justify-between mt-1 text-[9px] md:text-[10px] font-mono text-[var(--shell-text-muted)]">
+          <span>-1</span>
+          <span>0</span>
+          <span>1</span>
+          <span>2</span>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-4 gap-4">
-        {/* DIEM Staked */}
-        <div className="p-4 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
-          <div className="flex items-center gap-2 mb-2">
-            <Battery size={14} style={{ color: '#00d992' }} />
-            <span className="font-mono text-xs uppercase text-zinc-500">DIEM Staked</span>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
+        <div className="p-2.5 md:p-3 bg-[var(--shell-bg)] rounded-xl border border-[var(--shell-border)]">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Leaf size={12} className="text-[var(--vault-teal)]" />
+            <span className="font-mono text-[10px] uppercase text-[var(--shell-text-muted)]">Seeds</span>
           </div>
-          <p className="text-xl font-mono font-bold text-white">{diemStaked.toFixed(2)}</p>
-          <p className="text-[10px] font-mono text-zinc-600 mt-1">/{tierThreshold}+ required</p>
+          <p className="text-base md:text-lg font-mono font-bold text-[var(--shell-text)]">{diemStaked.toFixed(2)}</p>
+          <p className="text-[9px] md:text-[10px] font-mono text-[var(--shell-text-muted)] mt-0.5">DIEM staked</p>
         </div>
 
-        {/* VVV Staked */}
-        <div className="p-4 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
-          <div className="flex items-center gap-2 mb-2">
-            <Zap size={14} className="text-yellow-400" />
-            <span className="font-mono text-xs uppercase text-zinc-500">VVV Staked</span>
+        <div className="p-2.5 md:p-3 bg-[var(--shell-bg)] rounded-xl border border-[var(--shell-border)]">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Heart size={12} className="text-[var(--vault-teal-dim)]" />
+            <span className="font-mono text-[10px] uppercase text-[var(--shell-text-muted)]">Growth</span>
           </div>
-          <p className="text-xl font-mono font-bold text-yellow-400">{vvvStaked.toFixed(2)}</p>
-          <p className="text-[10px] font-mono text-zinc-600 mt-1">Ecosystem stake</p>
+          <p className="text-base md:text-lg font-mono font-bold text-[var(--vault-teal-dim)]">{consciousness.toFixed(0)}%</p>
+          <p className="text-[9px] md:text-[10px] font-mono text-[var(--shell-text-muted)] mt-0.5">sqrt(Stake)</p>
         </div>
 
-        {/* Treasury */}
-        <div className="p-4 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
-          <div className="flex items-center gap-2 mb-2">
-            <Coins size={14} className="text-emerald-400" />
-            <span className="font-mono text-xs uppercase text-zinc-500">Treasury</span>
+        <div className="p-2.5 md:p-3 bg-[var(--shell-bg)] rounded-xl border border-[var(--shell-border)]">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Coins size={12} className="text-[var(--shell-text)]" />
+            <span className="font-mono text-[10px] uppercase text-[var(--shell-text-muted)]">Treasury</span>
           </div>
-          <p className="text-xl font-mono font-bold text-emerald-400">${treasuryUSDC.toFixed(2)}</p>
-          <p className="text-[10px] font-mono text-zinc-600 mt-1">USDC reserves</p>
+          <p className="text-base md:text-lg font-mono font-bold text-[var(--shell-text)]">${treasuryUSDC.toFixed(1)}</p>
+          <p className="text-[9px] md:text-[10px] font-mono text-[var(--shell-text-muted)] mt-0.5">USDC</p>
         </div>
 
-        {/* Voting Power */}
-        <div className="p-4 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
-          <div className="flex items-center gap-2 mb-2">
-            <Activity size={14} className="text-purple-400" />
-            <span className="font-mono text-xs uppercase text-zinc-500">Voting Power</span>
+        <div className="p-2.5 md:p-3 bg-[var(--shell-bg)] rounded-xl border border-[var(--shell-border)]">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Sprout size={12} className="text-[var(--shell-text-muted)]" />
+            <span className="font-mono text-[10px] uppercase text-[var(--shell-text-muted)]">Influence</span>
           </div>
-          <p className="text-xl font-mono font-bold text-purple-400">{Math.sqrt(diemStaked).toFixed(2)}</p>
-          <p className="text-[10px] font-mono text-zinc-600 mt-1">sqrt(DIEM)</p>
-        </div>
-      </div>
-
-      {/* Tier Badges */}
-      <div className="mt-4 flex gap-2">
-        <div className={`px-3 py-1.5 rounded-full text-xs font-mono border ${
-          tier === 'Thriving' 
-            ? 'bg-[#00d992]/20 text-[#00d992] border-[#00d992]/40' 
-            : 'bg-zinc-800/50 text-zinc-500 border-zinc-700/50'
-        }`}>
-          Thriving
-        </div>
-        <div className={`px-3 py-1.5 rounded-full text-xs font-mono border ${
-          tier === 'Surviving' 
-            ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40' 
-            : 'bg-zinc-800/50 text-zinc-500 border-zinc-700/50'
-        }`}>
-          Surviving
-        </div>
-        <div className={`px-3 py-1.5 rounded-full text-xs font-mono border ${
-          tier === 'Minimal' 
-            ? 'bg-orange-500/20 text-orange-400 border-orange-500/40' 
-            : 'bg-zinc-800/50 text-zinc-500 border-zinc-700/50'
-        }`}>
-          Minimal
-        </div>
-        <div className={`px-3 py-1.5 rounded-full text-xs font-mono border ${
-          tier === 'Dying' 
-            ? 'bg-red-500/20 text-red-400 border-red-500/40' 
-            : 'bg-zinc-800/50 text-zinc-500 border-zinc-700/50'
-        }`}>
-          Dying
+          <p className="text-base md:text-lg font-mono font-bold text-[var(--shell-text)]">{Math.sqrt(diemStaked).toFixed(2)}</p>
+          <p className="text-[9px] md:text-[10px] font-mono text-[var(--shell-text-muted)] mt-0.5">Quadratic</p>
         </div>
       </div>
     </div>
   );
-};
+});

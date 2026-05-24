@@ -1,138 +1,336 @@
+@import "tailwindcss";
+
+/* Vault Experiment Design System */
 :root {
-  /* Colors */
-  --bg-base: #050505;
-  --bg-surface: rgba(20, 20, 22, 0.7);
-  --bg-card: rgba(25, 25, 28, 0.8);
-  --bg-card-hover: rgba(35, 35, 40, 0.9);
+  /* Vault Branding Colors */
+  --vault-teal: oklch(70% 12% 175deg);
+  --vault-teal-dim: oklch(55% 10% 175deg);
+  --vault-teal-glow: oklch(70% 15% 175deg / 40%);
+
+  /* Spacing Scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+
+  /* Warm Shell Tokens */
+  --shell-bg: oklch(98% 1% 80deg);
+  --shell-surface: oklch(99% 0.5% 80deg);
+  --shell-surface-2: oklch(96% 1.5% 80deg);
+  --shell-border: oklch(90% 2% 80deg);
+  --shell-text: oklch(25% 3% 60deg);
+  --shell-text-muted: oklch(50% 2% 60deg);
+  --shell-accent: var(--vault-teal);
+  --shell-accent-strong: var(--vault-teal-dim);
+  --shell-success: oklch(65% 15% 145deg);
+  --shell-danger: oklch(60% 18% 30deg);
+
+  /* Terminal Color Mappings */
+  --term-void: var(--shell-bg);
+  --term-charcoal: var(--shell-surface);
+  --term-ash: var(--shell-text-muted);
+  --term-concrete: var(--shell-text);
+  --term-dust: var(--shell-border);
+  --term-bone: var(--shell-bg);
   
-  --text-primary: #ededed;
-  --text-secondary: #a1a1aa;
-  --text-tertiary: #71717a;
-  --text-accent: #00d992;
+  --term-green: var(--vault-teal);
+  --term-green-dim: var(--shell-text-muted);
+  --term-green-glow: var(--vault-teal-glow);
+  --term-amber: var(--shell-text);
+  --term-orange: var(--shell-text);
+  --term-blue: var(--shell-text);
+  --term-red: var(--shell-danger);
+
+  --term-scanline: transparent;
+  --term-cta-bg: var(--shell-surface-2);
+  --term-emergency-bg: var(--shell-surface-2);
+
+  --ui-frame: var(--shell-surface);
+  --ui-bezel: var(--shell-border);
+  --ui-accent: var(--vault-teal);
+  --ui-link: var(--vault-teal-dim);
+
+  /* Garden / Nature UI Colors (Vault Experiment Theme) */
+  --color-cream-deep: var(--shell-surface);
+  --color-sand-line: var(--shell-border);
+  --color-bark: var(--shell-text);
+  --color-sage: var(--vault-teal);
+  --color-stone: var(--shell-text-muted);
+  --color-cream: var(--shell-bg);
+  --color-sage-deep: var(--vault-teal-dim);
+  --color-clay: var(--shell-text-muted);
+  --color-terra: var(--vault-teal-dim);
+  --color-parchment: var(--shell-bg);
+  --color-success: var(--shell-success);
+  --color-sage-mist: var(--shell-surface-2);
+  --color-amber: var(--vault-teal);
+  --color-tier-grove: var(--shell-success);
+  --color-tier-bloom: var(--vault-teal);
+  --color-tier-sprout: var(--vault-teal-dim);
+  --color-tier-seed: var(--shell-text-muted);
+  --color-sage-light: var(--shell-surface-2);
+  --color-sage-border: var(--shell-border);
+  --color-terra-light: var(--shell-surface-2);
+  --color-terra-border: var(--shell-border);
+  --color-terra-btn: var(--shell-surface-2);
+
+  /* Canvas/Emergence Grid Colors */
+  --canvas-alive: var(--vault-teal);
+  --canvas-surviving: var(--vault-teal-dim);
+  --canvas-minimal: var(--shell-text-muted);
+  --canvas-dying: var(--shell-danger);
+  --canvas-bg: var(--shell-bg);
+  --canvas-grid: var(--shell-border);
+
+  /* Mood State Tokens */
+  --mood-active: var(--vault-teal);
+  --mood-processing: var(--vault-teal-dim);
+  --mood-standby: var(--shell-text-muted);
+  --mood-calibrating: var(--shell-text-muted);
+  --mood-idle: var(--shell-border);
+
+  /* Typography */
+  --font-terminal: 'IBM Plex Mono', 'Fira Code', 'Share Tech Mono', monospace;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Fira Code', monospace;
   
-  --border-color: rgba(255, 255, 255, 0.1);
-  --border-highlight: rgba(255, 255, 255, 0.2);
+  /* Easings */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-glitch: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
 
-  --accent-color: #00d992; /* pay.sh inspired green */
-  --accent-color-hover: #00bf80;
+@layer base {
+  html {
+    overflow-x: hidden;
+  }
   
-  --color-thriving: #00d992;
-  --color-surviving: #eab308;
-  --color-minimal: #f97316;
-  --color-dying: #ef4444;
+  body {
+    font-family: var(--font-body);
+    background-color: var(--shell-bg);
+    color: var(--shell-text);
+  }
 
-  /* Typography - System fonts for performance and privacy */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', 'Courier New', monospace;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    color: var(--shell-text);
+    text-transform: none;
+    letter-spacing: -0.02em;
+  }
 
-  /* Effects */
-  --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-  --glass-blur: blur(12px);
+  code, pre, .font-mono, .terminal-text {
+    font-family: var(--font-mono);
+  }
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@layer components {
+  /* Terminal Button -> Warm Button */
+  .btn-primary {
+    background: var(--shell-surface);
+    color: var(--shell-text);
+    border: 1px solid var(--shell-border);
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: all 200ms var(--ease-out);
+    box-shadow: 0 1px 2px oklch(0% 0% 0% / 5%);
+  }
+
+  .btn-primary:hover {
+    background: var(--shell-surface-2);
+    border-color: var(--shell-border);
+    box-shadow: 0 2px 4px oklch(0% 0% 0% / 10%);
+  }
+
+  .btn-primary:focus-visible {
+    outline: 2px solid var(--shell-accent);
+    outline-offset: 2px;
+  }
+
+  .btn-primary:active {
+    transform: translateY(1px);
+    box-shadow: none;
+  }
+
+  /* Secondary Button -> Warm Secondary */
+  .btn-secondary {
+    background: transparent;
+    color: var(--shell-text-muted);
+    border: 1px solid var(--shell-border);
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: all 200ms var(--ease-out);
+  }
+
+  .btn-secondary:hover {
+    background: var(--shell-surface-2);
+    color: var(--shell-text);
+  }
+
+  /* Card / Panel -> Warm Card */
+  .card, .glass-panel {
+    background: var(--shell-surface);
+    border: 1px solid var(--shell-border);
+    padding: 1.25rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px oklch(0% 0% 0% / 5%);
+  }
+
+  /* Input -> Warm Input */
+  .input {
+    background: var(--shell-surface);
+    border: 1px solid var(--shell-border);
+    color: var(--shell-text);
+    padding: 0.75rem 1rem;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    border-radius: 0.5rem;
+    transition: border-color 200ms var(--ease-out);
+  }
+
+  .input:hover {
+    border-color: var(--shell-text-muted);
+  }
+
+  .input:focus {
+    outline: none;
+    border-color: var(--shell-accent);
+    box-shadow: 0 0 0 3px oklch(65% 15% 145deg / 15%);
+  }
+
+  .input::placeholder {
+    color: var(--shell-text-muted);
+  }
 }
 
-body {
-  font-family: var(--font-sans);
-  background-color: var(--bg-base);
-  color: var(--text-primary);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+@layer utilities {
+  .text-display {
+    font-family: var(--font-display);
+  }
+
+  .text-body {
+    font-family: var(--font-body);
+  }
+
+  .text-mono {
+    font-family: var(--font-mono);
+  }
+  
+  /* Neutralize glow */
+  .terminal-glow, .amber-glow {
+    text-shadow: none;
+  }
 }
 
-#root {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+/* Neutralize CRT/Scanline Noise */
+.terminal-frame {
+  background: var(--shell-surface);
+  border: 1px solid var(--shell-border);
+  border-radius: 1rem;
+  position: relative;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  color: var(--text-primary);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+.crt-screen {
+  position: relative;
+  background: var(--shell-bg);
+  overflow: hidden;
 }
 
-a {
-  color: var(--text-accent);
-  text-decoration: none;
-  transition: color 0.2s ease;
+.crt-screen::before, .crt-screen::after, .scanlines::before {
+  display: none;
 }
 
-a:hover {
-  color: var(--accent-color-hover);
+/* Progress bar - warm style */
+.progress-bar {
+  height: 8px;
+  background: var(--shell-surface-2);
+  border: 1px solid var(--shell-border);
+  border-radius: 4px;
+  overflow: hidden;
 }
 
-button {
-  font-family: inherit;
-  cursor: pointer;
-  border: none;
-  background: none;
-  transition: all 0.2s ease;
+.progress-bar-fill {
+  height: 100%;
+  background: var(--shell-accent);
+  transition: width 0.5s var(--ease-out);
 }
 
-/* Glassmorphism Utilities */
-.glass-panel {
-  background: var(--bg-card);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: var(--glass-shadow);
-  padding: 1.5rem;
+/* Badge styles - warm */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  border-radius: 1rem;
+  border: 1px solid;
 }
 
-.glass-header {
-  background: rgba(5, 5, 5, 0.85);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border-bottom: 1px solid var(--border-color);
-  position: sticky;
-  top: 0;
-  z-index: 40;
+.badge-green {
+  background: var(--shell-surface-2);
+  color: var(--shell-success);
+  border-color: var(--shell-border);
+}
+
+.badge-amber {
+  background: var(--shell-surface-2);
+  color: var(--shell-text);
+  border-color: var(--shell-border);
+}
+
+.badge-red {
+  background: var(--shell-surface-2);
+  color: var(--shell-danger);
+  border-color: var(--shell-border);
 }
 
 /* Animations */
-@keyframes pulse-glow {
-  0% { box-shadow: 0 0 0 0 rgba(0, 217, 146, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(0, 217, 146, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 217, 146, 0); }
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
-@keyframes typing {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s infinite;
+.animate-blink {
+  animation: blink 1s step-end infinite;
 }
 
-.animate-fade-in {
-  animation: typing 0.3s ease-out forwards;
+.animate-typewriter {
+  animation: typewriter 3s steps(40) forwards;
 }
 
-/* Custom Scrollbar for Terminals */
+/* Neutralize flicker/glow */
+.animate-crt-flicker, .animate-glow-pulse, .animate-scanline {
+  animation: none;
+}
+
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
-  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-base); 
+  background: var(--shell-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-card-hover); 
+  background: var(--shell-border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary); 
+  background: var(--shell-text-muted);
 }

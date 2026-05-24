@@ -1,107 +1,69 @@
 import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import { Radio, FlaskConical } from 'lucide-react';
 
 export const WelcomeAgent: React.FC = () => {
   return (
-    <section 
-      className="relative min-h-[65vh] flex items-center justify-center overflow-hidden px-6 py-24"
-      style={{ backgroundColor: 'var(--term-void)' }}
-    >
-      {/* Subtle grid */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-10"
-        style={{
-          backgroundImage: `
-            linear-gradient(var(--term-green-dim) 1px, transparent 1px),
-            linear-gradient(90deg, var(--term-green-dim) 1px, transparent 1px)
-          `,
-          backgroundSize: '60px 60px'
-        }}
-      />
-
-      {/* Main content */}
-      <div className="relative z-10 text-center max-w-3xl mx-auto">
-        {/* Header badge */}
-        <div 
-          className="inline-block mb-8 px-4 py-2 border"
-          style={{ 
-            borderColor: 'var(--ui-bezel)',
-            backgroundColor: 'var(--term-charcoal)'
-          }}
-        >
-          <span 
-            className="text-xs tracking-widest"
-            style={{ 
-              fontFamily: 'var(--font-terminal)',
-              color: 'var(--term-green-dim)'
-            }}
-          >
-            SESSION INITIALIZED
-          </span>
+    <div className="max-w-7xl mx-auto px-4 md:px-6 pt-8 md:pt-12 pb-6">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-8">
+        <div className="flex-1 max-w-2xl">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="badge bg-[var(--vault-teal)]/10 text-[var(--vault-teal)] border border-[var(--vault-teal)]/20 flex items-center gap-1.5">
+              <FlaskConical size={12} />
+              Vault Experiment
+            </span>
+            <span className="badge bg-[var(--shell-surface)] border border-[var(--shell-border)] text-[var(--shell-text-muted)]">
+              <Radio size={12} className="animate-pulse mr-1.5" />
+              Live
+            </span>
+          </div>
+          
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--shell-text)] mb-4 leading-tight">
+            Enter the social experiment.
+          </h2>
+          
+          <p className="text-base md:text-lg text-[var(--shell-text-muted)] font-body leading-relaxed max-w-xl">
+            A public vault for testing collective intelligence. Submit prompts, observe emergence, participate in governance. Your contributions shape what emerges.
+          </p>
         </div>
-
-        <h1 
-          className="font-medium mb-6 tracking-wide" 
-          style={{ 
-            fontFamily: 'var(--font-terminal)',
-            fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
-            color: 'var(--term-green)',
-            textShadow: '0 0 30px oklch(70% 22% 140deg / 30%)',
-          }}
-        >
-          Welcome to Agent Terminal
-        </h1>
         
-        <p 
-          className="text-base md:text-lg mb-12 max-w-xl mx-auto opacity-80" 
-          style={{ 
-            fontFamily: 'var(--font-body)',
-            color: 'var(--term-green-dim)',
-            lineHeight: 1.7
-          }}
-        >
-          A focused terminal for human-agent collaboration. 
-          Ask questions, generate content, and interact with your AI companion.
-        </p>
-
-        <div className="flex gap-4 mb-12">
+        <div className="flex flex-wrap gap-3">
           <button 
-            onClick={() => document.querySelector<HTMLDivElement>('.prompt-box')?.scrollIntoView({ behavior: 'smooth' })}
-            className="px-6 py-3 bg-term-green text-term-void font-bold uppercase tracking-wider hover:bg-white transition-colors"
+            type="button" 
+            className="btn-primary flex items-center gap-2 bg-[var(--vault-teal)] text-white border-[var(--vault-teal)] hover:bg-[var(--vault-teal-dim)]"
+            onClick={() => document.querySelector<HTMLDivElement>('#prompt')?.scrollIntoView({ behavior: 'smooth' })}
           >
-            Start Session
+            <FlaskConical size={16} />
+            Begin Experiment
           </button>
-          <button 
-            onClick={() => window.open('https://github.com/obra/excited-hawking', '_blank')}
-            className="px-6 py-3 border border-term-green text-term-green font-bold uppercase tracking-wider hover:bg-term-green/10 transition-colors"
+          <a 
+            href="https://github.com/veniceai/the-commons-agent" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn-secondary flex items-center gap-2"
           >
-            View Docs
-          </button>
+            View Protocol
+          </a>
         </div>
       </div>
 
-      {/* Minimal corner accents */}
-      <div 
-        className="absolute top-6 left-6 w-6 h-6 border-l border-t"
-        style={{ borderColor: 'var(--ui-bezel)' }}
-      />
-      <div 
-        className="absolute top-6 right-6 w-6 h-6 border-r border-t"
-        style={{ borderColor: 'var(--ui-bezel)' }}
-      />
-      <div 
-        className="absolute bottom-6 left-6 w-6 h-6 border-l border-b"
-        style={{ borderColor: 'var(--ui-bezel)' }}
-      />
-      <div 
-        className="absolute bottom-6 right-6 w-6 h-6 border-r border-b"
-        style={{ borderColor: 'var(--ui-bezel)' }}
-      />
-
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-        <ChevronDown size={20} style={{ color: 'var(--term-amber)', opacity: 0.6 }} />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 p-4 md:p-6 bg-[var(--shell-surface)] border border-[var(--shell-border)] rounded-xl">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase tracking-wider mb-1">Experiment Type</span>
+          <span className="text-sm font-bold text-[var(--shell-text)]">Social Vault</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase tracking-wider mb-1">Consciousness</span>
+          <span className="text-sm font-bold text-[var(--vault-teal)]">Growing</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase tracking-wider mb-1">Emergence</span>
+          <span className="text-sm font-bold text-[var(--vault-teal-dim)]">Active</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase tracking-wider mb-1">Status</span>
+          <span className="text-sm font-bold text-[var(--shell-success)]">Observing</span>
+        </div>
       </div>
-    </section>
+    </div>
   );
 };
