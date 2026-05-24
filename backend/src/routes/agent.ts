@@ -13,8 +13,19 @@ interface DreamBody {
   wallet?: string;
 }
 
+const promptSchema = {
+  body: {
+    type: 'object',
+    required: ['prompt'],
+    properties: {
+      prompt: { type: 'string', minLength: 1 },
+      wallet: { type: 'string' }
+    }
+  }
+};
+
 export async function agentRoutes(fastify: FastifyInstance) {
-  fastify.post('/api/agent/prompt', async (request: FastifyRequest<{ Body: PromptBody }>, reply: FastifyReply) => {
+  fastify.post('/api/agent/prompt', { schema: promptSchema }, async (request: FastifyRequest<{ Body: PromptBody }>, reply: FastifyReply) => {
     const { prompt, wallet = 'anonymous' } = request.body;
 
     if (!prompt || prompt.trim().length === 0) {
@@ -38,10 +49,10 @@ export async function agentRoutes(fastify: FastifyInstance) {
       };
     } catch (error) {
       updatePromptStatus(promptId, 'failed');
-      console.error('Agent processing error:', error);
+      fastify.log.error(error);
       return reply.status(500).send({
-        error: 'Agent processing failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Internal Server Error',
+        message: 'An unexpected error occurred during agent processing'
       });
     }
   });
@@ -78,10 +89,10 @@ fastify.post('/api/agent/dream', async (_request: FastifyRequest<{ Body: DreamBo
         timestamp: Date.now()
       };
     } catch (error) {
-      console.error('Dream processing error:', error);
+      fastify.log.error(error);
       return reply.status(500).send({
-        error: 'Dream processing failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Internal Server Error',
+        message: 'An unexpected error occurred during dream processing'
       });
     }
   });
