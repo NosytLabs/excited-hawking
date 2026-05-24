@@ -208,7 +208,6 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
         discussionUrl: `/forum/proposal/${result.proposalId}`,
       }, ...prev]);
     } catch (err) {
-      console.error('[Governance] createProposal failed:', err);
       addLog(`Failed to create proposal: "${newProposal.title}"`, 'error');
       return;
     }
