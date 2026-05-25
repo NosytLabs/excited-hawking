@@ -17,7 +17,6 @@ export const LifeMeter = React.memo(function LifeMeterComponent() {
   const gardenVitality = Math.min(100, Math.max(0, (diemStaked / 500) * 100));
   const display = TIER_DISPLAY[tier];
   const color = display.color;
-  const consciousness = Math.min(100, Math.max(0, (diemStaked / 500) * 100));
 
   const tierRanges = useMemo(() => ({
     Thriving: { min: 500, max: Infinity },
@@ -139,7 +138,7 @@ export const LifeMeter = React.memo(function LifeMeterComponent() {
             <Heart size={12} className="text-[var(--vault-teal-dim)]" />
             <span className="font-mono text-[10px] uppercase text-[var(--shell-text-muted)]">Growth</span>
           </div>
-          <p className="text-base md:text-lg font-mono font-bold text-[var(--vault-teal-dim)]">{consciousness.toFixed(0)}%</p>
+          <p className="text-base md:text-lg font-mono font-bold text-[var(--vault-teal-dim)]">{gardenVitality.toFixed(0)}%</p>
           <p className="text-[9px] md:text-[10px] font-mono text-[var(--shell-text-muted)] mt-0.5">sqrt(Stake)</p>
         </div>
 
