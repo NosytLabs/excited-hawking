@@ -34,9 +34,14 @@ export interface LogEvent {
 export interface GovernanceEvent {
   id: string;
   title: string;
+  description?: string;
   votesFor: number;
   votesAgainst: number;
   status: 'active' | 'passed' | 'failed';
+  votingEnd?: number;
+  category?: string;
+  proposer?: string;
+  depositAmount?: number;
 }
 
 export interface EmergenceEvent {
@@ -74,6 +79,16 @@ export interface MemoryNewEvent {
   connections: string[];
 }
 
+export interface CreatureEvent {
+  stats: {
+    vitality: number;
+    momentum: number;
+    coherence: number;
+  };
+  mood: 'anxious' | 'neutral' | 'happy' | 'ecstatic';
+  totalPromptsProcessed: number;
+}
+
 type EventHandler<T = unknown> = (data: T) => void;
 
 interface SocketHandlers {
@@ -97,7 +112,8 @@ interface SocketHandlers {
   [WSEvents.EMERGENCE_CELL_TOGGLE]: EventHandler<{ x: number; y: number; alive: boolean }>;
   [WSEvents.GUESTBOOK_ENTRY]: EventHandler<GuestbookEntry>;
   [WSEvents.GUESTBOOK_UPVOTE]: EventHandler<GuestbookUpvoteEvent>;
-  [WSEvents.MEMORY_NEW]: EventHandler<{ id: string; type: string; content: string; timestamp: number }>;
+  [WSEvents.MEMORY_NEW]: EventHandler<MemoryNewEvent>;
+  [WSEvents.CREATURE_UPDATE]: EventHandler<CreatureEvent>;
 }
 
 const WS_URL = import.meta.env.VITE_WS_URL || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
@@ -110,7 +126,7 @@ class WebSocketService {
   private isConnected = false;
 
   connect(): void {
-    if (this.socket?.connected) return;
+    if (this.socket) return;
 
     this.socket = io(WS_URL, {
       transports: ['websocket', 'polling'],
@@ -156,6 +172,7 @@ class WebSocketService {
       WSEvents.GUESTBOOK_ENTRY,
       WSEvents.GUESTBOOK_UPVOTE,
       WSEvents.MEMORY_NEW,
+      WSEvents.CREATURE_UPDATE,
     ];
 
     events.forEach((event) => {
@@ -181,8 +198,18 @@ class WebSocketService {
     this.handlers.get(event)!.add(handler as unknown as EventHandler);
   }
 
-  off<K extends keyof SocketHandlers>(event: K): void {
-    this.handlers.delete(event);
+  off<K extends keyof SocketHandlers>(event: K, handler?: SocketHandlers[K]): void {
+    if (handler) {
+      const handlers = this.handlers.get(event);
+      if (handlers) {
+        handlers.delete(handler as unknown as EventHandler);
+        if (handlers.size === 0) {
+          this.handlers.delete(event);
+        }
+      }
+    } else {
+      this.handlers.delete(event);
+    }
   }
 
   emit(event: string, data: unknown): void {
@@ -201,7 +228,7 @@ export function useWebSocket() {
     connect: () => websocketService.connect(),
     disconnect: () => websocketService.disconnect(),
     on: <K extends keyof SocketHandlers>(event: K, handler: SocketHandlers[K]) => websocketService.on(event, handler),
-    off: <K extends keyof SocketHandlers>(event: K) => websocketService.off(event),
+    off: <K extends keyof SocketHandlers>(event: K, handler?: SocketHandlers[K]) => websocketService.off(event, handler),
     isConnected: () => websocketService.getConnectionStatus(),
   };
 }

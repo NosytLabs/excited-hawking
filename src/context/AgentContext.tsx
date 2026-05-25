@@ -2,7 +2,7 @@ import { createContext, useState, useMemo, useEffect, useCallback, useRef } from
 import type { ReactNode } from 'react';
 import { websocketService } from '../services/websocket';
 import { WSEvents } from '../types/events';
-import type { PromptEvent, BalanceEvent, TreasuryEvent, TierEvent, LogEvent, GovernanceEvent } from '../services/websocket';
+import type { PromptEvent, BalanceEvent, TreasuryEvent, TierEvent, LogEvent, GovernanceEvent, CreatureEvent } from '../services/websocket';
 import { api } from '../services/api';
 import { getWalletMode, canVoteWithCurrentWallet, getVoteDisabledReason } from './walletMode';
 import type { WalletMode } from './walletMode';
@@ -28,9 +28,14 @@ export interface LogItem {
 export interface Proposal {
   id: string;
   title: string;
+  description?: string;
   votesFor: number;
   votesAgainst: number;
   status: 'active' | 'passed' | 'failed';
+  votingEnd?: number;
+  category?: string;
+  proposer?: string;
+  depositAmount?: number;
 }
 
 export interface AgentState {
@@ -52,6 +57,9 @@ export interface AgentState {
   disconnectWallet: () => void;
   setProposals: React.Dispatch<React.SetStateAction<Proposal[]>>;
   walletMode: WalletMode;
+  creatureStats: { vitality: number; momentum: number; coherence: number };
+  creatureMood: 'anxious' | 'neutral' | 'happy' | 'ecstatic';
+  totalPromptsProcessed: number;
   canVote: boolean;
   voteDisabledReason: string;
 }
@@ -75,6 +83,9 @@ const initialState: AgentState = {
   disconnectWallet: () => {},
   setProposals: () => {},
   walletMode: 'preview',
+  creatureStats: { vitality: 60, momentum: 50, coherence: 50 },
+  creatureMood: 'neutral',
+  totalPromptsProcessed: 0,
   canVote: false,
   voteDisabledReason: '',
 };
@@ -90,21 +101,52 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [backendAvailable, setBackendAvailable] = useState(false);
+  const [backendAvailable, setBackendAvailable] = useState(() => websocketService.getConnectionStatus());
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const logsIdCounter = useRef(0);
 
-  const walletMode = getWalletMode();
-  const canVote = canVoteWithCurrentWallet(walletMode, walletAddress);
-  const voteDisabledReason = getVoteDisabledReason(walletMode);
+  const [creatureStats, setCreatureStats] = useState({ vitality: 60, momentum: 50, coherence: 50 });
+  const [creatureMood, setCreatureMood] = useState<'anxious' | 'neutral' | 'happy' | 'ecstatic'>('neutral');
+  const [totalPromptsProcessed, setTotalPromptsProcessed] = useState(0);
+
+  const walletMode = useMemo(() => getWalletMode(), []);
+  const canVote = useMemo(() => canVoteWithCurrentWallet(walletMode, walletAddress), [walletMode, walletAddress]);
+  const voteDisabledReason = useMemo(() => getVoteDisabledReason(walletMode), [walletMode]);
 
   useEffect(() => {
+    const handleConnect = () => {
+      setIsConnected(true);
+      setBackendAvailable(true);
+    };
+
+    const handleDisconnect = () => {
+      setIsConnected(false);
+      setBackendAvailable(false);
+    };
+
+    const handleConnectError = () => {
+      setIsConnected(false);
+      setBackendAvailable(false);
+    };
+
     const handlePromptEvent = (event: PromptEvent) => {
       setPrompts(prev => {
         const existing = prev.find(p => p.id === event.id);
         if (existing) {
           return prev.map(p => p.id === event.id ? { ...p, ...event } : p);
         }
+
+        const optimisticMatch = prev.find(p =>
+          p.id.startsWith('prompt-') &&
+          p.text === event.text &&
+          p.cost === event.cost &&
+          p.status === event.status
+        );
+
+        if (optimisticMatch) {
+          return prev.map(p => p.id === optimisticMatch.id ? { ...event } : p);
+        }
+
         return [...prev, event as PromptItem];
       });
     };
@@ -135,32 +177,36 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       });
     };
 
+    const handleCreatureUpdate = (event: CreatureEvent) => {
+      setCreatureStats(event.stats);
+      setCreatureMood(event.mood);
+      setTotalPromptsProcessed(event.totalPromptsProcessed);
+    };
+
+    websocketService.on(WSEvents.CONNECT, handleConnect);
+    websocketService.on(WSEvents.DISCONNECT, handleDisconnect);
+    websocketService.on(WSEvents.CONNECT_ERROR, handleConnectError);
     websocketService.on(WSEvents.PROMPT_NEW, handlePromptEvent);
     websocketService.on(WSEvents.BALANCE_UPDATE, handleBalance);
     websocketService.on(WSEvents.TREASURY_UPDATE, handleTreasury);
     websocketService.on(WSEvents.TIER_CHANGE, handleTier);
     websocketService.on(WSEvents.LOG_NEW, handleLog);
     websocketService.on(WSEvents.GOVERNANCE_PROPOSAL, handleGovernance);
+    websocketService.on(WSEvents.CREATURE_UPDATE, handleCreatureUpdate);
 
-    let connected = false;
-    const checkBackend = async () => {
-      try {
-        connected = websocketService.getConnectionStatus();
-        setBackendAvailable(connected);
-      } catch {
-        setBackendAvailable(false);
-      }
-    };
     websocketService.connect();
-    checkBackend();
 
     return () => {
-      websocketService.off(WSEvents.PROMPT_NEW);
-      websocketService.off(WSEvents.BALANCE_UPDATE);
-      websocketService.off(WSEvents.TREASURY_UPDATE);
-      websocketService.off(WSEvents.TIER_CHANGE);
-      websocketService.off(WSEvents.LOG_NEW);
-      websocketService.off(WSEvents.GOVERNANCE_PROPOSAL);
+      websocketService.off(WSEvents.CONNECT, handleConnect);
+      websocketService.off(WSEvents.DISCONNECT, handleDisconnect);
+      websocketService.off(WSEvents.CONNECT_ERROR, handleConnectError);
+      websocketService.off(WSEvents.PROMPT_NEW, handlePromptEvent);
+      websocketService.off(WSEvents.BALANCE_UPDATE, handleBalance);
+      websocketService.off(WSEvents.TREASURY_UPDATE, handleTreasury);
+      websocketService.off(WSEvents.TIER_CHANGE, handleTier);
+      websocketService.off(WSEvents.LOG_NEW, handleLog);
+      websocketService.off(WSEvents.GOVERNANCE_PROPOSAL, handleGovernance);
+      websocketService.off(WSEvents.CREATURE_UPDATE, handleCreatureUpdate);
     };
   }, []);
 
@@ -181,8 +227,6 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     
     // In preview mode, even if canVote were somehow true, we wouldn't have signed credentials.
     console.warn(`[AgentContext] Signed wallet voting is not available for prompt ${id} in this preview.`);
-    
-    setPrompts(prev => prev.map(p => p.id === id ? { ...p, votes: p.votes + 1 } : p));
   }, [canVote, voteDisabledReason]);
 
   const addLog = useCallback((message: string, type: LogItem['type'] = 'info') => {
@@ -195,10 +239,17 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setLogs(prev => [...prev.slice(-99), newLog]);
   }, []);
 
+  const voteProposalRef = useRef<Map<string, Proposal>>(new Map());
+
   const voteProposal = useCallback((id: string, vote: 'for' | 'against' | 'abstain') => {
-    let previousProposals: Proposal[] = [];
+    if (!canVote) {
+      console.warn(`[AgentContext] ${voteDisabledReason}`);
+      return;
+    }
+
     setProposals(prev => {
-      previousProposals = prev;
+      const original = prev.find(p => p.id === id);
+      if (original) voteProposalRef.current.set(id, original);
       return prev.map(p => {
         if (p.id === id) {
           return {
@@ -213,10 +264,14 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (backendAvailable) {
       api.voteOnProposal(id, vote).catch((err: unknown) => {
         console.error('[AgentContext] voteOnProposal failed:', err);
-        setProposals(previousProposals);
+        const original = voteProposalRef.current.get(id);
+        if (original) {
+          setProposals(prev => prev.map(p => p.id === id ? original : p));
+          voteProposalRef.current.delete(id);
+        }
       });
     }
-  }, [backendAvailable]);
+  }, [backendAvailable, canVote, voteDisabledReason]);
 
   const connectWallet = useCallback((wallet: string) => {
     setWalletAddress(wallet);
@@ -249,9 +304,12 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     disconnectWallet,
     setProposals,
     walletMode,
+    creatureStats,
+    creatureMood,
+    totalPromptsProcessed,
     canVote,
     voteDisabledReason,
-  }), [diemStaked, treasuryUSDC, tier, prompts, logs, proposals, addPrompt, votePrompt, addLog, voteProposal, isConnected, backendAvailable, walletAddress, connectWallet, disconnectWallet, walletMode, canVote, voteDisabledReason]);
+  }), [diemStaked, treasuryUSDC, tier, prompts, logs, proposals, addPrompt, votePrompt, addLog, voteProposal, isConnected, backendAvailable, walletAddress, connectWallet, disconnectWallet, walletMode, canVote, voteDisabledReason, creatureStats, creatureMood, totalPromptsProcessed]);
 
   return (
     <AgentContext.Provider value={value}>
