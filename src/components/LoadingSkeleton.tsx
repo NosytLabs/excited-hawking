@@ -1,13 +1,5 @@
 import React from 'react';
 
-const shimmer = `
-@keyframes shimmer {
-  0% { opacity: 0.3; }
-  50% { opacity: 0.7; }
-  100% { opacity: 0.3; }
-}
-`;
-
 export const CardSkeleton: React.FC = () => (
   <div
     className="rounded-lg"
@@ -18,7 +10,6 @@ export const CardSkeleton: React.FC = () => (
       animation: 'shimmer 2s ease-in-out infinite',
     }}
   >
-    <style>{shimmer}</style>
     <div
       style={{
         height: '1rem',
@@ -50,7 +41,6 @@ export const CardSkeleton: React.FC = () => (
 
 export const ListSkeleton: React.FC<{ rows?: number }> = ({ rows = 4 }) => (
   <div>
-    <style>{shimmer}</style>
     {Array.from({ length: rows }).map((_, i) => (
       <div
         key={i}
@@ -107,8 +97,7 @@ export const CanvasSkeleton: React.FC = () => (
       borderRadius: '4px',
       animation: 'shimmer 2s ease-in-out infinite',
     }}
-  >
-    <style>{shimmer}</style>
+    >
     <span
       style={{
         fontSize: '0.625rem',
