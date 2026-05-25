@@ -66,7 +66,7 @@
   --color-parchment: var(--shell-bg);
   --color-success: var(--shell-success);
   --color-sage-mist: var(--shell-surface-2);
-  --color-amber: var(--vault-teal);
+  --color-amber: oklch(65% 15% 75deg);
   --color-tier-grove: var(--shell-success);
   --color-tier-bloom: var(--vault-teal);
   --color-tier-sprout: var(--vault-teal-dim);
@@ -105,7 +105,7 @@
 
 @layer base {
   html {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
   
   body {
@@ -224,9 +224,8 @@
     font-family: var(--font-mono);
   }
   
-  /* Neutralize glow */
-  .terminal-glow, .amber-glow {
-    text-shadow: none;
+    .terminal-glow, .amber-glow {
+    text-shadow: 0 0 4px var(--vault-teal-glow);
   }
 }
 
@@ -315,9 +314,32 @@
   animation: typewriter 3s steps(40) forwards;
 }
 
-/* Neutralize flicker/glow */
-.animate-crt-flicker, .animate-glow-pulse, .animate-scanline {
-  animation: none;
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 4px var(--vault-teal-glow); }
+  50% { box-shadow: 0 0 12px var(--vault-teal-glow), 0 0 20px var(--vault-teal-glow); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s var(--ease-out) infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s var(--ease-out) forwards;
+}
+
+@keyframes breathing {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.15; }
 }
 
 /* Custom Scrollbar */
