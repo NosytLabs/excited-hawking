@@ -121,6 +121,8 @@ export const AgentStream: React.FC = React.memo(() => {
     };
   }, []);
 
+  const lastUpdate = useMemo(() => new Date(), []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -437,7 +439,7 @@ export const AgentStream: React.FC = React.memo(() => {
           color: 'var(--term-green-dim)'
         }}
       >
-        <span>LAST UPDATE: {new Date().toLocaleTimeString()}</span>
+        <span>LAST UPDATE: {lastUpdate.toLocaleTimeString()}</span>
         <span className="animate-pulse">● SYSTEM ACTIVE</span>
       </div>
     </div>
