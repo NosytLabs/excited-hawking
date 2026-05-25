@@ -12,6 +12,7 @@ import { LifeMeter } from './components/LifeMeter';
 import { MemoryBrain } from './components/MemoryBrain';
 import { SocialSharing } from './components/SocialSharing';
 import { PromptQueue } from './components/PromptQueue';
+import { Terrarium } from './components/Terrarium';
 import { AppHeader } from './components/AppHeader';
 
 // Lazy load below-the-fold components
@@ -90,6 +91,7 @@ function App() {
             
             {/* Sidebar / Support rail */}
             <aside data-testid="support-rail" className="flex flex-col gap-6 xl:sticky xl:top-24" aria-label="Support modules">
+              <Terrarium />
               <PromptQueue />
               <LifeMeter />
               <MemoryBrain />
@@ -132,7 +134,7 @@ function App() {
           </SectionBlock>
 
           <SectionBlock
-            title="Citizen Log"
+            title="Moltbook"
             titleClassName="text-base font-medium mb-8"
             titleStyle={{
               fontFamily: 'var(--font-display)',
