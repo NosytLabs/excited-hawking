@@ -1,6 +1,22 @@
 import { Server } from 'socket.io';
 import type { Server as HttpServer } from 'http';
-import { WSEvents } from '../types/index.js';
+
+const WSEvents = {
+  PROMPT_NEW: 'prompt:new',
+  PROMPT_COMPLETE: 'prompt:complete',
+  QUEUE_UPDATE: 'queue:update',
+  BALANCE_UPDATE: 'balance:update',
+  TREASURY_UPDATE: 'treasury:update',
+  LOG_NEW: 'log:new',
+  TIER_CHANGE: 'tier:change',
+  EMERGENCE_UPDATE: 'emergence:update',
+  EMERGENCE_CELL_TOGGLE: 'emergence:cell-toggle',
+  GOVERNANCE_PROPOSAL_NEW: 'governance:proposal:new',
+  GOVERNANCE_PROPOSAL_UPDATE: 'governance:proposal:update',
+  GOVERNANCE_UPDATE: 'governance:update',
+  MEMORY_NEW: 'memory:new',
+  CREATURE_UPDATE: 'creature:update',
+} as const;
 
 let io: Server | null = null;
 
@@ -21,18 +37,18 @@ function corsValidator(origin: string | undefined, callback: (err: Error | null,
   if (process.env.NODE_ENV === 'production') {
     if (!origin) {
       console.warn('[WS] Connection rejected: missing origin in production');
-      callback(new Error('Origin required'));
+      callback(null, false);
       return;
     }
     if (!allowedOrigins.includes(origin)) {
       console.warn(`[WS] Connection rejected: unauthorized origin "${origin}"`);
-      callback(new Error('Origin not allowed'));
+      callback(null, false);
       return;
     }
   } else {
     if (origin && !allowedOrigins.includes(origin)) {
       console.warn(`[WS] Connection rejected: unauthorized origin "${origin}"`);
-      callback(new Error('Origin not allowed'));
+      callback(null, false);
       return;
     }
   }
@@ -119,4 +135,8 @@ export function emitGovernanceUpdate(data: Record<string, unknown>): void {
 
 export function emitMemoryNew(data: { id: string; type: string; content: string; timestamp: number; connections: string[] }): void {
   io?.emit(WSEvents.MEMORY_NEW, { ...data, timestamp: Date.now() });
+}
+
+export function emitCreatureUpdate(data: { stats: { vitality: number; momentum: number; coherence: number }; mood: string; totalPromptsProcessed: number }): void {
+  io?.emit(WSEvents.CREATURE_UPDATE, { ...data, timestamp: Date.now() });
 }

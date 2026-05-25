@@ -1,10 +1,12 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { getPrompts, addPrompt, updatePromptStatus, checkRateLimit, setRateLimitHeaders, getClientIp } from '../services/state.js';
+import { getPrompts, addPrompt, updatePromptStatus, checkRateLimit, setRateLimitHeaders, getClientIp, burnDiem, deductBalance, getBalance } from '../services/state.js';
 import { emitPromptNew, emitQueueUpdate, emitPromptComplete } from '../services/websocket.js';
 import { submitPromptAndAutoVote } from '../services/governance.js';
 import { processPrompt } from '../lib/agent.js';
 import { sanitizeString, sanitizeForHTML, isValidWalletAddress } from '../types/index.js';
+import { recordPrompt } from '../services/creatureState.js';
 import { generateId } from '../lib/crypto.js';
+import { validateDiemPayment, getPaymentAmount } from '../services/x402.js';
 
 interface PromptBody {
   content: string;
@@ -38,13 +40,37 @@ export async function promptRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Prompt content is required' });
     }
 
+    if (wallet !== 'anonymous') {
+      const requiredAmount = getPaymentAmount(content);
+      const payment = validateDiemPayment(wallet, requiredAmount);
+      if (!payment.valid) {
+        return reply.status(402).send({
+          error: 'Payment required',
+          details: payment.error,
+          requiredAmount: requiredAmount.toString(),
+          stakedBalance: getBalance(wallet).toString()
+        });
+      }
+
+      const deducted = deductBalance(wallet, requiredAmount);
+      if (!deducted) {
+        return reply.status(402).send({
+          error: 'Insufficient balance',
+          requiredAmount: requiredAmount.toString()
+        });
+      }
+
+      burnDiem(requiredAmount, wallet);
+      recordPrompt(content);
+    }
+
     const promptId = generateId();
     const prompt = {
       id: promptId,
       wallet,
       content,
-      tier: 'free' as const,
-      diemAmount: 0n,
+      tier: wallet !== 'anonymous' ? 'standard' as const : 'free' as const,
+      diemAmount: wallet !== 'anonymous' ? getPaymentAmount(content) : 0n,
       status: 'queued' as const,
       votes: 0,
       createdAt: Date.now()

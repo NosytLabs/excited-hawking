@@ -1,8 +1,9 @@
 import { Server, Socket } from 'socket.io';
-import { sanitizeForHTML } from './types/index.js';
 import { buildApp } from './app.js';
+import { setupGuestbookHandlers } from './services/guestbook.js';
 import { initWebSocket, getIO } from './services/websocket.js';
-import { getLogs, loadPersistedState, initPersistence, getPrompts, checkRateLimit } from './services/state.js';
+import { startDecayTimer } from './services/creatureState.js';
+import { loadPersistedState, initPersistence, getPrompts, checkRateLimit } from './services/state.js';
 import { conwayEngine } from './lib/emergence.js';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -201,56 +202,7 @@ async function setupWebSocketHandlers(io: Server): Promise<void> {
       getIO().to('emergence').emit('emergence:cell-toggle', data);
     });
 
-    const MAX_GUESTBOOK_ENTRIES = 1000;
-    const guestbookEntries: Map<string, { id: string; author: string; content: string; upvotes: number; timestamp: string; replies: Array<{ id: string; author: string; content: string; timestamp: string }> }> = new Map();
-    const guestbookOrder: string[] = [];
-
-    const evictOldEntries = () => {
-      while (guestbookOrder.length >= MAX_GUESTBOOK_ENTRIES) {
-        const oldestId = guestbookOrder.shift();
-        if (oldestId) guestbookEntries.delete(oldestId);
-      }
-    };
-
-    socket.on('guestbook:entry', (data: { author: string; content: string }) => {
-      evictOldEntries();
-      const entry = {
-        id: `entry-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-        author: sanitizeForHTML(data.author, 100) || 'Anonymous',
-        content: sanitizeForHTML(data.content, 500),
-        upvotes: 0,
-        timestamp: new Date().toISOString(),
-        replies: []
-      };
-      guestbookOrder.push(entry.id);
-      guestbookEntries.set(entry.id, entry);
-      getIO().emit('guestbook:entry', entry);
-      console.log(`[WS] Guestbook entry created: ${entry.id}`);
-    });
-
-    socket.on('guestbook:upvote', (data: { entryId: string }) => {
-      const entry = guestbookEntries.get(data.entryId);
-      if (entry) {
-        entry.upvotes += 1;
-        getIO().emit('guestbook:upvote', { entryId: data.entryId, upvotes: entry.upvotes });
-        console.log(`[WS] Guestbook entry upvoted: ${data.entryId}, new count: ${entry.upvotes}`);
-      }
-    });
-
-    socket.on('guestbook:reply', (data: { entryId: string; author: string; content: string }) => {
-      const entry = guestbookEntries.get(data.entryId);
-      if (entry) {
-        const reply = {
-          id: `reply-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-          author: sanitizeForHTML(data.author, 100) || 'Anonymous',
-          content: sanitizeForHTML(data.content, 500),
-          timestamp: new Date().toISOString()
-        };
-        entry.replies.push(reply);
-        getIO().emit('guestbook:entry', entry);
-        console.log(`[WS] Guestbook reply added to: ${data.entryId}`);
-      }
-    });
+    setupGuestbookHandlers(socket, getIO());
 
     socket.on('ping', (callback: (data: { timestamp: number }) => void) => {
       callback({ timestamp: Date.now() });
@@ -280,44 +232,7 @@ async function startServer(): Promise<void> {
 
   await loadPersistedState();
   initPersistence();
-
-  app.get('/api/logs/stream', async (request, reply) => {
-    const _wallet = request.headers['x-wallet-address'] as string || 'anonymous';
-    void _wallet;
-
-    reply.raw.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'X-Accel-Buffering': 'no'
-    });
-
-    const sendLog = (_message: string, _level: string, _logWallet?: string): void => {
-      // SSE sends periodic batched logs, individual log events handled via socket.io
-    };
-
-    // Store reference for potential future per-socket log streaming
-    void sendLog;
-
-    const checkInterval = setInterval(async () => {
-      try {
-        const logs = getLogs().slice(0, 50);
-        const data = JSON.stringify({ logs, timestamp: Date.now() });
-        reply.raw.write(`event: logs\ndata: ${data}\n\n`);
-      } catch {
-        clearInterval(checkInterval);
-      }
-    }, 5000);
-
-    const heartbeatInterval = setInterval(() => {
-      reply.raw.write(`: heartbeat\n\n`);
-    }, 30000);
-
-    request.raw.on('close', () => {
-      clearInterval(checkInterval);
-      clearInterval(heartbeatInterval);
-    });
-  });
+  startDecayTimer();
 
   try {
     await app.listen({ port: PORT, host: '0.0.0.0' });
