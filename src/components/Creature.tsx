@@ -40,7 +40,7 @@ export function Creature({ vitality, mood, totalPromptsProcessed }: CreatureProp
         filter: `drop-shadow(0 0 12px ${config.glow})`,
         transition: 'filter 0.5s ease, opacity 0.5s ease',
         opacity: tier === 'Dying' ? 0.4 : 1,
-        animation: tier === 'Dying' ? 'flicker 2s infinite' : 'breathing 3s ease-in-out infinite',
+        animation: tier === 'Dying' ? 'flicker 2s infinite' : tier === 'Surviving' || tier === 'Thriving' ? 'breathing 3s ease-in-out infinite' : 'none',
       }}>
         {config.emoji}
       </div>
