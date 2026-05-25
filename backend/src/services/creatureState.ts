@@ -38,11 +38,16 @@ function applyDecay(): void {
 
 function broadcast(): void {
   creature.mood = calculateMood();
-  getIO().emit('creature:update', {
-    stats: creature.stats,
-    mood: creature.mood,
-    totalPromptsProcessed: creature.totalPromptsProcessed
-  });
+  try {
+    getIO().emit('creature:update', {
+      stats: creature.stats,
+      mood: creature.mood,
+      totalPromptsProcessed: creature.totalPromptsProcessed,
+      timestamp: Date.now()
+    });
+  } catch {
+    console.warn('[Creature] WebSocket not available for broadcast');
+  }
 }
 
 let decayTimer: ReturnType<typeof setInterval> | null = null;
