@@ -1,4 +1,4 @@
-import { getIO } from './websocket.js';
+import { emitCreatureUpdate } from './websocket.js';
 
 export interface CreatureStats {
   vitality: number;
@@ -38,16 +38,11 @@ function applyDecay(): void {
 
 function broadcast(): void {
   creature.mood = calculateMood();
-  try {
-    getIO().emit('creature:update', {
-      stats: creature.stats,
-      mood: creature.mood,
-      totalPromptsProcessed: creature.totalPromptsProcessed,
-      timestamp: Date.now()
-    });
-  } catch {
-    console.warn('[Creature] WebSocket not available for broadcast');
-  }
+  emitCreatureUpdate({
+    stats: { ...creature.stats },
+    mood: creature.mood,
+    totalPromptsProcessed: creature.totalPromptsProcessed
+  });
 }
 
 let decayTimer: ReturnType<typeof setInterval> | null = null;

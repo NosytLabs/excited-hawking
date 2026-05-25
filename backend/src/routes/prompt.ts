@@ -61,7 +61,6 @@ export async function promptRoutes(fastify: FastifyInstance) {
       }
 
       burnDiem(requiredAmount, wallet);
-      recordPrompt(content);
     }
 
     const promptId = generateId();
@@ -91,6 +90,7 @@ export async function promptRoutes(fastify: FastifyInstance) {
 
       updatePromptStatus(promptId, 'completed');
       emitPromptComplete(promptId);
+      recordPrompt(content);
 
       return {
         success: true,
