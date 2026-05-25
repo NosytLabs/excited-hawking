@@ -19,7 +19,8 @@ export const WSEvents = {
   EMERGENCE_CELL_TOGGLE: 'emergence:cell-toggle',
   GUESTBOOK_ENTRY: 'guestbook:entry',
   GUESTBOOK_UPVOTE: 'guestbook:upvote',
-  MEMORY_NEW: 'memory:new'
+  MEMORY_NEW: 'memory:new',
+  CREATURE_UPDATE: 'creature:update'
 } as const;
 
 export type WSEvent = typeof WSEvents[keyof typeof WSEvents];
