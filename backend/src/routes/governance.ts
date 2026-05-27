@@ -215,12 +215,11 @@ export async function governanceRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'Admin signature required' });
     }
     const adminWalletsEnv = process.env.ADMIN_WALLETS || '';
-    if (!adminWalletsEnv) {
-      return reply.status(403).send({ error: 'Unauthorized: admin wallets not configured' });
-    }
-    const adminWallets = adminWalletsEnv.split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
-    if (adminWallets.length > 0 && !adminWallets.includes(auth.wallet.toLowerCase())) {
-      return reply.status(403).send({ error: 'Unauthorized: only admin wallets can finalize proposals' });
+    if (adminWalletsEnv && adminWalletsEnv.length > 0) {
+      const adminWallets = adminWalletsEnv.split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
+      if (!adminWallets.includes(auth.wallet.toLowerCase())) {
+        return reply.status(403).send({ error: 'Unauthorized: only admin wallets can finalize proposals' });
+      }
     }
     const result = finalizeProposal(request.params.id);
     return { result };
@@ -232,12 +231,11 @@ export async function governanceRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'Admin signature required' });
     }
     const adminWalletsEnv = process.env.ADMIN_WALLETS || '';
-    if (!adminWalletsEnv) {
-      return reply.status(403).send({ error: 'Unauthorized: admin wallets not configured' });
-    }
-    const adminWallets = adminWalletsEnv.split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
-    if (adminWallets.length > 0 && !adminWallets.includes(auth.wallet.toLowerCase())) {
-      return reply.status(403).send({ error: 'Unauthorized: only admin wallets can execute proposals' });
+    if (adminWalletsEnv && adminWalletsEnv.length > 0) {
+      const adminWallets = adminWalletsEnv.split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
+      if (!adminWallets.includes(auth.wallet.toLowerCase())) {
+        return reply.status(403).send({ error: 'Unauthorized: only admin wallets can execute proposals' });
+      }
     }
     const result = executeProposal(request.params.id);
     if (!result.success) {

@@ -15,11 +15,11 @@ function calculateTier(v: number): Tier {
   return 'Dying';
 }
 
-const tierConfig: Record<Tier, { emoji: string; name: string; glow: string; color: string }> = {
-  Dying: { emoji: '💀', name: 'Fading', glow: 'rgba(100,100,100,0.2)', color: '#666' },
-  Struggling: { emoji: '😶', name: 'Dim', glow: 'rgba(150,150,150,0.3)', color: '#999' },
-  Surviving: { emoji: '👾', name: 'Active', glow: 'rgba(74,222,128,0.4)', color: '#15803d' },
-  Thriving: { emoji: '🦋', name: 'Evolved', glow: 'rgba(250,204,21,0.6)', color: '#facc15' },
+const tierConfig: Record<Tier, { symbol: string; name: string; glow: string; color: string }> = {
+  Dying: { symbol: '[X]', name: 'Fading', glow: 'rgba(100,100,100,0.2)', color: '#666' },
+  Struggling: { symbol: '[-]', name: 'Dim', glow: 'rgba(150,150,150,0.3)', color: '#999' },
+  Surviving: { symbol: '[>]', name: 'Active', glow: 'rgba(74,222,128,0.4)', color: '#15803d' },
+  Thriving: { symbol: '[*]', name: 'Evolved', glow: 'rgba(250,204,21,0.6)', color: '#facc15' },
 };
 
 export function Creature({ vitality, mood: _mood, totalPromptsProcessed }: CreatureProps) {
@@ -42,7 +42,7 @@ export function Creature({ vitality, mood: _mood, totalPromptsProcessed }: Creat
         opacity: tier === 'Dying' ? 0.4 : 1,
         animation: tier === 'Dying' ? 'flicker 2s infinite' : tier === 'Surviving' || tier === 'Thriving' ? 'breathing 3s ease-in-out infinite' : 'none',
       }}>
-        {config.emoji}
+        {config.symbol}
       </div>
       <div style={{
         fontSize: 11,

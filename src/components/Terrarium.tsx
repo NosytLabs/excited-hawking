@@ -25,7 +25,7 @@ export function Terrarium() {
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
-        <span>🐚 Creature Chamber</span>
+        <span>Creature Chamber</span>
         <span style={{
           width: 6,
           height: 6,

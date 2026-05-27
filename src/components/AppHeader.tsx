@@ -17,7 +17,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onOpenStaking }) => {
   };
 
   return (
-    <header className="sticky top-0 z-50 px-4 md:px-6 py-3 md:py-4 flex flex-wrap items-center justify-between gap-4 bg-[var(--shell-bg)]/95 backdrop-blur-md border-b border-[var(--shell-border)]">
+<header className="sticky top-0 z-50 px-4 md:px-6 py-3 md:py-4 flex flex-wrap items-center justify-between gap-4 bg-[var(--shell-bg)]/95 backdrop-blur-md border-b border-[var(--shell-border)]" role="banner">
       <div className="flex items-center gap-3 md:gap-4">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-[var(--shell-surface)] border border-[var(--shell-border)] flex items-center justify-center">
@@ -40,7 +40,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onOpenStaking }) => {
         </div>
       </div>
       
-      <div className="flex items-center gap-2 md:gap-4">
+      <nav className="flex items-center gap-2 md:gap-4" aria-label="Main navigation">
         <div className="hidden sm:flex items-center gap-3 px-3 py-2 bg-[var(--shell-surface)] border border-[var(--shell-border)] rounded-lg">
           <Lock size={14} className="text-[var(--shell-text-muted)]" />
           <div className="flex flex-col">
@@ -61,17 +61,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onOpenStaking }) => {
               {backendAvailable ? 'Live' : 'Demo'}
             </span>
           </div>
-          <span className="hidden sm:block w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: backendAvailable ? 'var(--shell-success)' : 'var(--shell-text-muted)' }}></span>
+          <span className="hidden sm:block w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: backendAvailable ? 'var(--shell-success)' : 'var(--shell-text-muted)' }} />
           <button 
             onClick={onOpenStaking}
             className="ml-1 md:ml-2 px-3 md:px-4 py-2 text-sm font-medium rounded-lg bg-[var(--vault-teal)] text-white hover:bg-[var(--vault-teal-dim)] transition-colors flex items-center gap-2"
+            aria-label="Stake DIEM to unlock features"
           >
             <Shield size={14} />
             <span className="hidden sm:inline">Enter Vault</span>
             <span className="sm:hidden">Stake</span>
           </button>
         </div>
-      </div>
+      </nav>
     </header>
   );
 };

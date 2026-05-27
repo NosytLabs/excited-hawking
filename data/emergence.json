@@ -4100,44 +4100,44 @@
   "generation": 1,
   "events": [
     {
-      "id": "eb32cf1f-be30-4ad8-a8c2-643092080c99",
-      "timestamp": 1779849780012,
+      "id": "34ee0176-1fca-41f2-ae3a-8a74e214712d",
+      "timestamp": 1779852631303,
       "type": "explosion",
       "x": 0,
       "y": 0,
       "description": "Seed density: 0.1%"
     },
     {
-      "id": "ac016ca4-5e37-46e3-af3f-e26ac275ea38",
-      "timestamp": 1779849780013,
-      "type": "still_life",
+      "id": "8571eb51-413c-43a6-9bb3-c05e16b9087f",
+      "timestamp": 1779852631304,
+      "type": "glider",
       "x": 2,
       "y": 3,
+      "description": "A glider moves diagonally across the grid"
+    },
+    {
+      "id": "85096455-dae0-48a1-9a8c-52a0e20f6926",
+      "timestamp": 1779852631304,
+      "type": "still_life",
+      "x": 3,
+      "y": 2,
       "description": "A permanent form emerges from chaos"
     },
     {
-      "id": "408e0270-c41d-4021-a607-0ee1cabcb317",
-      "timestamp": 1779849780013,
-      "type": "oscillator",
-      "x": 3,
-      "y": 2,
-      "description": "A heartbeat emerges from the void"
-    },
-    {
-      "id": "41d3c61e-7df8-4c77-9d0b-d231b0d34fb2",
-      "timestamp": 1779849780013,
+      "id": "283654df-ff05-424f-924b-5b810cdb2b48",
+      "timestamp": 1779852631304,
       "type": "explosion",
       "x": 3,
       "y": 3,
       "description": "Life multiplies exponentially"
     },
     {
-      "id": "cc3e844d-5d0d-46d6-84ab-4f7c81416d69",
-      "timestamp": 1779849780013,
-      "type": "still_life",
+      "id": "f7aa40b9-fba9-4cd0-9068-94724ecf1241",
+      "timestamp": 1779852631304,
+      "type": "oscillator",
       "x": 4,
       "y": 4,
-      "description": "Stable structure crystallizes"
+      "description": "Cells pulse in rhythmic harmony"
     }
   ]
 }

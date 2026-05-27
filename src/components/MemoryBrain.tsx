@@ -13,14 +13,9 @@ interface MemoryNode {
   y: number;
   vx: number;
   vy: number;
+  importance: number;
+  emotion: string;
 }
-
-const mockNodes: MemoryNode[] = [
-  { id: '1', type: 'interaction', content: 'User asked about neural networks', timestamp: Date.now() - 3600000, connections: ['2', '3'], x: 140, y: 100, vx: 0, vy: 0 },
-  { id: '2', type: 'dream', content: 'Dream: networks of light connecting distant nodes', timestamp: Date.now() - 7200000, connections: ['1'], x: 80, y: 60, vx: 0, vy: 0 },
-  { id: '3', type: 'emergence', content: 'New emergence pattern detected', timestamp: Date.now() - 1800000, connections: ['1', '4'], x: 200, y: 140, vx: 0, vy: 0 },
-  { id: '4', type: 'social', content: 'Collaborated with another agent', timestamp: Date.now() - 900000, connections: ['3'], x: 180, y: 180, vx: 0, vy: 0 },
-];
 
 const COLORS = {
   interaction: '#14fe17',
@@ -29,12 +24,20 @@ const COLORS = {
   social: '#a855f7',
 } as const;
 
-const CANVAS_WIDTH = 280;
-const CANVAS_HEIGHT = 200;
-const REPULSION_STRENGTH = 800;
-const ATTRACTION_STRENGTH = 0.02;
-const DAMPING = 0.92;
-const IDEAL_EDGE_LENGTH = 60;
+const CANVAS_WIDTH = 320;
+const CANVAS_HEIGHT = 240;
+const REPULSION_STRENGTH = 1000;
+const ATTRACTION_STRENGTH = 0.03;
+const DAMPING = 0.88;
+const IDEAL_EDGE_LENGTH = 70;
+
+const mockNodes: MemoryNode[] = [
+  { id: '1', type: 'interaction', content: 'User asked about neural networks', timestamp: Date.now() - 3600000, connections: ['2', '3'], x: 160, y: 100, vx: 0, vy: 0, importance: 0.8, emotion: 'curiosity' },
+  { id: '2', type: 'dream', content: 'Dream: networks of light connecting distant nodes', timestamp: Date.now() - 7200000, connections: ['1'], x: 80, y: 60, vx: 0, vy: 0, importance: 0.6, emotion: 'wonder' },
+  { id: '3', type: 'emergence', content: 'New emergence pattern detected in collective', timestamp: Date.now() - 1800000, connections: ['1', '4'], x: 200, y: 140, vx: 0, vy: 0, importance: 0.9, emotion: 'discovery' },
+  { id: '4', type: 'social', content: 'Collaborated with another agent on reasoning', timestamp: Date.now() - 900000, connections: ['3'], x: 180, y: 180, vx: 0, vy: 0, importance: 0.7, emotion: 'connection' },
+  { id: '5', type: 'dream', content: 'Pattern recognition in sequence data', timestamp: Date.now() - 600000, connections: ['2', '3'], x: 240, y: 80, vx: 0, vy: 0, importance: 0.5, emotion: 'insight' },
+];
 
 export const MemoryBrain = React.memo(function MemoryBrain() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -51,7 +54,7 @@ export const MemoryBrain = React.memo(function MemoryBrain() {
   }, [nodes]);
 
   useEffect(() => {
-    const handleNewMemory = (memory: { id: string; type: string; content: string; timestamp: number }) => {
+    const handleNewMemory = (memory: { id: string; type: string; content: string; timestamp: number; importance?: number; emotion?: string }) => {
       const newNode: MemoryNode = {
         id: memory.id,
         type: memory.type as MemoryNode['type'],
@@ -62,17 +65,19 @@ export const MemoryBrain = React.memo(function MemoryBrain() {
         y: CANVAS_HEIGHT / 2 + (Math.random() - 0.5) * 80,
         vx: 0,
         vy: 0,
+        importance: memory.importance || 0.5,
+        emotion: memory.emotion || 'neutral',
       };
       setNodes(prev => {
         const updated = [newNode, ...prev];
-        if (updated.length > 50) return updated.slice(0, 50);
+        if (updated.length > 40) return updated.slice(0, 40);
         return updated;
       });
       setIsLive(true);
-      setTimeout(() => setIsLive(false), 2000);
+      setTimeout(() => setIsLive(false), 3000);
     };
     websocketService.on(WSEvents.MEMORY_NEW, handleNewMemory);
-    return () => websocketService.off(WSEvents.MEMORY_NEW);
+    return () => websocketService.off(WSEvents.MEMORY_NEW, handleNewMemory);
   }, []);
 
   const simulateRef = useRef(() => {

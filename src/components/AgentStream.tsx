@@ -80,8 +80,8 @@ export const AgentStream: React.FC = React.memo(() => {
     websocketService.on(WSEvents.EMERGENCE_CELL_TOGGLE, handleCellToggle);
 
     return () => {
-      websocketService.off(WSEvents.EMERGENCE_UPDATE);
-      websocketService.off(WSEvents.EMERGENCE_CELL_TOGGLE);
+      websocketService.off(WSEvents.EMERGENCE_UPDATE, handleEmergenceUpdate);
+      websocketService.off(WSEvents.EMERGENCE_CELL_TOGGLE, handleCellToggle);
     };
   }, []);
 
@@ -121,7 +121,8 @@ export const AgentStream: React.FC = React.memo(() => {
     };
   }, []);
 
-  const lastUpdate = useMemo(() => new Date(), []);
+  const lastUpdateRef = useRef(new Date());
+  const lastUpdate = lastUpdateRef.current;
 
   useEffect(() => {
     const canvas = canvasRef.current;

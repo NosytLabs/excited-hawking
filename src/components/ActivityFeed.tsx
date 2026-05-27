@@ -20,7 +20,7 @@ const typeColors = {
 
 export const ActivityFeed = () => {
   const [events, setEvents] = useState<ActivityEvent[]>([]);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
@@ -50,7 +50,9 @@ export const ActivityFeed = () => {
   }, []);
   
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
+    const timer = setInterval(() => {
+      if (!document.hidden) setNow(Date.now());
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
   

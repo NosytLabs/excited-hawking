@@ -104,7 +104,9 @@ function App() {
               <Terrarium />
               <PromptQueue />
               <LifeMeter />
-              <MemoryBrain />
+              <ErrorBoundary>
+                <MemoryBrain />
+              </ErrorBoundary>
               <SocialSharing />
             </aside>
           </div>

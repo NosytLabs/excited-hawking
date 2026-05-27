@@ -249,7 +249,9 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     setProposals(prev => {
       const original = prev.find(p => p.id === id);
-      if (original) voteProposalRef.current.set(id, original);
+      if (original) {
+        voteProposalRef.current.set(id, { ...original });
+      }
       return prev.map(p => {
         if (p.id === id) {
           return {

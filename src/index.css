@@ -77,6 +77,14 @@
   --color-terra-border: var(--shell-border);
   --color-terra-btn: var(--shell-surface-2);
 
+  /* Success/Danger/Accent aliases */
+  --success: var(--shell-success);
+  --danger: var(--shell-danger);
+  --cyan: var(--term-blue);
+  --violet: var(--vault-teal-dim);
+  --accent: var(--vault-teal);
+  --warning: var(--term-amber);
+
   /* Canvas/Emergence Grid Colors */
   --canvas-alive: var(--vault-teal);
   --canvas-surviving: var(--vault-teal-dim);

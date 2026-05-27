@@ -11,11 +11,11 @@ const statColors: Record<string, { bar: string; bg: string; glow: string }> = {
   coherence: { bar: 'var(--violet)', bg: 'oklch(55% 12% 280deg / 0.1)', glow: 'oklch(55% 12% 280deg / 0.4)' },
 };
 
-const moodEmojis: Record<string, { emoji: string; label: string }> = {
-  anxious: { emoji: '😰', label: 'Anxious' },
-  neutral: { emoji: '😐', label: 'Neutral' },
-  happy: { emoji: '😊', label: 'Happy' },
-  ecstatic: { emoji: '✨', label: 'Ecstatic' },
+const moodLabels: Record<string, { label: string }> = {
+  anxious: { label: 'Anxious' },
+  neutral: { label: 'Neutral' },
+  happy: { label: 'Happy' },
+  ecstatic: { label: 'Ecstatic' },
 };
 
 function StatBar({ name, value }: { name: string; value: number }) {
@@ -35,12 +35,12 @@ function StatBar({ name, value }: { name: string; value: number }) {
 }
 
 export function CreatureStats({ vitality, momentum, coherence, mood }: CreatureStatsProps) {
-  const moodInfo = moodEmojis[mood] || moodEmojis.neutral;
+  const moodInfo = moodLabels[mood] || moodLabels.neutral;
 
   return (
     <div style={{ padding: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 18 }}>{moodInfo.emoji}</span>
+        <span style={{ fontSize: 18, fontFamily: 'var(--font-mono)', color: 'var(--shell-text-muted)' }}>[{mood.charAt(0).toUpperCase()}]</span>
         <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--shell-text-muted)' }}>MOOD: {moodInfo.label}</span>
       </div>
       <StatBar name="vitality" value={vitality} />
