@@ -18,8 +18,8 @@ describe('AppHeader', () => {
       </AgentContext.Provider>
     );
     
-    expect(screen.getByText(`Vault-${new Date().getFullYear()}`)).toBeInTheDocument();
-    expect(screen.getByText('Public Social Experiment')).toBeInTheDocument();
+    expect(screen.getByText('The Commons Agent')).toBeInTheDocument();
+    expect(screen.getByText('Vault Experiment · Public Study')).toBeInTheDocument();
   });
 
   it('renders Enter Vault button', () => {

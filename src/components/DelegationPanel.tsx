@@ -29,7 +29,9 @@ export const DelegationPanel: React.FC<DelegationPanelProps> = ({
         <span className="text-[var(--term-green-dim)]">Delegated:</span>
         <span className="text-[var(--term-green)]">{delegations.reduce((sum, d) => sum + d.amount, 0)} seeds</span>
       </div>
+      <label htmlFor="delegation-address" className="sr-only">Delegation address</label>
       <input
+        id="delegation-address"
         type="text"
         value={delegationAddress}
         onChange={(e) => onDelegationAddressChange(e.target.value)}
@@ -43,7 +45,8 @@ export const DelegationPanel: React.FC<DelegationPanelProps> = ({
             onDelegate();
           }
         }}
-        className="w-full mt-2 bg-[var(--term-green-dim)]/30 hover:bg-[var(--term-green-dim)]/50 text-[var(--term-green)] border border-[var(--term-green)] text-xs font-mono py-2 rounded transition-colors"
+        className="w-full mt-2 bg-[var(--term-green-dim)]/30 hover:bg-[var(--term-green-dim)]/50 text-[var(--term-green)] border border-[var(--term-green)] text-xs font-mono py-2 rounded transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--term-green)]"
+        aria-label="Execute delegation"
       >
         [EXECUTE DELEGATION]
       </button>

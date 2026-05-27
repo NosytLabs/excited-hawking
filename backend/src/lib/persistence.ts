@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { promisify } from 'util';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const STATE_FILE = path.join(DATA_DIR, 'state.json');
@@ -12,14 +11,16 @@ const SAVE_INTERVAL = 30000;
 let saveTimer: ReturnType<typeof setInterval> | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-const fsExists = promisify(fs.exists.bind(fs));
-const fsMkdir = promisify(fs.mkdir.bind(fs));
-const fsCopyFile = promisify(fs.copyFile.bind(fs));
-const fsWriteFile = promisify(fs.writeFile.bind(fs));
-const fsRename = promisify(fs.rename.bind(fs));
-const fsUnlink = promisify(fs.unlink.bind(fs));
-const fsReadFile = promisify(fs.readFile.bind(fs));
-const fsStat = promisify(fs.stat.bind(fs));
+const { mkdir: fsMkdir, copyFile: fsCopyFile, writeFile: fsWriteFile, rename: fsRename, unlink: fsUnlink, readFile: fsReadFile, stat: fsStat, access: fsAccess } = fs.promises;
+
+const fsExists = async (path: string): Promise<boolean> => {
+  try {
+    await fsAccess(path);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 interface PersistedState {
   balances: [string, { wallet: string; diemBalance: string; vvvStaked: string; tier: string }][];

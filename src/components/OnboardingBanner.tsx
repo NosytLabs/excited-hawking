@@ -42,18 +42,19 @@ export const OnboardingBanner = React.memo(function OnboardingBannerComponent() 
           
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-lg md:text-xl font-medium text-[var(--shell-text)] flex items-center gap-2">
-                <FlaskConical size={18} className="text-[var(--vault-teal)] sm:hidden" />
-                Vault Experiment Protocol
-              </h3>
-              <span className="badge bg-[var(--vault-teal)]/10 text-[var(--vault-teal)] border border-[var(--vault-teal)]/20 text-[10px]">
-                Experimental
-              </span>
-            </div>
-            
-            <p className="text-[var(--shell-text-muted)] text-sm mb-5 leading-relaxed max-w-3xl">
-              You are entering a public social experiment. Participants submit prompts, stake DIEM tokens, and govern collective behavior through quadratic voting.
-            </p>
+            <h3 className="text-lg md:text-xl font-medium text-[var(--shell-text)] flex items-center gap-2">
+              <FlaskConical size={18} className="text-[var(--vault-teal)] sm:hidden" />
+              Watch patterns emerge from collective attention
+            </h3>
+            <span className="badge bg-[var(--vault-teal)]/10 text-[var(--vault-teal)] border border-[var(--vault-teal)]/20 text-[10px]">
+              127 participants · Cycle 847
+            </span>
+          </div>
+          
+          <p className="text-[var(--shell-text-muted)] text-sm mb-5 leading-relaxed max-w-3xl">
+            Your attention shapes what becomes visible. Prompts weighted by stake flow into a cellular automaton. 
+            Governance votes guide the experiment's direction. <a href="#about" className="text-[var(--vault-teal)] hover:underline">Learn how it works →</a>
+          </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
               <div className="flex items-start gap-3 p-3 bg-[var(--shell-bg)] rounded-lg border border-[var(--shell-border)]">
@@ -61,8 +62,8 @@ export const OnboardingBanner = React.memo(function OnboardingBannerComponent() 
                   <Users size={16} className="text-[var(--vault-teal)]" />
                 </div>
                 <div>
-                  <span className="text-xs font-bold text-[var(--shell-text)] block">Collective Intelligence</span>
-                  <span className="text-[10px] text-[var(--shell-text-muted)]">Observe emergent behavior</span>
+                  <span className="text-xs font-bold text-[var(--shell-text)] block">Weighted Participation</span>
+                  <span className="text-[10px] text-[var(--shell-text-muted)]">Influence proportional to stake</span>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-3 bg-[var(--shell-bg)] rounded-lg border border-[var(--shell-border)]">
@@ -70,8 +71,8 @@ export const OnboardingBanner = React.memo(function OnboardingBannerComponent() 
                   <Brain size={16} className="text-[var(--shell-accent-strong)]" />
                 </div>
                 <div>
-                  <span className="text-xs font-bold text-[var(--shell-text)] block">Memory Evolution</span>
-                  <span className="text-[10px] text-[var(--shell-text-muted)]">Track consciousness growth</span>
+                  <span className="text-xs font-bold text-[var(--shell-text)] block">Emergence Grid</span>
+                  <span className="text-[10px] text-[var(--shell-text-muted)]">Cellular automaton visualization</span>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-3 bg-[var(--shell-bg)] rounded-lg border border-[var(--shell-border)]">
@@ -79,8 +80,8 @@ export const OnboardingBanner = React.memo(function OnboardingBannerComponent() 
                   <Vote size={16} className="text-[var(--shell-success)]" />
                 </div>
                 <div>
-                  <span className="text-xs font-bold text-[var(--shell-text)] block">Governance</span>
-                  <span className="text-[10px] text-[var(--shell-text-muted)]">Proposals & quadratic voting</span>
+                  <span className="text-xs font-bold text-[var(--shell-text)] block">On-Chain Governance</span>
+                  <span className="text-[10px] text-[var(--shell-text-muted)]">Quadratic voting, transparent</span>
                 </div>
               </div>
             </div>

@@ -25,10 +25,12 @@ export const GovernanceProposal: React.FC<GovernanceProposalProps> = ({
         <div className="text-center p-3 rounded border bg-[var(--term-green-dim)]/20 border-[var(--term-green)] col-span-2">
           <div className="text-xl font-mono font-bold text-[var(--term-green)]">{proposal.votesFor}</div>
           <div className="text-[10px] font-mono uppercase text-[var(--term-green-glow)]">[FOR]</div>
+          <div className="text-[10px] font-mono" style={{ color: 'var(--term-green)' }}>✓</div>
         </div>
         <div className="text-center p-3 rounded border bg-black/30" style={{ borderColor: 'var(--term-red)' }}>
           <div className="text-lg font-mono font-bold" style={{ color: 'var(--term-red)' }}>{proposal.votesAgainst}</div>
           <div className="text-[10px] font-mono uppercase" style={{ color: 'var(--term-red)' }}>[AGAINST]</div>
+          <div className="text-[10px] font-mono" style={{ color: 'var(--term-red)' }}>✗</div>
         </div>
       </div>
       <div className="text-center mb-4">

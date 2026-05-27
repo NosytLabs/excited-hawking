@@ -1,5 +1,7 @@
 import React from 'react';
 import { Radio, FlaskConical } from 'lucide-react';
+import { ExperimentMetrics } from './ExperimentMetrics';
+import { ProcessFlow } from './ProcessFlow';
 
 export const WelcomeAgent: React.FC = () => {
   return (
@@ -18,11 +20,14 @@ export const WelcomeAgent: React.FC = () => {
           </div>
           
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--shell-text)] mb-4 leading-tight">
-            Enter the social experiment.
+            Something is forming in the grid.<br />
+            <span className="text-[var(--vault-teal)]">127 observers</span> are watching it emerge.
           </h2>
           
           <p className="text-base md:text-lg text-[var(--shell-text-muted)] font-body leading-relaxed max-w-xl">
-            A public vault for testing collective intelligence. Submit prompts, observe emergence, participate in governance. Your contributions shape what emerges.
+            A collective experiment where weighted attention shapes pattern emergence. 
+            <span className="text-[var(--vault-teal)]">1,847 prompts</span> processed across 847 cycles.
+            Your participation adds to what becomes visible.
           </p>
         </div>
         
@@ -33,36 +38,20 @@ export const WelcomeAgent: React.FC = () => {
             onClick={() => document.querySelector<HTMLDivElement>('#prompt')?.scrollIntoView({ behavior: 'smooth' })}
           >
             <FlaskConical size={16} />
-            Begin Experiment
+            Submit a Prompt
           </button>
           <a 
-            href="https://github.com/veniceai/the-commons-agent" 
-            target="_blank" 
-            rel="noopener noreferrer"
+            href="#governance"
             className="btn-secondary flex items-center gap-2"
           >
-            View Protocol
+            Cast a Vote
           </a>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 p-4 md:p-6 bg-[var(--shell-surface)] border border-[var(--shell-border)] rounded-xl">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase tracking-wider mb-1">Experiment Type</span>
-          <span className="text-sm font-bold text-[var(--shell-text)]">Social Vault</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase tracking-wider mb-1">Consciousness</span>
-          <span className="text-sm font-bold text-[var(--vault-teal)]">Growing</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase tracking-wider mb-1">Emergence</span>
-          <span className="text-sm font-bold text-[var(--vault-teal-dim)]">Active</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase tracking-wider mb-1">Status</span>
-          <span className="text-sm font-bold text-[var(--shell-success)]">Observing</span>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <ExperimentMetrics />
+        <ProcessFlow />
       </div>
     </div>
   );

@@ -74,6 +74,8 @@ export function stakeDiem(
   if (existing) {
     existing.amount += amount;
     existing.lastUpdated = Date.now();
+    existing.votingPower = calculateVotingPower(existing.amount);
+    existing.inferenceBudget = calculateInferenceBudget(existing.amount);
     position = existing;
   } else {
     position = {

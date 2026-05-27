@@ -100,7 +100,7 @@ export const PromptBox: React.FC = React.memo(() => {
           tabIndex={0}
           role="tooltip"
         >
-          <HelpCircle size={16} className="text-[var(--shell-text-muted)]" />
+          <HelpCircle size={16} className="text-[var(--shell-text-muted)]" aria-label="Cost explanation tooltip" />
           {tooltipVisible && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[var(--shell-text)] text-[var(--shell-bg)] rounded-lg px-3 py-2 text-xs whitespace-nowrap z-50 shadow-md">
               Costs support the system: 80% burns, 20% to treasury
@@ -109,9 +109,9 @@ export const PromptBox: React.FC = React.memo(() => {
         </div>
       </div>
 
-      <p className="text-sm text-[var(--shell-text-muted)] mb-6 max-w-2xl leading-relaxed">
-        The commons agent runs entirely on contributions. Add to the queue and it will respond when selected.
-      </p>
+          <p className="text-sm text-[var(--shell-text-muted)] mb-6 max-w-2xl leading-relaxed">
+            Prompts are weighted by staked DIEM and processed through a cellular automaton. Higher stake increases attention weight. Queued prompts are selected by collective quadratic vote.
+          </p>
 
       {hasStakingAccess ? (
         <form onSubmit={handleSubmit}>
@@ -152,12 +152,12 @@ export const PromptBox: React.FC = React.memo(() => {
             </div>
           </div>
 
-          <div className="mb-4 p-4 bg-[var(--shell-surface-2)] border border-[var(--shell-border)] rounded-xl">
+            <div className="mb-4 p-4 bg-[var(--shell-surface-2)] border border-[var(--shell-border)] rounded-xl">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-[var(--shell-text)]">Your Influence</span>
+              <span className="text-sm font-medium text-[var(--shell-text)]">Attention Weight</span>
               <div className="flex items-center gap-2">
                 <span className="text-base font-bold text-[var(--vault-teal)]">{quadraticWeight}x</span>
-                <span className="text-xs text-[var(--shell-text-muted)]">({diemStaked.toFixed(2)} staked)</span>
+                <span className="text-xs text-[var(--shell-text-muted)]">({diemStaked.toFixed(2)} DIEM staked)</span>
               </div>
             </div>
             <div className="h-2 bg-[var(--shell-bg)] rounded-full overflow-hidden">
@@ -166,7 +166,7 @@ export const PromptBox: React.FC = React.memo(() => {
                 style={{ width: `${Math.min(100, (diemStaked / 500) * 100)}%` }}
               />
             </div>
-            <p className="text-[10px] text-[var(--shell-text-muted)] mt-1">More stake = more influence</p>
+            <p className="text-[10px] text-[var(--shell-text-muted)] mt-1">sqrt(staked DIEM) = voting weight</p>
           </div>
 
           <div className="flex items-center justify-between">

@@ -18,11 +18,11 @@ function calculateTier(v: number): Tier {
 const tierConfig: Record<Tier, { emoji: string; name: string; glow: string; color: string }> = {
   Dying: { emoji: '💀', name: 'Fading', glow: 'rgba(100,100,100,0.2)', color: '#666' },
   Struggling: { emoji: '😶', name: 'Dim', glow: 'rgba(150,150,150,0.3)', color: '#999' },
-  Surviving: { emoji: '👾', name: 'Active', glow: 'rgba(74,222,128,0.4)', color: '#4ade80' },
+  Surviving: { emoji: '👾', name: 'Active', glow: 'rgba(74,222,128,0.4)', color: '#15803d' },
   Thriving: { emoji: '🦋', name: 'Evolved', glow: 'rgba(250,204,21,0.6)', color: '#facc15' },
 };
 
-export function Creature({ vitality, mood, totalPromptsProcessed }: CreatureProps) {
+export function Creature({ vitality, mood: _mood, totalPromptsProcessed }: CreatureProps) {
   const tier = calculateTier(vitality);
   const config = tierConfig[tier];
 

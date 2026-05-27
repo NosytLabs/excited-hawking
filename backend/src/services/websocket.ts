@@ -28,7 +28,7 @@ function getAllowedOrigins(): string[] {
   if (process.env.NODE_ENV === 'production') {
     return [];
   }
-  return ['localhost:3000', 'localhost:5173', 'localhost:5174', '127.0.0.1:3000', '127.0.0.1:5173', '127.0.0.1:5174', 'http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'];
+  return ['localhost:3000', 'localhost:4173', 'localhost:5173', 'localhost:5174', '127.0.0.1:3000', '127.0.0.1:4173', '127.0.0.1:5173', '127.0.0.1:5174', 'http://localhost:3000', 'http://localhost:4173', 'http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:3000', 'http://127.0.0.1:4173', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'];
 }
 
 function corsValidator(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void): void {

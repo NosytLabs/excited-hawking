@@ -4100,40 +4100,40 @@
   "generation": 1,
   "events": [
     {
-      "id": "773afeb7-fe66-4411-a2e4-dd9484a24cb5",
-      "timestamp": 1779606591556,
+      "id": "7613b989-f91e-4842-aed2-436544444204",
+      "timestamp": 1779839412892,
       "type": "explosion",
       "x": 0,
       "y": 0,
       "description": "Seed density: 0.1%"
     },
     {
-      "id": "c6a819c0-b1b0-4910-9b7d-2350c2723d4a",
-      "timestamp": 1779606591556,
+      "id": "99de605c-96d3-48c4-a031-e2f75ff1688b",
+      "timestamp": 1779839412893,
       "type": "glider",
       "x": 2,
       "y": 3,
-      "description": "A glider moves diagonally across the grid"
-    },
-    {
-      "id": "1088bc9a-296e-4fd9-9541-fb17827f8ee1",
-      "timestamp": 1779606591556,
-      "type": "glider",
-      "x": 3,
-      "y": 2,
       "description": "Cell cluster propagates through space"
     },
     {
-      "id": "ffb6fc7d-7364-4c89-a668-0794e4913f90",
-      "timestamp": 1779606591556,
-      "type": "explosion",
+      "id": "b24d298e-51a7-4e37-ab67-4646fccf7c87",
+      "timestamp": 1779839412893,
+      "type": "oscillator",
       "x": 3,
-      "y": 3,
-      "description": "Activity spreads outward"
+      "y": 2,
+      "description": "Cells pulse in rhythmic harmony"
     },
     {
-      "id": "c74a709d-50e8-4ef0-b7b4-c96aed01c29b",
-      "timestamp": 1779606591556,
+      "id": "fb351190-be63-4708-bda2-05852bfb464c",
+      "timestamp": 1779839412893,
+      "type": "collapse",
+      "x": 3,
+      "y": 3,
+      "description": "A structure crumbles to dust"
+    },
+    {
+      "id": "5421a1fb-2337-41db-ac24-dcbaa76fae28",
+      "timestamp": 1779839412893,
       "type": "still_life",
       "x": 4,
       "y": 4,

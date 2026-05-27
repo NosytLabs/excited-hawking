@@ -60,7 +60,7 @@ export async function promptRoutes(fastify: FastifyInstance) {
         });
       }
 
-      burnDiem(requiredAmount, wallet);
+      burnDiem(requiredAmount);
     }
 
     const promptId = generateId();

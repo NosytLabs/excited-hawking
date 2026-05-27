@@ -1,0 +1,31 @@
+# Vault Experiment
+
+> A public social experiment for testing collective intelligence through prompt staking, quadratic voting, and emergent behavior observation.
+
+## Overview
+
+The Vault Experiment enables participants to submit prompts, stake DIEM tokens, and govern collective behavior through quadratic voting. Watch emergence unfold through cellular automata visualization and track consciousness growth in real-time.
+
+## Key Pages
+
+- [Home](http://localhost:5173/): Main entry point
+- [Prompt](http://localhost:5173/#/prompt): Submit prompts to the commons agent
+- [Stake](http://localhost:5173/#/stake): Stake DIEM to unlock submission
+- [Governance](http://localhost:5173/#/governance): View and vote on proposals
+
+## Features
+
+- Collective intelligence via emergent behavior
+- Memory evolution tracking
+- Quadratic voting governance
+- Prompt staking system (10 DIEM minimum)
+- Creature chamber with mood tracking
+- Emergence grid visualization (cellular automata)
+- Moltbook social feed
+
+## Technology
+
+- React 19 with TypeScript
+- Vite build system
+- Tailwind CSS
+- Socket.io for real-time updates

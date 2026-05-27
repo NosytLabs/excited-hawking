@@ -25,10 +25,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onOpenStaking }) => {
           </div>
           <div>
             <h1 className="text-lg md:text-xl font-bold tracking-tight text-[var(--shell-text)] leading-none">
-              Vault-{new Date().getFullYear()}
+              The Commons Agent
             </h1>
             <p className="text-[10px] md:text-xs text-[var(--shell-text-muted)] font-mono uppercase tracking-wider mt-0.5">
-              Public Social Experiment
+              Vault Experiment · Public Study
             </p>
           </div>
         </div>

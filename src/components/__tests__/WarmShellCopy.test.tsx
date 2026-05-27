@@ -38,13 +38,14 @@ describe('Vault Experiment Copy', () => {
 
   it('WelcomeAgent uses vault experiment copy', () => {
     render(withProvider(<WelcomeAgent />));
-    expect(screen.getByText(/Enter the social experiment/i)).toBeInTheDocument();
+    expect(screen.getByText(/Something is forming in the grid/i)).toBeInTheDocument();
     expect(screen.getByText(/Vault Experiment/i)).toBeInTheDocument();
   });
 
   it('OnboardingBanner uses vault experiment copy', () => {
     render(withProvider(<OnboardingBanner />));
-    expect(screen.getByText(/Vault Experiment Protocol/i)).toBeInTheDocument();
+    expect(screen.getByText(/Watch patterns emerge from collective attention/i)).toBeInTheDocument();
+    expect(screen.getByText(/127 participants/i)).toBeInTheDocument();
   });
 
   it('PromptBox uses warm copy', () => {

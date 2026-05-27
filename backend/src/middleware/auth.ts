@@ -36,6 +36,8 @@ export function createVoteNonce(wallet: string): { nonce: string; expiresAt: num
 
   const nonce = randomBytes(NONCE_BYTES).toString('hex');
   const expiresAt = Date.now() + 5 * 60 * 1000;
+  
+  usedVoteNonces.add(`${wallet.toLowerCase()}:${nonce}`);
 
   return { nonce, expiresAt };
 }

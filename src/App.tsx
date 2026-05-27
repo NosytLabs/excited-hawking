@@ -8,12 +8,17 @@ import { WelcomeAgent } from './components/WelcomeAgent';
 import { OnboardingBanner } from './components/OnboardingBanner';
 import { PromptBox } from './components/PromptBox';
 import { AgentStream } from './components/AgentStream';
+import { ExperimentHypothesis } from './components/ExperimentHypothesis';
 import { LifeMeter } from './components/LifeMeter';
 import { MemoryBrain } from './components/MemoryBrain';
 import { SocialSharing } from './components/SocialSharing';
 import { PromptQueue } from './components/PromptQueue';
 import { Terrarium } from './components/Terrarium';
 import { AppHeader } from './components/AppHeader';
+import { Leaderboard } from './components/Leaderboard';
+import { ActivityFeed } from './components/ActivityFeed';
+import { ExperimentTimeline } from './components/ExperimentTimeline';
+import { Methodology } from './components/Methodology';
 
 // Lazy load below-the-fold components
 const Governance = lazy(() => import('./components/Governance').then(m => ({ default: m.Governance })));
@@ -81,6 +86,7 @@ function App() {
         <main id="main-content" className="crt-screen">
           <WelcomeAgent />
           <OnboardingBanner />
+          <ExperimentHypothesis />
           
           <div className="max-w-7xl mx-auto px-6 py-16 grid xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.95fr)] gap-8">
             {/* Main agent interface */}
@@ -91,6 +97,10 @@ function App() {
             
             {/* Sidebar / Support rail */}
             <aside data-testid="support-rail" className="flex flex-col gap-6 xl:sticky xl:top-24" aria-label="Support modules">
+              <Methodology />
+              <ExperimentTimeline />
+              <Leaderboard />
+              <ActivityFeed />
               <Terrarium />
               <PromptQueue />
               <LifeMeter />
@@ -161,12 +171,29 @@ function App() {
           }}
         >
           <div 
-            className="flex justify-center gap-6 text-sm mb-4"
+            className="flex flex-wrap justify-center gap-4 text-sm mb-4"
             style={{ color: 'var(--shell-text-muted)' }}
           >
-            <span>Commons Agent © {new Date().getFullYear()}</span>
+            <span>The Commons Agent © {new Date().getFullYear()}</span>
+            <span>·</span>
+            <a 
+              href="#/about"
+              className="hover:text-[var(--vault-teal)] transition-colors"
+            >
+              About the Study
+            </a>
+            <span>·</span>
+            <a 
+              href="#" 
+              className="hover:text-[var(--vault-teal)] transition-colors opacity-50 cursor-not-allowed"
+              title="Protocol documentation coming soon"
+            >
+              View Protocol
+            </a>
           </div>
-
+          <p className="text-xs text-[var(--shell-text-muted)] mt-2 max-w-xl mx-auto">
+            This is an observational study of computational patterns. Emergence patterns do not indicate consciousness, sentience, or subjective experience.
+          </p>
         </footer>
       </div>
       </ErrorBoundary>

@@ -3,8 +3,8 @@
 /* Vault Experiment Design System */
 :root {
   /* Vault Branding Colors */
-  --vault-teal: oklch(70% 12% 175deg);
-  --vault-teal-dim: oklch(55% 10% 175deg);
+  --vault-teal: oklch(50% 12% 175deg);
+  --vault-teal-dim: oklch(50% 10% 175deg);
   --vault-teal-glow: oklch(70% 15% 175deg / 40%);
 
   /* Spacing Scale */
@@ -22,10 +22,10 @@
   --shell-surface-2: oklch(96% 1.5% 80deg);
   --shell-border: oklch(90% 2% 80deg);
   --shell-text: oklch(25% 3% 60deg);
-  --shell-text-muted: oklch(50% 2% 60deg);
+  --shell-text-muted: oklch(45% 3% 60deg);
   --shell-accent: var(--vault-teal);
   --shell-accent-strong: var(--vault-teal-dim);
-  --shell-success: oklch(65% 15% 145deg);
+  --shell-success: oklch(55% 15% 145deg);
   --shell-danger: oklch(60% 18% 30deg);
 
   /* Terminal Color Mappings */
@@ -33,7 +33,7 @@
   --term-charcoal: var(--shell-surface);
   --term-ash: var(--shell-text-muted);
   --term-concrete: var(--shell-text);
-  --term-dust: var(--shell-border);
+  --term-dust: oklch(40% 2% 80deg);
   --term-bone: var(--shell-bg);
   
   --term-green: var(--vault-teal);

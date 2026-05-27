@@ -6,9 +6,9 @@ interface CreatureStatsProps {
 }
 
 const statColors: Record<string, { bar: string; bg: string; glow: string }> = {
-  vitality: { bar: '#4ade80', bg: 'rgba(74,222,128,0.1)', glow: 'rgba(74,222,128,0.4)' },
-  momentum: { bar: '#60a5fa', bg: 'rgba(96,165,250,0.1)', glow: 'rgba(96,165,250,0.4)' },
-  coherence: { bar: '#c084fc', bg: 'rgba(192,132,252,0.1)', glow: 'rgba(192,132,252,0.4)' },
+  vitality: { bar: 'var(--success)', bg: 'oklch(65% 15% 145deg / 0.1)', glow: 'oklch(65% 15% 145deg / 0.4)' },
+  momentum: { bar: 'var(--cyan)', bg: 'oklch(55% 12% 250deg / 0.1)', glow: 'oklch(55% 12% 250deg / 0.4)' },
+  coherence: { bar: 'var(--violet)', bg: 'oklch(55% 12% 280deg / 0.1)', glow: 'oklch(55% 12% 280deg / 0.4)' },
 };
 
 const moodEmojis: Record<string, { emoji: string; label: string }> = {

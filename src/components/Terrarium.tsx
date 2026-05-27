@@ -30,7 +30,7 @@ export function Terrarium() {
           width: 6,
           height: 6,
           borderRadius: '50%',
-          backgroundColor: isConnected ? '#4ade80' : '#ef4444',
+          backgroundColor: isConnected ? 'var(--success)' : 'var(--danger)',
           display: 'inline-block',
         }} />
       </div>

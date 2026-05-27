@@ -49,23 +49,25 @@ export const Guestbook: React.FC = () => {
   useEffect(() => {
     const handleConnect = () => setIsConnected(true);
     const handleDisconnect = () => setIsConnected(false);
-    
-    websocketService.on(WSEvents.CONNECT, handleConnect);
-    websocketService.on(WSEvents.DISCONNECT, handleDisconnect);
-    websocketService.on(WSEvents.GUESTBOOK_ENTRY, (entry: GuestbookEntry) => {
+    const handleGuestbookEntry = (entry: GuestbookEntry) => {
       setEntries(prev => [entry, ...prev]);
-    });
-    websocketService.on(WSEvents.GUESTBOOK_UPVOTE, (data: { entryId: string; upvotes: number }) => {
+    };
+    const handleGuestbookUpvote = (data: { entryId: string; upvotes: number }) => {
       setEntries(prev => prev.map(e => 
         e.id === data.entryId ? { ...e, upvotes: data.upvotes } : e
       ));
-    });
+    };
+    
+    websocketService.on(WSEvents.CONNECT, handleConnect);
+    websocketService.on(WSEvents.DISCONNECT, handleDisconnect);
+    websocketService.on(WSEvents.GUESTBOOK_ENTRY, handleGuestbookEntry);
+    websocketService.on(WSEvents.GUESTBOOK_UPVOTE, handleGuestbookUpvote);
 
     return () => {
-      websocketService.off(WSEvents.CONNECT);
-      websocketService.off(WSEvents.DISCONNECT);
-      websocketService.off(WSEvents.GUESTBOOK_ENTRY);
-      websocketService.off(WSEvents.GUESTBOOK_UPVOTE);
+      websocketService.off(WSEvents.CONNECT, handleConnect);
+      websocketService.off(WSEvents.DISCONNECT, handleDisconnect);
+      websocketService.off(WSEvents.GUESTBOOK_ENTRY, handleGuestbookEntry);
+      websocketService.off(WSEvents.GUESTBOOK_UPVOTE, handleGuestbookUpvote);
     };
   }, []);
 
@@ -118,22 +120,22 @@ export const Guestbook: React.FC = () => {
   return (
     <div className="glass-panel flex-1 flex flex-col">
       <div className="flex items-center justify-between mb-4" style={{
-        borderBottom: '1px solid var(--color-sand-line)',
+        borderBottom: '1px solid var(--shell-border)',
         paddingBottom: '0.5rem',
       }}>
         <h3 className="text-sm font-bold flex items-center gap-2" style={{
           fontFamily: 'var(--font-display)',
-          color: 'var(--color-bark)',
+          color: 'var(--shell-text)',
         }}>
-          <Leaf size={16} style={{ color: 'var(--color-sage)' }} aria-hidden="true" />
+          <Leaf size={16} style={{ color: 'var(--vault-teal)' }} aria-hidden="true" />
           <span className="hidden sm:inline">Moltbook</span>
           <span className="sm:hidden">Book</span>
         </h3>
         
         {isConnected && (
           <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded" 
-                style={{ backgroundColor: 'var(--color-sage)', color: 'var(--color-cream)' }}>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-cream)' }} />
+                style={{ backgroundColor: 'var(--vault-teal)', color: 'var(--shell-bg)' }}>
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--shell-bg)' }} />
             Live
           </span>
         )}
@@ -142,7 +144,7 @@ export const Guestbook: React.FC = () => {
       <div className="flex-1 overflow-y-auto space-y-4 pr-2">
         {entries.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-xs" style={{ color: 'var(--color-stone)' }}>
+            <p className="text-xs" style={{ color: 'var(--shell-text-muted)' }}>
               No entries yet. Be the first to sign!
             </p>
           </div>
@@ -153,21 +155,21 @@ export const Guestbook: React.FC = () => {
             <div className="flex gap-2">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-bold" style={{ color: 'var(--color-sage-deep)' }}>
+                  <span className="text-xs font-bold" style={{ color: 'var(--vault-teal-dim)' }}>
                     {entry.author}
                   </span>
-                  <span className="text-xs" style={{ color: 'var(--color-stone)' }}>
+                  <span className="text-xs" style={{ color: 'var(--shell-text-muted)' }}>
                     {formatTime(entry.timestamp)}
                   </span>
                 </div>
-                <p className="text-sm mb-2" style={{ color: 'var(--color-clay)' }}>
+                <p className="text-sm mb-2" style={{ color: 'var(--shell-text)' }}>
                   {entry.content}
                 </p>
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => handleUpvote(entry.id)}
                     className="flex items-center gap-1 text-xs transition-colors hover:opacity-80"
-                    style={{ color: 'var(--color-sage-deep)' }}
+                    style={{ color: 'var(--vault-teal-dim)' }}
                     aria-label={`Upvote, current count: ${entry.upvotes}`}
                   >
                     <ChevronUp size={14} />
@@ -177,30 +179,30 @@ export const Guestbook: React.FC = () => {
                   <button 
                     onClick={() => toggleReplies(entry.id)}
                     className="flex items-center gap-1 text-xs transition-colors hover:opacity-80"
-                    style={{ color: expandedReplies.has(entry.id) ? 'var(--color-sage)' : 'var(--color-stone)' }}
+                    style={{ color: expandedReplies.has(entry.id) ? 'var(--vault-teal)' : 'var(--shell-text-muted)' }}
                     aria-label={`${expandedReplies.has(entry.id) ? 'Hide' : 'Show'} replies`}
                     aria-expanded={expandedReplies.has(entry.id)}
                   >
-                    <MessageCircle size={14} />
-                    <span>{entry.replies?.length || 0}</span>
+                    <MessageCircle size={14} aria-hidden="true" />
+                    <span aria-hidden="true">{entry.replies?.length || 0} replies</span>
                   </button>
                 </div>
               </div>
             </div>
 
             {expandedReplies.has(entry.id) && (
-              <div className="ml-4 mt-3 space-y-3 pl-3" style={{ borderLeft: '2px solid var(--color-sand-line)' }}>
+              <div className="ml-4 mt-3 space-y-3 pl-3" style={{ borderLeft: '2px solid var(--shell-border)' }}>
                 {entry.replies?.map(reply => (
                   <div key={reply.id} className="animate-fade-in">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold" style={{ color: 'var(--color-bark)' }}>
+                      <span className="text-xs font-bold" style={{ color: 'var(--shell-text)' }}>
                         {reply.author}
                       </span>
-                      <span className="text-xs" style={{ color: 'var(--color-stone)' }}>
+                      <span className="text-xs" style={{ color: 'var(--shell-text-muted)' }}>
                         {formatTime(reply.timestamp)}
                       </span>
                     </div>
-                    <p className="text-sm" style={{ color: 'var(--color-clay)' }}>
+                    <p className="text-sm" style={{ color: 'var(--shell-text)' }}>
                       {reply.content}
                     </p>
                   </div>
@@ -220,16 +222,16 @@ export const Guestbook: React.FC = () => {
                     placeholder="Write a reply..."
                     className="flex-1 text-xs px-3 py-2 rounded-lg border transition-colors"
                     style={{
-                      backgroundColor: 'var(--color-cream)',
-                      borderColor: 'var(--color-sand-line)',
-                      color: 'var(--color-bark)',
+                      backgroundColor: 'var(--shell-surface)',
+                      borderColor: 'var(--shell-border)',
+                      color: 'var(--shell-text)',
                     }}
                     aria-label={`Reply to ${entry.author}`}
                   />
                   <button
                     onClick={() => handleSubmitReply(entry.id)}
                     className="p-2 rounded-lg transition-colors"
-                    style={{ backgroundColor: 'var(--color-sage)', color: 'var(--color-cream)' }}
+                    style={{ backgroundColor: 'var(--vault-teal)', color: 'var(--shell-bg)' }}
                     aria-label="Send reply"
                   >
                     <Send size={14} />

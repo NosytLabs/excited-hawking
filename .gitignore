@@ -29,3 +29,18 @@ dist-ssr
 
 # Runtime data
 memvid.json
+emergence.json
+backend/data/emergence.json
+
+# Build artifacts
+.vercel/
+
+# Audit artifacts
+screenshots/
+test_screenshots/
+test-results/
+test_results/
+userflow_test_results/
+scripts/
+*.py
+*.png

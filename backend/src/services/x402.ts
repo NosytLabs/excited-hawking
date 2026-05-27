@@ -104,7 +104,10 @@ export async function validatePayment(
     };
   }
 
-  if (signature && message && wallet) {
+  if (signature || message || wallet) {
+    if (!signature || !message || !wallet) {
+      return { valid: false, error: 'Partial signature headers provided - all of x-signature, x-message, and x-wallet-address are required' };
+    }
     const sigValidation = validateSignaturePattern(signature);
     if (!sigValidation.valid) {
       return { valid: false, error: `Signature validation failed: ${sigValidation.error}` };

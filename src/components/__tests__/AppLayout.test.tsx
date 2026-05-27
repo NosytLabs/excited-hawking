@@ -20,6 +20,6 @@ describe('App Layout', () => {
   
   it('renders vault branding', () => {
     render(<App />);
-    expect(screen.getByText(/Public Social Experiment/i)).toBeInTheDocument();
+    expect(screen.getByText(/Vault Experiment · Public Study/i)).toBeInTheDocument();
   });
 });
