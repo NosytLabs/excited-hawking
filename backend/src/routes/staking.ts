@@ -16,6 +16,7 @@ import {
 import { requireWalletWithSignature } from '../middleware/auth.js';
 import { checkRateLimit, setRateLimitHeaders, getClientIp } from '../services/state.js';
 import { getBalance } from '../services/state.js';
+import { addActivityEvent } from './emergence.js';
 
 interface StakeBody {
   wallet: string;
@@ -83,6 +84,7 @@ export async function stakingRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: result.error });
     }
 
+    addActivityEvent('stake', `${amountBigInt.toString()} DIEM staked`, wallet);
     return {
       success: true,
       position: {

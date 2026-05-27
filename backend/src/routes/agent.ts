@@ -3,6 +3,7 @@ import { processPrompt, getAgentStatus, getRecentMemories, triggerDream } from '
 import { updatePromptStatus } from '../services/state.js';
 import { emitPromptComplete } from '../services/websocket.js';
 import { generateId } from '../lib/crypto.js';
+import { addActivityEvent } from './emergence.js';
 
 interface PromptBody {
   prompt: string;
@@ -40,6 +41,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
       
       updatePromptStatus(promptId, 'completed');
       emitPromptComplete(promptId);
+      addActivityEvent('prompt', `Prompt processed: ${prompt.trim().slice(0, 50)}...`, wallet);
 
       return {
         success: true,

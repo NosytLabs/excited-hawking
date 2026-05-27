@@ -42,3 +42,35 @@ export async function emergenceRoutes(fastify: FastifyInstance) {
     return { success: true };
   });
 }
+
+const activityEvents: Array<{
+  id: string;
+  type: 'prompt' | 'vote' | 'governance' | 'stake';
+  description: string;
+  address: string;
+  timestamp: number;
+}> = [];
+
+export function addActivityEvent(
+  type: 'prompt' | 'vote' | 'governance' | 'stake',
+  description: string,
+  address: string
+): void {
+  activityEvents.unshift({
+    id: Date.now().toString(),
+    type,
+    description,
+    address,
+    timestamp: Date.now()
+  });
+  if (activityEvents.length > 100) activityEvents.pop();
+}
+
+export async function activityRoutes(fastify: FastifyInstance) {
+  fastify.get('/api/activity', async (_request, _reply) => {
+    return {
+      events: activityEvents.slice(0, 20),
+      count: activityEvents.length
+    };
+  });
+}

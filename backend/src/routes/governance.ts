@@ -21,6 +21,7 @@ import { reflectVoteFromPrompt } from '../lib/voting.js';
 import { getState, checkRateLimit, setRateLimitHeaders, getClientIp } from '../services/state.js';
 import { sanitizeString, sanitizeForHTML, isValidWalletAddress, detectPromptInjection } from '../types/index.js';
 import { requireWalletWithSignature, optionalWalletAuth } from '../middleware/auth.js';
+import { addActivityEvent } from './emergence.js';
 
 interface ProposalBody {
   title: string;
@@ -161,6 +162,7 @@ export async function governanceRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: result.error });
     }
 
+    addActivityEvent('vote', `Vote cast on ${sanitizedProposalId}: ${vote}`, auth.wallet);
     return { success: true, vote: result };
   });
 
