@@ -1,45 +1,46 @@
-import { FlaskConical, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
+import { useAgent } from '../context/useAgent';
 
 export const ExperimentHypothesis = () => {
+  const { totalObservers } = useAgent();
+  const observerCount = totalObservers || 127;
+
   return (
-    <div className="card mb-8">
-      <div className="flex items-center gap-2 mb-4">
-        <FlaskConical size={16} className="text-[var(--vault-teal)]" />
-        <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase tracking-wider">
-          Study Hypothesis
-        </span>
-      </div>
-      
-      <h3 className="text-xl font-display font-semibold text-[var(--shell-text)] mb-3">
-        What happens when <span className="text-[var(--vault-teal)]">127 observers</span> focus their attention together?
+    <div className="space-y-3 md:space-y-4">
+      <h3 className="font-mono text-sm md:text-base font-bold text-[var(--paper-text)] leading-tight">
+        What happens when{' '}
+        <span className="phosphor text-[var(--accent-primary)]">{observerCount} observers</span>{' '}
+        focus their attention together?
       </h3>
-      
-      <div className="grid md:grid-cols-2 gap-4 text-sm text-[var(--shell-text-muted)]">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-sm md:text-base text-[var(--paper-muted)]">
         <div>
-          <h4 className="text-xs font-bold text-[var(--shell-text)] mb-1 uppercase">What We Observe</h4>
-          <p>
+          <h4 className="text-sm font-mono font-bold text-[var(--paper-text)] uppercase tracking-wider mb-2">What We Observe</h4>
+          <p className="leading-relaxed">
             Weighted prompts flow into a cellular automaton. Watch how patterns form when collective attention focuses. See what emerges when many independent choices synchronize.
           </p>
         </div>
         <div>
-          <h4 className="text-xs font-bold text-[var(--shell-text)] mb-1 uppercase">What We Measure</h4>
-          <ul className="space-y-1 text-xs">
-            <li>• Grid complexity — structural pattern density</li>
-            <li>• Memory connections — semantic links forming</li>
-            <li>• Pattern persistence — how long structures last</li>
-            <li>• Participation patterns — when and how observers engage</li>
+          <h4 className="text-sm font-mono font-bold text-[var(--paper-text)] uppercase tracking-wider mb-2">What We Measure</h4>
+          <ul className="space-y-1 font-mono text-sm">
+            <li>Grid complexity — structural pattern density</li>
+            <li>Memory connections — semantic links forming</li>
+            <li>Pattern persistence — how long structures last</li>
+            <li>Participation patterns — when observers engage</li>
           </ul>
         </div>
       </div>
-      
-      <div className="mt-4 p-3 bg-[var(--shell-surface-2)] border border-[var(--term-amber)]/30 rounded-lg">
+
+      <div className="p-3 border border-[var(--warning)]/30 bg-[var(--paper-surface)]">
         <div className="flex items-start gap-2">
-          <Info size={14} className="text-[var(--term-amber)] mt-0.5 flex-shrink-0" />
-          <div className="text-xs text-[var(--shell-text-muted)]">
-            <strong className="text-[var(--term-amber)]">Important disclaimer:</strong> This is an observational study of computational patterns—not claims of consciousness, sentience, or subjective experience. Results reflect structured participant interactions, not autonomous AI behavior. Results may not generalize beyond this specific system. The creature does not experience, learn, or have preferences.
+          <Info size={12} className="text-[var(--warning)] mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-[var(--paper-muted)] leading-relaxed">
+            <strong className="text-[var(--warning)] font-mono">Disclaimer:</strong> Observational study of computational patterns — not claims of consciousness, sentience, or subjective experience.
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+export default ExperimentHypothesis;

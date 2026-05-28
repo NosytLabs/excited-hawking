@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Leaf, ChevronUp, MessageCircle, Send } from 'lucide-react';
 import { websocketService } from '../services/websocket';
 import { WSEvents } from '../types/events';
+import { formatTimeAgo } from '../lib/time';
 
 interface GuestbookEntry {
   id: string;
@@ -50,14 +51,22 @@ export const Guestbook: React.FC = () => {
     const handleConnect = () => setIsConnected(true);
     const handleDisconnect = () => setIsConnected(false);
     const handleGuestbookEntry = (entry: GuestbookEntry) => {
-      setEntries(prev => [entry, ...prev]);
+      setEntries(prev => {
+        const existing = prev.findIndex(e => e.id === entry.id);
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = entry;
+          return updated;
+        }
+        return [entry, ...prev];
+      });
     };
     const handleGuestbookUpvote = (data: { entryId: string; upvotes: number }) => {
-      setEntries(prev => prev.map(e => 
+      setEntries(prev => prev.map(e =>
         e.id === data.entryId ? { ...e, upvotes: data.upvotes } : e
       ));
     };
-    
+
     websocketService.on(WSEvents.CONNECT, handleConnect);
     websocketService.on(WSEvents.DISCONNECT, handleDisconnect);
     websocketService.on(WSEvents.GUESTBOOK_ENTRY, handleGuestbookEntry);
@@ -72,7 +81,7 @@ export const Guestbook: React.FC = () => {
   }, []);
 
   const handleUpvote = (entryId: string) => {
-    websocketService.emit('guestbook:upvote', { entryId });
+    websocketService.emit(WSEvents.GUESTBOOK_UPVOTE, { entryId });
   };
 
   const toggleReplies = (entryId: string) => {
@@ -99,43 +108,36 @@ export const Guestbook: React.FC = () => {
       content: newReply[entryId].trim(),
       timestamp: new Date().toISOString()
     };
-    setEntries(prev => prev.map(e => 
-      e.id === entryId 
-        ? { ...e, replies: [...(e.replies || []), reply] } 
+    setEntries(prev => prev.map(e =>
+      e.id === entryId
+        ? { ...e, replies: [...(e.replies || []), reply] }
         : e
     ));
+    websocketService.emit(WSEvents.GUESTBOOK_REPLY, { entryId, author: 'You', content: newReply[entryId].trim() });
     setNewReply(prev => ({ ...prev, [entryId]: '' }));
   };
 
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    if (diff < 60000) return 'just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return date.toLocaleDateString();
-  };
+  const formatTime = (timestamp: string) => formatTimeAgo(timestamp);
 
   return (
     <div className="glass-panel flex-1 flex flex-col">
       <div className="flex items-center justify-between mb-4" style={{
-        borderBottom: '1px solid var(--shell-border)',
+        borderBottom: '1px solid var(--paper-border)',
         paddingBottom: '0.5rem',
       }}>
-        <h3 className="text-sm font-bold flex items-center gap-2" style={{
+        <h3 className="text-base font-bold flex items-center gap-2" style={{
           fontFamily: 'var(--font-display)',
-          color: 'var(--shell-text)',
+          color: 'var(--paper-text)',
         }}>
-          <Leaf size={16} style={{ color: 'var(--vault-teal)' }} aria-hidden="true" />
+          <Leaf size={16} style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
           <span className="hidden sm:inline">Moltbook</span>
           <span className="sm:hidden">Book</span>
         </h3>
         
         {isConnected && (
-          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded" 
-                style={{ backgroundColor: 'var(--vault-teal)', color: 'var(--shell-bg)' }}>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--shell-bg)' }} />
+          <span className="flex items-center gap-1 text-base px-2 py-0.5 rounded" 
+                style={{ backgroundColor: 'var(--accent-primary)', color: 'var(--paper-void)' }}>
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--paper-void)' }} />
             Live
           </span>
         )}
@@ -144,7 +146,7 @@ export const Guestbook: React.FC = () => {
       <div className="flex-1 overflow-y-auto space-y-4 pr-2">
         {entries.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-xs" style={{ color: 'var(--shell-text-muted)' }}>
+            <p className="text-base" style={{ color: 'var(--paper-muted)' }}>
               No entries yet. Be the first to sign!
             </p>
           </div>
@@ -155,35 +157,35 @@ export const Guestbook: React.FC = () => {
             <div className="flex gap-2">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-bold" style={{ color: 'var(--vault-teal-dim)' }}>
+                  <span className="text-base font-bold" style={{ color: 'var(--accent-primary)' }}>
                     {entry.author}
                   </span>
-                  <span className="text-xs" style={{ color: 'var(--shell-text-muted)' }}>
+                  <span className="text-base" style={{ color: 'var(--paper-muted)' }}>
                     {formatTime(entry.timestamp)}
                   </span>
                 </div>
-                <p className="text-sm mb-2" style={{ color: 'var(--shell-text)' }}>
-                  {entry.content}
+                <p className="text-base mb-2" style={{ color: 'var(--paper-text)' }}>
+                  {String(entry.content).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
                 </p>
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => handleUpvote(entry.id)}
-                    className="flex items-center gap-1 text-xs transition-colors hover:opacity-80"
-                    style={{ color: 'var(--vault-teal-dim)' }}
-                    aria-label={`Upvote, current count: ${entry.upvotes}`}
+                    className="flex items-center gap-1 text-base transition-colors hover:opacity-80 min-h-[44px] px-2 -ml-2"
+                    style={{ color: 'var(--accent-dim)' }}
+                    aria-label={`Upvote (${entry.upvotes})`}
                   >
-                    <ChevronUp size={14} />
+                    <ChevronUp size={18} aria-hidden="true" />
                     <span>{entry.upvotes}</span>
                   </button>
                   
                   <button 
                     onClick={() => toggleReplies(entry.id)}
-                    className="flex items-center gap-1 text-xs transition-colors hover:opacity-80"
-                    style={{ color: expandedReplies.has(entry.id) ? 'var(--vault-teal)' : 'var(--shell-text-muted)' }}
+                    className="flex items-center gap-1 text-base transition-colors hover:opacity-80 min-h-[44px] px-2 -ml-2"
+                    style={{ color: expandedReplies.has(entry.id) ? 'var(--accent-primary)' : 'var(--paper-muted)' }}
                     aria-label={`${expandedReplies.has(entry.id) ? 'Hide' : 'Show'} replies`}
                     aria-expanded={expandedReplies.has(entry.id)}
                   >
-                    <MessageCircle size={14} aria-hidden="true" />
+                    <MessageCircle size={18} aria-hidden="true" />
                     <span aria-hidden="true">{entry.replies?.length || 0} replies</span>
                   </button>
                 </div>
@@ -191,18 +193,18 @@ export const Guestbook: React.FC = () => {
             </div>
 
             {expandedReplies.has(entry.id) && (
-              <div className="ml-4 mt-3 space-y-3 pl-3" style={{ borderLeft: '2px solid var(--shell-border)' }}>
+              <div className="ml-4 mt-3 space-y-3 pl-3" style={{ borderLeft: '2px solid var(--paper-border)' }}>
                 {entry.replies?.map(reply => (
                   <div key={reply.id} className="animate-fade-in">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold" style={{ color: 'var(--shell-text)' }}>
+                      <span className="text-base font-bold" style={{ color: 'var(--paper-text)' }}>
                         {reply.author}
                       </span>
-                      <span className="text-xs" style={{ color: 'var(--shell-text-muted)' }}>
+                      <span className="text-base" style={{ color: 'var(--paper-muted)' }}>
                         {formatTime(reply.timestamp)}
                       </span>
                     </div>
-                    <p className="text-sm" style={{ color: 'var(--shell-text)' }}>
+                    <p className="text-base" style={{ color: 'var(--paper-text)' }}>
                       {reply.content}
                     </p>
                   </div>
@@ -220,21 +222,21 @@ export const Guestbook: React.FC = () => {
                       }
                     }}
                     placeholder="Write a reply..."
-                    className="flex-1 text-xs px-3 py-2 rounded-lg border transition-colors"
+                    className="flex-1 text-base px-3 py-2 min-h-[44px] rounded-lg border transition-colors"
                     style={{
-                      backgroundColor: 'var(--shell-surface)',
-                      borderColor: 'var(--shell-border)',
-                      color: 'var(--shell-text)',
+                      backgroundColor: 'var(--paper-deep)',
+                      borderColor: 'var(--paper-border)',
+                      color: 'var(--paper-text)',
                     }}
                     aria-label={`Reply to ${entry.author}`}
                   />
                   <button
                     onClick={() => handleSubmitReply(entry.id)}
-                    className="p-2 rounded-lg transition-colors"
-                    style={{ backgroundColor: 'var(--vault-teal)', color: 'var(--shell-bg)' }}
+                    className="p-2 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    style={{ backgroundColor: 'var(--accent-primary)', color: 'var(--paper-void)' }}
                     aria-label="Send reply"
                   >
-                    <Send size={14} />
+                    <Send size={18} />
                   </button>
                 </div>
               </div>

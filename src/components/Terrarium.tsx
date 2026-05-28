@@ -1,15 +1,14 @@
-import { useContext } from 'react';
-import { AgentContext } from '../context/AgentContext';
+import { useAgent } from '../context/useAgent';
 import { CreatureStats } from './CreatureStats';
 import { Creature } from './Creature';
 
 export function Terrarium() {
-  const { creatureStats, creatureMood, totalPromptsProcessed, isConnected } = useContext(AgentContext);
+  const { creatureStats, creatureMood, totalPromptsProcessed, isConnected } = useAgent();
 
   return (
     <div style={{
       border: '1px solid var(--shell-border)',
-      borderRadius: 8,
+      borderRadius: 'var(--radius-md)',
       backgroundColor: 'var(--shell-surface)',
       overflow: 'hidden',
     }}>

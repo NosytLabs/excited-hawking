@@ -1,20 +1,17 @@
-import { BookOpen, Target, BarChart3, AlertTriangle } from 'lucide-react';
+import { Target, BarChart3, AlertTriangle } from 'lucide-react';
 
 export const Methodology = () => {
   return (
-    <div className="card">
-      <div className="flex items-center gap-2 mb-4">
-        <BookOpen size={16} className="text-[var(--vault-teal)]" />
-        <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase tracking-wider">
-          Study Methodology
-        </span>
+    <div className="space-y-3 md:space-y-4" role="region" aria-labelledby="methodology-heading">
+      <div className="pb-3 border-b border-[var(--paper-border)]">
+        <span id="methodology-heading" className="text-sm font-mono text-[var(--paper-muted)]">Research methodology</span>
       </div>
-      
-      <div className="space-y-4 text-xs">
-        <div className="p-3 bg-[var(--shell-surface-2)] rounded-lg border border-[var(--shell-border)]">
+
+      <div className="space-y-3 md:space-y-4 text-sm md:text-base">
+        <div className="p-3 bg-[var(--paper-surface)] border border-[var(--paper-border)] rounded-lg">
           <div className="flex items-center gap-2 mb-2">
-            <Target size={12} className="text-[var(--shell-accent)]" />
-            <span className="font-medium text-[var(--shell-text)]">Research Question</span>
+            <Target size={12} className="text-[var(--accent-primary)]" />
+            <span className="font-medium text-[var(--paper-text)]">Research Question</span>
           </div>
           <p className="text-[var(--shell-text-muted)] leading-relaxed">
             How do structured participant interactions affect pattern emergence in a deterministic computational system?
@@ -22,9 +19,9 @@ export const Methodology = () => {
           </p>
         </div>
         
-        <div className="p-3 bg-[var(--shell-surface-2)] rounded-lg border border-[var(--shell-border)]">
+        <div className="p-3 bg-[var(--paper-surface)] border border-[var(--paper-border)] rounded-lg">
           <div className="flex items-center gap-2 mb-2">
-            <BarChart3 size={12} className="text-[var(--vault-teal)]" />
+            <BarChart3 size={12} className="text-[var(--accent-primary)]" />
             <span className="font-medium text-[var(--shell-text)]">Metrics</span>
           </div>
           <p className="text-[var(--shell-text-muted)] leading-relaxed">
@@ -35,20 +32,17 @@ export const Methodology = () => {
           </p>
         </div>
         
-<div className="p-3 bg-[var(--shell-surface-2)] rounded-lg border border-[var(--shell-border)]">
+<div className="p-3 bg-[var(--paper-surface)] border border-[var(--paper-border)] rounded-lg">
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle size={12} className="text-[var(--term-amber)]" />
+            <AlertTriangle size={12} className="text-[var(--warning)]" />
             <span className="font-medium text-[var(--shell-text)]">Limitations</span>
           </div>
           <p className="text-[var(--shell-text-muted)] leading-relaxed">
-            This is an observational study of computational patterns—not claims of consciousness, 
-            sentience, or subjective experience. Results reflect structured participant interactions, 
-            not autonomous AI behavior.
+            Results may not generalize beyond this specific system. The creature does not experience, 
+            learn, or have preferences. Participation patterns reflect structured interactions, not autonomous behavior.
           </p>
         </div>
       </div>
     </div>
   );
 };
-
-export default Methodology;

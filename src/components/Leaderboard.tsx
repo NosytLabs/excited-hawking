@@ -1,4 +1,4 @@
-import { Trophy, TrendingUp } from 'lucide-react';
+import { Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface LeaderboardEntry {
   rank: number;
@@ -18,64 +18,56 @@ const mockLeaderboard: LeaderboardEntry[] = [
 
 export const Leaderboard = () => {
   return (
-    <div className="card">
-      <div className="flex items-center justify-between mb-4">
+    <div>
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-[var(--paper-border)]">
         <div className="flex items-center gap-2">
-          <Trophy size={16} className="text-[var(--vault-teal)]" />
-          <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase tracking-wider">
-            Participant Rankings
-          </span>
+          <Trophy size={16} className="text-[var(--accent-primary)]" />
+          <span className="text-sm font-mono text-[var(--paper-muted)]">Participant Rankings</span>
         </div>
-        <span className="text-xs text-[var(--shell-text-muted)]">Cycle 847</span>
+        <span className="text-sm font-mono text-[var(--paper-muted)]">Cycle 847</span>
       </div>
-      
+
       <div className="space-y-2">
         {mockLeaderboard.map((entry) => (
-          <div 
+          <div
             key={entry.rank}
-            className="flex items-center justify-between p-2 bg-[var(--shell-surface-2)] rounded-lg border border-[var(--shell-border)]"
+            className="flex items-center justify-between p-2 min-h-[44px] bg-[var(--paper-surface)] border border-[var(--paper-border)] rounded-lg"
           >
-            <div className="flex items-center gap-3">
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                entry.rank === 1 ? 'bg-[var(--vault-teal)] text-white' :
-                entry.rank === 2 ? 'bg-[var(--shell-text-muted)] text-white' :
-                entry.rank === 3 ? 'bg-[var(--shell-accent-strong)] text-white' :
-                'bg-[var(--shell-surface)] text-[var(--shell-text-muted)]'
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-bold flex-shrink-0 ${
+                entry.rank === 1 ? 'bg-[var(--accent-primary)] text-[var(--paper-void)]' :
+                entry.rank === 2 ? 'bg-[var(--paper-muted)] text-[var(--paper-void)]' :
+                entry.rank === 3 ? 'bg-[var(--accent-dim)] text-[var(--paper-void)]' :
+                'bg-[var(--paper-surface)] text-[var(--paper-muted)]'
               }`}>
                 {entry.rank}
               </span>
-              <span className="text-xs font-mono text-[var(--shell-text)]">
+              <span className="text-sm font-mono text-[var(--paper-text)] truncate">
                 {entry.address}
               </span>
             </div>
-            <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-2 sm:gap-4 text-sm flex-shrink-0">
               <div className="text-right">
-                <div className="text-[var(--shell-text)]">{entry.contributions}</div>
-                <div className="text-[10px] text-[var(--shell-text-muted)]">inputs</div>
+                <div className="text-[var(--paper-text)] font-mono">{entry.contributions}</div>
+                <div className="hidden sm:block text-xs text-[var(--paper-muted)] font-mono uppercase tracking-wider">inputs</div>
               </div>
               <div className="text-right">
-                <div className="text-[var(--vault-teal)]">{entry.weight.toFixed(1)}x</div>
-                <div className="text-[10px] text-[var(--shell-text-muted)]">weight</div>
+                <div className="text-[var(--accent-primary)] phosphor font-mono">{entry.weight.toFixed(1)}x</div>
+                <div className="hidden sm:block text-xs text-[var(--paper-muted)] font-mono uppercase tracking-wider">weight</div>
               </div>
-              {entry.trend === 'up' && <TrendingUp size={12} className="text-[var(--shell-success)]" />}
+              {entry.trend === 'up' && <TrendingUp size={14} className="text-[var(--success)]" aria-label="Trending up" />}
+              {entry.trend === 'down' && <TrendingDown size={14} className="text-[var(--danger)]" aria-label="Trending down" />}
+              {entry.trend === 'stable' && <Minus size={14} className="text-[var(--paper-muted)]" aria-label="Stable" />}
             </div>
           </div>
         ))}
       </div>
-      
-      <div className="mt-4 pt-3 border-t border-[var(--shell-border)] flex items-center justify-between text-xs text-[var(--shell-text-muted)]">
+
+      <div className="mt-4 pt-3 border-t border-[var(--paper-border)] flex items-center justify-between text-sm text-[var(--paper-muted)] font-mono">
         <span>Total participants: 127+</span>
-        <span>Rank by: weight × sqrt(contributions)</span>
+        <span>Rank: weight x sqrt(contributions)</span>
       </div>
-      <div className="mt-2 text-center">
-        <span className="text-[10px] text-[var(--shell-text-muted)]">
-          Rankings shown for demonstration
-        </span>
-      </div>
+
     </div>
   );
 };
-
-export default Leaderboard;
-
-

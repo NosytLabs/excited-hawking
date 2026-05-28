@@ -1,0 +1,7 @@
+============================================================
+EXCITED HAWKING - UI/UX ANALYSIS
+============================================================
+
+[CP1] Navigating to homepage...
+ERROR: No server found on ports 5173, 4173, or 3000
+Please start the dev server with 'npm run dev' or preview with 'npm run preview'

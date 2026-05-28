@@ -63,18 +63,18 @@ export const LifeMeter = React.memo(function LifeMeterComponent() {
             <FlaskConical size={18} />
           </div>
           <div>
-            <p className="text-[10px] text-[var(--shell-text-muted)] font-mono uppercase tracking-wider mb-0.5">Vault Status</p>
+            <p className="text-base text-[var(--shell-text-muted)] font-mono uppercase tracking-wider mb-0.5">Vault Status</p>
             <h2 className="text-xl md:text-2xl font-bold tracking-tight text-[var(--shell-text)] leading-none">
               {display.label}
             </h2>
-            <p className="text-xs text-[var(--shell-text-muted)]">{display.description}</p>
+            <p className="text-base text-[var(--shell-text-muted)]">{display.description}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 md:gap-3 px-3 py-2 bg-[var(--shell-bg)] rounded-xl border border-[var(--shell-border)]">
           <div className="flex items-center gap-2">
             <Activity size={14} className="text-[var(--vault-teal)]" />
-            <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase hidden sm:inline">Vitality</span>
+            <span className="text-base font-mono text-[var(--shell-text-muted)] uppercase hidden sm:inline">Vitality</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-20 md:w-24 h-1.5 bg-[var(--shell-surface-2)] rounded-full overflow-hidden">
@@ -87,15 +87,15 @@ export const LifeMeter = React.memo(function LifeMeterComponent() {
                 style={{ width: `${gardenVitality}%` }}
               />
             </div>
-            <span className="text-xs font-mono font-bold text-[var(--vault-teal-dim)]">{Math.round(gardenVitality)}%</span>
+            <span className="text-base font-mono font-bold text-[var(--vault-teal-dim)]">{Math.round(gardenVitality)}%</span>
           </div>
         </div>
       </div>
 
       <div className="mb-4 p-3 md:p-4 bg-[var(--shell-bg)] rounded-xl border border-[var(--shell-border)]">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase">Growth Progress</span>
-          <span className="text-[10px] font-mono text-[var(--shell-text-muted)]">
+          <span className="text-base font-mono text-[var(--shell-text-muted)] uppercase">Growth Progress</span>
+          <span className="text-base font-mono text-[var(--shell-text-muted)]">
             Next: <span style={{ color }}>{nextTier}</span>
           </span>
         </div>
@@ -115,7 +115,7 @@ export const LifeMeter = React.memo(function LifeMeterComponent() {
             ))}
           </div>
         </div>
-        <div className="flex justify-between mt-1 text-[9px] md:text-[10px] font-mono text-[var(--shell-text-muted)]">
+        <div className="flex justify-between mt-1 text-base md:text-base font-mono text-[var(--shell-text-muted)]">
           <span>-1</span>
           <span>0</span>
           <span>1</span>
@@ -127,37 +127,37 @@ export const LifeMeter = React.memo(function LifeMeterComponent() {
         <div className="p-2.5 md:p-3 bg-[var(--shell-bg)] rounded-xl border border-[var(--shell-border)]">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Leaf size={12} className="text-[var(--vault-teal)]" />
-            <span className="font-mono text-[10px] uppercase text-[var(--shell-text-muted)]">Seeds</span>
+            <span className="font-mono text-base uppercase text-[var(--shell-text-muted)]">Seeds</span>
           </div>
           <p className="text-base md:text-lg font-mono font-bold text-[var(--shell-text)]">{diemStaked.toFixed(2)}</p>
-          <p className="text-[9px] md:text-[10px] font-mono text-[var(--shell-text-muted)] mt-0.5">DIEM staked</p>
+          <p className="text-base md:text-base font-mono text-[var(--shell-text-muted)] mt-0.5">DIEM staked</p>
         </div>
 
         <div className="p-2.5 md:p-3 bg-[var(--shell-bg)] rounded-xl border border-[var(--shell-border)]">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Heart size={12} className="text-[var(--vault-teal-dim)]" />
-            <span className="font-mono text-[10px] uppercase text-[var(--shell-text-muted)]">Growth</span>
+            <span className="font-mono text-base uppercase text-[var(--shell-text-muted)]">Growth</span>
           </div>
           <p className="text-base md:text-lg font-mono font-bold text-[var(--vault-teal-dim)]">{gardenVitality.toFixed(0)}%</p>
-          <p className="text-[9px] md:text-[10px] font-mono text-[var(--shell-text-muted)] mt-0.5">sqrt(Stake)</p>
+          <p className="text-base md:text-base font-mono text-[var(--shell-text-muted)] mt-0.5">sqrt(Stake)</p>
         </div>
 
         <div className="p-2.5 md:p-3 bg-[var(--shell-bg)] rounded-xl border border-[var(--shell-border)]">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Coins size={12} className="text-[var(--shell-text)]" />
-            <span className="font-mono text-[10px] uppercase text-[var(--shell-text-muted)]">Treasury</span>
+            <span className="font-mono text-base uppercase text-[var(--shell-text-muted)]">Treasury</span>
           </div>
           <p className="text-base md:text-lg font-mono font-bold text-[var(--shell-text)]">${treasuryUSDC.toFixed(1)}</p>
-          <p className="text-[9px] md:text-[10px] font-mono text-[var(--shell-text-muted)] mt-0.5">USDC</p>
+          <p className="text-base md:text-base font-mono text-[var(--shell-text-muted)] mt-0.5">USDC</p>
         </div>
 
         <div className="p-2.5 md:p-3 bg-[var(--shell-bg)] rounded-xl border border-[var(--shell-border)]">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Sprout size={12} className="text-[var(--shell-text-muted)]" />
-            <span className="font-mono text-[10px] uppercase text-[var(--shell-text-muted)]">Influence</span>
+            <span className="font-mono text-base uppercase text-[var(--shell-text-muted)]">Influence</span>
           </div>
           <p className="text-base md:text-lg font-mono font-bold text-[var(--shell-text)]">{Math.sqrt(diemStaked).toFixed(2)}</p>
-          <p className="text-[9px] md:text-[10px] font-mono text-[var(--shell-text-muted)] mt-0.5">Quadratic</p>
+          <p className="text-base md:text-base font-mono text-[var(--shell-text-muted)] mt-0.5">Quadratic</p>
         </div>
       </div>
     </div>

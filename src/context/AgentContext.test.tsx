@@ -55,6 +55,17 @@ const websocketMock = vi.hoisted(() => {
 const apiMock = vi.hoisted(() => ({
   submitPrompt: vi.fn(async () => ({ promptId: 'server-1' })),
   voteOnProposal: vi.fn(async () => ({ success: true })),
+  getStatus: vi.fn(async () => ({ diemStaked: 0, treasuryUSDC: 0, tier: 'Minimal', connected: false })),
+}));
+
+const fetchMock = vi.hoisted(() => vi.fn(async (url: string) => {
+  if (typeof url === 'string' && url.includes('/api/emergence/state')) {
+    return { ok: true, json: async () => ({ grid: [], generation: 0, patterns: [] }) };
+  }
+  if (typeof url === 'string' && url.includes('/api/agent/memory')) {
+    return { ok: true, json: async () => ({ memories: [] }) };
+  }
+  return { ok: true, json: async () => ({}) };
 }));
 
 vi.mock('../services/websocket', () => ({
@@ -64,6 +75,8 @@ vi.mock('../services/websocket', () => ({
 vi.mock('../services/api', () => ({
   api: apiMock,
 }));
+
+vi.stubGlobal('fetch', fetchMock);
 
 const latestAgentRef = { current: null as AgentState | null };
 
@@ -93,6 +106,8 @@ describe('AgentProvider', () => {
     websocketMock.reset();
     apiMock.submitPrompt.mockClear();
     apiMock.voteOnProposal.mockClear();
+    apiMock.getStatus.mockClear();
+    fetchMock.mockClear();
     latestAgentRef.current = null;
   });
 

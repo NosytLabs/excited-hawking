@@ -1,4 +1,4 @@
-import { Calendar, Flag, CheckCircle } from 'lucide-react';
+import { Calendar, Flag } from 'lucide-react';
 
 interface TimelineEvent {
   cycle: number;
@@ -17,59 +17,45 @@ const timeline: TimelineEvent[] = [
   { cycle: 847, date: '2026-05-26', title: 'Current Cycle', description: 'Observational phase ongoing', type: 'complete' },
 ];
 
-const typeIcons = {
-  start: Flag,
-  milestone: CheckCircle,
-  proposal: Calendar,
-  complete: CheckCircle,
-};
-
 const typeColors = {
-  start: 'bg-[var(--vault-teal)]',
-  milestone: 'bg-[var(--shell-success)]',
-  proposal: 'bg-[var(--shell-accent)]',
-  complete: 'bg-[var(--shell-text-muted)]',
+  start: 'bg-[var(--accent-primary)]',
+  milestone: 'bg-[var(--success)]',
+  proposal: 'bg-[var(--accent-dim)]',
+  complete: 'bg-[var(--paper-muted)]',
 };
 
 export const ExperimentTimeline = () => {
   return (
-    <div className="card">
-      <div className="flex items-center gap-2 mb-4">
-        <Calendar size={16} className="text-[var(--vault-teal)]" />
-        <span className="text-[10px] font-mono text-[var(--shell-text-muted)] uppercase tracking-wider">
-          Study Timeline
-        </span>
-      </div>
-      
-      <div className="relative">
-        <div className="absolute left-4 top-0 bottom-0 w-px bg-[var(--shell-border)]" />
-        
-        <div className="space-y-4">
-          {timeline.map((event) => {
-            const Icon = typeIcons[event.type];
-            return (
-              <div key={event.cycle} className="flex items-start gap-3 relative">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${typeColors[event.type]}`}>
-                  <Icon size={14} className="text-white" />
-                </div>
-                <div className="flex-1 pt-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-[var(--shell-text)]">{event.title}</span>
-                    <span className="text-[10px] font-mono text-[var(--vault-teal)]">C{event.cycle}</span>
-                  </div>
-                  <p className="text-xs text-[var(--shell-text-muted)] mt-0.5">{event.description}</p>
-                  <span className="text-[10px] text-[var(--shell-text-muted)]">{event.date}</span>
-                </div>
-              </div>
-            );
-          })}
+    <div>
+      {/* Header — no eyebrow */}
+      <div className="flex items-center gap-3 mb-5 md:mb-6 pb-4 border-b border-[var(--paper-border)]">
+        <Calendar size={14} className="text-[var(--accent-primary)]" />
+        <div className="flex items-center justify-between w-full">
+          <span className="text-sm font-mono text-[var(--paper-muted)]">Cycle 847 — Observation Phase</span>
+          <span className="text-sm font-mono text-[var(--paper-muted)]">Started: 2026-05-01</span>
         </div>
       </div>
-      
-      <div className="mt-4 pt-3 border-t border-[var(--shell-border)]">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-[var(--shell-text-muted)]">Cycle: 847 / Observation Phase</span>
-          <span className="text-[var(--shell-text-muted)]">Started: 2026-05-01</span>
+
+      {/* Timeline — left rail */}
+      <div className="relative pl-5 md:pl-6">
+        <div className="absolute left-[11px] top-2 bottom-2 w-px bg-[var(--paper-border)]" />
+
+        <div className="space-y-4 md:space-y-5">
+          {timeline.map((event) => (
+            <div key={event.cycle} className="flex items-start gap-3 md:gap-4 relative">
+              <div className={`absolute left-[-17px] w-5 h-5 rounded-full flex items-center justify-center ${typeColors[event.type]}`}>
+                <Flag size={10} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-mono font-medium text-[var(--paper-text)]">{event.title}</span>
+                  <span className="text-sm font-mono text-[var(--accent-primary)] shrink-0">C{event.cycle}</span>
+                </div>
+                <p className="text-sm text-[var(--paper-muted)] mt-0.5">{event.description}</p>
+                <span className="text-xs text-[var(--paper-muted)] font-mono">{event.date}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -77,6 +63,3 @@ export const ExperimentTimeline = () => {
 };
 
 export default ExperimentTimeline;
-
-
-

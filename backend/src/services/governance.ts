@@ -110,10 +110,11 @@ export function getVoterWeight(wallet: string): VoterWeight {
 function getDelegationsTo(wallet: string): DelegationRecord[] {
   const now = Date.now();
   const result: DelegationRecord[] = [];
-  
+  const expiredKeys: string[] = [];
+
   for (const [delegatorWallet, del] of delegations.entries()) {
     if (del.expiresAt <= now) {
-      delegations.delete(delegatorWallet);
+      expiredKeys.push(delegatorWallet);
       continue;
     }
     if (del.delegate === wallet) {
@@ -124,7 +125,11 @@ function getDelegationsTo(wallet: string): DelegationRecord[] {
       });
     }
   }
-  
+
+  for (const key of expiredKeys) {
+    delegations.delete(key);
+  }
+
   return result;
 }
 
@@ -324,10 +329,11 @@ export function delegate(
 export function getDelegations(wallet: string): DelegationRecord[] {
   const now = Date.now();
   const result: DelegationRecord[] = [];
-  
+  const expiredKeys: string[] = [];
+
   for (const [delegatorWallet, del] of delegations.entries()) {
     if (del.expiresAt <= now) {
-      delegations.delete(delegatorWallet);
+      expiredKeys.push(delegatorWallet);
       continue;
     }
     if (del.delegate === wallet) {
@@ -338,17 +344,22 @@ export function getDelegations(wallet: string): DelegationRecord[] {
       });
     }
   }
-  
+
+  for (const key of expiredKeys) {
+    delegations.delete(key);
+  }
+
   return result;
 }
 
 export function getDelegators(delegator: string): { wallet: string; power: bigint }[] {
   const now = Date.now();
   const result: { wallet: string; power: bigint }[] = [];
-  
+  const expiredKeys: string[] = [];
+
   for (const [delegatorWallet, del] of delegations.entries()) {
     if (del.expiresAt <= now) {
-      delegations.delete(delegatorWallet);
+      expiredKeys.push(delegatorWallet);
       continue;
     }
     if (del.delegator === delegator) {
@@ -358,7 +369,11 @@ export function getDelegators(delegator: string): { wallet: string; power: bigin
       });
     }
   }
-  
+
+  for (const key of expiredKeys) {
+    delegations.delete(key);
+  }
+
   return result;
 }
 

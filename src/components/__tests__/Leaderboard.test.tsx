@@ -38,6 +38,6 @@ describe('Leaderboard', () => {
 
   it('should display ranking explanation', () => {
     const { getByText } = render(<Leaderboard />);
-    expect(getByText('Rank by: weight × sqrt(contributions)')).toBeInTheDocument();
+    expect(getByText('Rank: weight x sqrt(contributions)')).toBeInTheDocument();
   });
 });

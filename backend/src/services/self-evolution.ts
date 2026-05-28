@@ -299,8 +299,41 @@ export class SelfEvolutionEngine {
 
     for (const change of plan.changes) {
       try {
-        const filePath = join(process.cwd(), change.file);
-        let content = readFileSync(filePath, 'utf-8');
+        const requestedPath = change.file;
+        
+        // SECURITY: Validate and sanitize the file path
+        // Reject paths outside project directory, hidden files, or path traversal
+        if (!requestedPath || 
+            requestedPath.includes('\0') ||
+            requestedPath.includes('..') ||
+            requestedPath.startsWith('/') ||
+            /^([A-Za-z]:)?\\/.test(requestedPath) ||
+            /^\./.test(requestedPath.split('/').pop() || '')) {
+          return { success: false, error: `Invalid file path: ${requestedPath}` };
+        }
+        
+        // Only allow specific file extensions in src/ directory
+        const allowedExtensions = ['.ts', '.tsx', '.js', '.jsx', '.css', '.json'];
+        const ext = requestedPath.substring(requestedPath.lastIndexOf('.')).toLowerCase();
+        if (!allowedExtensions.includes(ext)) {
+          return { success: false, error: `File type not allowed: ${ext}` };
+        }
+        
+        const filePath = join(process.cwd(), requestedPath);
+        const resolvedPath = filePath.normalize();
+        const projectRoot = process.cwd();
+        
+        // Ensure the resolved path is within the project directory
+        if (!resolvedPath.startsWith(projectRoot)) {
+          return { success: false, error: `Path outside project directory: ${requestedPath}` };
+        }
+        
+        let content = readFileSync(resolvedPath, 'utf-8');
+
+        // SECURITY: Validate oldCode and newCode don't contain injection attempts
+        if (change.oldCode && (change.oldCode.includes('\0') || change.newCode.includes('\0'))) {
+          return { success: false, error: 'Invalid characters in code change' };
+        }
 
         switch (change.type) {
           case 'insert': {
@@ -322,7 +355,7 @@ export class SelfEvolutionEngine {
             break;
         }
 
-        writeFileSync(filePath, content);
+        writeFileSync(resolvedPath, content);
         this.log(`Applied ${change.type} to ${change.file}`);
 
         applied.push({ ...change, newCode: change.newCode });

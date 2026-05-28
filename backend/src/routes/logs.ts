@@ -4,14 +4,32 @@ import { getLogs } from '../services/state.js';
 export async function logsRoutes(fastify: FastifyInstance) {
   fastify.get('/api/logs', async (request: FastifyRequest<{ Querystring: { limit?: string } }>, reply: FastifyReply) => {
     const limit = parseInt(request.query['limit'] || '100');
-    const logs = getLogs().slice(0, limit);
-    
-    reply.header('Content-Type', 'text/event-stream');
-    reply.header('Cache-Control', 'no-cache');
-    reply.header('Connection', 'keep-alive');
+    let isSent = false;
 
-    const data = JSON.stringify({ logs, timestamp: Date.now() });
-    reply.send(`data: ${data}\n\n`);
+    reply.raw.on('close', () => {
+      isSent = true;
+    });
+
+    const sendLogEntry = () => {
+      if (isSent || reply.raw.writableEnded) return;
+      const logs = getLogs().slice(0, limit);
+      const data = JSON.stringify({ logs, timestamp: Date.now() });
+      reply.raw.write(`data: ${data}\n\n`);
+    };
+
+    sendLogEntry();
+
+    const interval = setInterval(() => {
+      if (isSent || reply.raw.writableEnded) {
+        clearInterval(interval);
+        return;
+      }
+      sendLogEntry();
+    }, 1000);
+
+    reply.raw.on('close', () => {
+      clearInterval(interval);
+    });
 
     return reply;
   });

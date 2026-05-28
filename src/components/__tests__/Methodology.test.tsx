@@ -23,6 +23,6 @@ describe('Methodology', () => {
   it('should display the limitations section', () => {
     const { getByText } = render(<Methodology />);
     expect(getByText('Limitations')).toBeInTheDocument();
-    expect(getByText(/observational study of computational patterns/)).toBeInTheDocument();
+    expect(getByText(/Results may not generalize beyond this specific system/)).toBeInTheDocument();
   });
 });

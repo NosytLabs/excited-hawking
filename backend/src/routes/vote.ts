@@ -35,8 +35,10 @@ export async function voteRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'promptId and vote are required' });
     }
 
-    if (vote === 'up') {
+    if (sanitizedPromptId && vote === 'up') {
       votePrompt(sanitizedPromptId);
+    } else if (sanitizedPromptId && vote === 'down') {
+      votePrompt(sanitizedPromptId, 'down');
     }
 
     const prompts = getPrompts();

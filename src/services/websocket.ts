@@ -108,7 +108,7 @@ interface SocketHandlers {
   [WSEvents.GOVERNANCE_VOTE]: EventHandler<GovernanceEvent>;
   [WSEvents.GOVERNANCE_CLOSE]: EventHandler<GovernanceEvent>;
   [WSEvents.GOVERNANCE_UPDATE]: EventHandler<Record<string, unknown>>;
-[WSEvents.EMERGENCE_UPDATE]: EventHandler<EmergenceEvent>;
+  [WSEvents.EMERGENCE_UPDATE]: EventHandler<EmergenceEvent>;
   [WSEvents.EMERGENCE_CELL_TOGGLE]: EventHandler<{ x: number; y: number; alive: boolean }>;
   [WSEvents.GUESTBOOK_ENTRY]: EventHandler<GuestbookEntry>;
   [WSEvents.GUESTBOOK_UPVOTE]: EventHandler<GuestbookUpvoteEvent>;
@@ -118,21 +118,31 @@ interface SocketHandlers {
 
 const WS_URL = import.meta.env.VITE_WS_URL || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 const RECONNECT_DELAY = 3000;
-const MAX_RECONNECT_ATTEMPTS = 5;
+const MAX_RECONNECT_ATTEMPTS = 3;
 
 class WebSocketService {
   private socket: Socket | null = null;
   private handlers = new Map<keyof SocketHandlers, Set<EventHandler>>();
   private isConnected = false;
+  private explicitlyConnected = false;
 
   connect(): void {
-    if (this.socket) return;
+    if (this.socket) {
+      if (this.isConnected) return;
+      this.socket.connect();
+      return;
+    }
+
+    if (!this.explicitlyConnected) {
+      this.explicitlyConnected = true;
+    }
 
     this.socket = io(WS_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: RECONNECT_DELAY,
       reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
+      timeout: 10000,
     });
 
     this.socket.on(WSEvents.CONNECT, () => {
@@ -187,7 +197,6 @@ class WebSocketService {
 
   disconnect(): void {
     this.socket?.disconnect();
-    this.socket = null;
     this.isConnected = false;
   }
 

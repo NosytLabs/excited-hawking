@@ -8,6 +8,7 @@ import { addActivityEvent } from './emergence.js';
 interface PromptBody {
   prompt: string;
   wallet?: string;
+  model?: string;
 }
 
 interface DreamBody {
@@ -27,7 +28,7 @@ const promptSchema = {
 
 export async function agentRoutes(fastify: FastifyInstance) {
   fastify.post('/api/agent/prompt', { schema: promptSchema }, async (request: FastifyRequest<{ Body: PromptBody }>, reply: FastifyReply) => {
-    const { prompt, wallet = 'anonymous' } = request.body;
+    const { prompt, wallet = 'anonymous', model } = request.body;
 
     if (!prompt || prompt.trim().length === 0) {
       return reply.status(400).send({ error: 'Prompt content is required' });
@@ -36,11 +37,11 @@ export async function agentRoutes(fastify: FastifyInstance) {
     const promptId = generateId();
     updatePromptStatus(promptId, 'processing');
 
-    try {
-      const response = await processPrompt(wallet, prompt.trim(), promptId);
-      
-      updatePromptStatus(promptId, 'completed');
-      emitPromptComplete(promptId);
+     try {
+       const response = await processPrompt(wallet, prompt.trim(), promptId, model);
+
+       updatePromptStatus(promptId, 'completed');
+       emitPromptComplete(promptId);
       addActivityEvent('prompt', `Prompt processed: ${prompt.trim().slice(0, 50)}...`, wallet);
 
       return {

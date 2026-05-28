@@ -34,7 +34,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       callback(null, ALLOWED_ORIGINS.includes(origin));
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'x-wallet-address', 'x-signature', 'x-message'],
+    allowedHeaders: ['Content-Type', 'x-wallet-address', 'x-signature', 'x-message', 'x-nonce', 'authorization'],
     credentials: true
   });
 

@@ -28,6 +28,22 @@ export interface ChatCompletionResponse {
   model: string;
 }
 
+export type ModelVariant = 'sonar-huge' | 'sonar-large' | 'sonar-small' | 'llama';
+
+export const MODEL_DISPLAY_NAMES: Record<ModelVariant, string> = {
+  'sonar-huge': 'Sonar Huge (128k context, web search)',
+  'sonar-large': 'Sonar Large (128k context, web search)',
+  'sonar-small': 'Sonar Small (32k context)',
+  'llama': 'Llama 3.1 (70b, balanced)'
+};
+
+export const MODEL_MAP: Record<ModelVariant, string> = {
+  'sonar-huge': 'llama-3.1-sonar-huge-128k-online',
+  'sonar-large': 'llama-3.1-sonar-large-128k-online',
+  'sonar-small': 'llama-3.1-sonar-small-128k-online',
+  'llama': 'llama-3.3-70b-instruct'
+};
+
 const config = {
   apiKey: process.env.VENICE_API_KEY || '',
   baseUrl: process.env.VENICE_API_URL || 'https://api.venice.ai/api/v1',
@@ -333,6 +349,13 @@ export async function generateResponse(
 
 export function isConfigured(): boolean {
   return Boolean(config.apiKey);
+}
+
+export function resolveModel(variant: ModelVariant | string): string {
+  if (variant in MODEL_MAP) {
+    return MODEL_MAP[variant as ModelVariant];
+  }
+  return variant;
 }
 
 export { config };

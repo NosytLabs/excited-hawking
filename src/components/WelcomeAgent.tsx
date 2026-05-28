@@ -1,57 +1,74 @@
 import React from 'react';
-import { Radio, FlaskConical } from 'lucide-react';
-import { ExperimentMetrics } from './ExperimentMetrics';
-import { ProcessFlow } from './ProcessFlow';
+import { Terminal, Vote } from 'lucide-react';
+import { useAgent } from '../context/useAgent';
 
 export const WelcomeAgent: React.FC = () => {
+  const { totalPromptsProcessed, creatureMood, totalObservers, emergenceGeneration } = useAgent();
+  const prompts = totalPromptsProcessed || 1847;
+  const cycles = emergenceGeneration || 847;
+  
+  const moodLabel: Record<string, string> = {
+    ecstatic: 'THRIVING',
+    happy: 'ACTIVE',
+    neutral: 'RUNNING',
+    anxious: 'PROCESSING',
+  };
+  const stateLabel = moodLabel[creatureMood] || 'Running';
+
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 pt-8 md:pt-12 pb-6">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-8">
-        <div className="flex-1 max-w-2xl">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="badge bg-[var(--vault-teal)]/10 text-[var(--vault-teal)] border border-[var(--vault-teal)]/20 flex items-center gap-1.5">
-              <FlaskConical size={12} />
-              Vault Experiment
-            </span>
-            <span className="badge bg-[var(--shell-surface)] border border-[var(--shell-border)] text-[var(--shell-text-muted)]">
-              <Radio size={12} className="animate-pulse mr-1.5" />
-              Live
-            </span>
-          </div>
-          
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--shell-text)] mb-4 leading-tight">
-            Something is forming in the grid.<br />
-            <span className="text-[var(--vault-teal)]">127 observers</span> are watching it emerge.
-          </h2>
-          
-          <p className="text-base md:text-lg text-[var(--shell-text-muted)] font-body leading-relaxed max-w-xl">
-            A collective experiment where weighted attention shapes pattern emergence. 
-            <span className="text-[var(--vault-teal)]">1,847 prompts</span> processed across 847 cycles.
-            Your participation adds to what becomes visible.
-          </p>
-        </div>
-        
-        <div className="flex flex-wrap gap-3">
-          <button 
-            type="button" 
-            className="btn-primary flex items-center gap-2 bg-[var(--vault-teal)] text-white border-[var(--vault-teal)] hover:bg-[var(--vault-teal-dim)]"
-            onClick={() => document.querySelector<HTMLDivElement>('#prompt')?.scrollIntoView({ behavior: 'smooth' })}
-          >
-            <FlaskConical size={16} />
-            Submit a Prompt
-          </button>
-          <a 
-            href="#governance"
-            className="btn-secondary flex items-center gap-2"
-          >
-            Cast a Vote
-          </a>
-        </div>
+    <div className="space-y-6 md:space-y-8">
+      {/* Left-aligned statement — no eyebrow, big type */}
+      <div className="space-y-3 md:space-y-4">
+        <h1 className="font-mono text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-[var(--paper-text)] leading-tight max-w-2xl">
+          Something is forming in the grid.{' '}
+          <span className="phosphor text-[var(--accent-primary)]">{totalObservers}</span> observers
+          watching it emerge.
+        </h1>
+        <p className="font-mono text-sm sm:text-base text-[var(--paper-muted)] max-w-[65ch] leading-relaxed">
+          A collective experiment where weighted attention shapes pattern emergence.{' '}
+          <span className="phosphor text-[var(--accent-primary)]">{prompts.toLocaleString()}</span> prompts
+          processed across <span className="text-[var(--paper-text)]">{cycles.toLocaleString()}</span> cycles.
+          Your participation adds to what becomes visible.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <ExperimentMetrics />
-        <ProcessFlow />
+      {/* Action row — left-aligned, not centered */}
+      <div className="flex flex-wrap items-center gap-3 md:gap-4">
+        <button
+          type="button"
+          onClick={() => document.querySelector<HTMLDivElement>('#modules')?.scrollIntoView({ behavior: 'smooth' })}
+          className="btn-bloom text-sm md:text-base"
+        >
+          <Terminal size={14} />
+          Submit a Prompt
+        </button>
+        <a
+          href="#governance"
+          className="btn-ghost inline-flex items-center gap-2 text-sm md:text-base"
+        >
+          <Vote size={14} />
+          Cast a Vote
+        </a>
+      </div>
+
+      {/* Cycle status row — inline, not card */}
+      <div className="flex flex-wrap items-center gap-x-4 md:gap-x-6 gap-y-3 py-4 border-y border-[var(--paper-border)]">
+        <div className="space-y-0.5">
+          <span className="font-mono text-xs text-[var(--paper-muted)] uppercase tracking-widest block">Cycle</span>
+          <span className="font-mono text-lg md:text-xl font-bold text-[var(--accent-primary)] phosphor">{cycles.toLocaleString()}</span>
+        </div>
+        <div className="space-y-0.5">
+          <span className="font-mono text-xs text-[var(--paper-muted)] uppercase tracking-widest block">Phase</span>
+          <span className="font-mono text-sm font-bold text-[var(--paper-text)]">Observation</span>
+        </div>
+        <div className="space-y-0.5">
+          <span className="font-mono text-xs text-[var(--paper-muted)] uppercase tracking-widest block">State</span>
+          <span className="font-mono text-sm font-bold text-[var(--success)]">{stateLabel}</span>
+        </div>
+        <div className="space-y-0.5">
+          <span className="font-mono text-xs text-[var(--paper-muted)] uppercase tracking-widest block">Participants</span>
+          <span className="font-mono text-lg md:text-xl font-bold text-[var(--paper-text)] phosphor">{totalObservers}</span>
+        </div>
       </div>
     </div>
   );

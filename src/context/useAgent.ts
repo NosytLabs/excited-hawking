@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { AgentContext } from './AgentContext';
-import type { AgentState } from './AgentContext';
+import type { AgentState } from './agent-types';
 
 export const useAgent = (): AgentState => {
   const context = useContext(AgentContext);

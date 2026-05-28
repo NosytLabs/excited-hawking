@@ -4,7 +4,6 @@ import type { LogItem } from '../context/AgentContext';
 import { websocketService } from '../services/websocket';
 import { WSEvents } from '../types/events';
 import { Terminal, Brain, Cpu, Wifi, AlertTriangle } from 'lucide-react';
-import { CardSkeleton } from './LoadingSkeleton';
 
 interface EmergenceCell {
   alive: boolean;
@@ -13,27 +12,33 @@ interface EmergenceCell {
 type AgentMood = 'ACTIVE' | 'PROCESSING' | 'STANDBY' | 'CALIBRATING' | 'IDLE';
 
 const MOOD_COLORS: Record<AgentMood, string> = {
-  ACTIVE: 'var(--mood-active)',
-  PROCESSING: 'var(--mood-processing)',
-  STANDBY: 'var(--mood-standby)',
-  CALIBRATING: 'var(--mood-calibrating)',
-  IDLE: 'var(--mood-idle)',
+  ACTIVE: 'var(--accent-primary)',
+  PROCESSING: 'var(--warning)',
+  STANDBY: 'var(--paper-muted)',
+  CALIBRATING: 'var(--accent-dim)',
+  IDLE: 'var(--paper-muted)',
 };
 
 const TIER_CONFIG = {
-  Thriving: { color: 'var(--canvas-alive)', icon: Terminal, glow: true },
-  Surviving: { color: 'var(--canvas-surviving)', icon: Cpu, glow: false },
-  Minimal: { color: 'var(--canvas-minimal)', icon: AlertTriangle, glow: false },
-  Dying: { color: 'var(--canvas-dying)', icon: AlertTriangle, glow: false },
+  Thriving: { color: 'var(--accent-primary)', icon: Terminal, glow: true },
+  Surviving: { color: 'var(--warning)', icon: Cpu, glow: false },
+  Minimal: { color: 'var(--paper-muted)', icon: AlertTriangle, glow: false },
+  Dying: { color: 'var(--danger)', icon: AlertTriangle, glow: false },
 };
 
 export const AgentStream: React.FC = React.memo(() => {
-  const { logs, tier, diemStaked, isConnected, backendAvailable } = useAgent();
+  const { logs, tier, diemStaked, isConnected, backendAvailable, creatureMood } = useAgent();
   const bottomRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  const mood: AgentMood = 'IDLE';
+  const moodMap: Record<string, AgentMood> = {
+    ecstatic: 'ACTIVE',
+    happy: 'ACTIVE',
+    neutral: 'STANDBY',
+    anxious: 'PROCESSING',
+  };
+  const mood: AgentMood = moodMap[creatureMood] || 'IDLE';
   const memoryUsage = Math.min(100, 20 + logs.length * 2);
   const [gridCells, setGridCells] = useState<EmergenceCell[][]>([]);
   const [generation, setGeneration] = useState(0);
@@ -112,17 +117,17 @@ export const AgentStream: React.FC = React.memo(() => {
   }, [updateCanvasSize]);
 
   const canvasColors = useMemo(() => {
-    if (typeof document === 'undefined') return { bg: '#0a0a0a', alive: '#00ff41', grid: '#1a1a2e' };
+    if (typeof document === 'undefined') return { bg: 'var(--paper-void)', alive: 'var(--accent-primary)', grid: 'var(--paper-surface)' };
     const s = getComputedStyle(document.documentElement);
     return {
-      bg: s.getPropertyValue('--canvas-bg').trim() || '#0a0a0a',
-      alive: s.getPropertyValue('--canvas-alive').trim() || '#00ff41',
-      grid: s.getPropertyValue('--canvas-grid').trim() || '#1a1a2e',
+      bg: s.getPropertyValue('--paper-void').trim() || 'var(--paper-void)',
+      alive: s.getPropertyValue('--accent-primary').trim() || 'var(--accent-primary)',
+      grid: s.getPropertyValue('--paper-surface').trim() || 'var(--paper-surface)',
     };
   }, []);
 
-  const lastUpdateRef = useRef(new Date());
-  const lastUpdate = lastUpdateRef.current;
+  const lastLogTimestamp = logs.length > 0 ? logs[logs.length - 1].timestamp : null;
+  const lastUpdate = lastLogTimestamp ? new Date(lastLogTimestamp) : null;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -157,11 +162,11 @@ export const AgentStream: React.FC = React.memo(() => {
 
   const getColor = (type: LogItem['type']) => {
     switch (type) {
-      case 'action': return 'var(--term-green)';
-      case 'success': return 'var(--term-green)';
-      case 'warning': return 'var(--term-amber)';
-      case 'error': return 'var(--term-red)';
-      default: return 'var(--term-ash)';
+      case 'action': return 'var(--accent-primary)';
+      case 'success': return 'var(--accent-primary)';
+      case 'warning': return 'var(--warning)';
+      case 'error': return 'var(--danger)';
+      default: return 'var(--paper-muted)';
     }
   };
 
@@ -169,29 +174,56 @@ export const AgentStream: React.FC = React.memo(() => {
   const TierIcon = tierConfig.icon;
 
   if (!backendAvailable && logs.length === 0) {
-    return <CardSkeleton />;
+    return (
+      <div className="font-mono flex flex-col p-6 min-h-[320px] justify-between" style={{ backgroundColor: 'var(--paper-deep)', border: '2px solid var(--paper-border)' }}>
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <Terminal size={16} style={{ color: 'var(--paper-muted)' }} aria-hidden="true" />
+            <span className="text-base font-bold tracking-tight" style={{ color: 'var(--paper-text)' }}>Agent Stream</span>
+            <span className="text-base px-2 py-0.5 rounded" style={{ backgroundColor: 'var(--paper-elevated)', color: 'var(--paper-muted)' }}>DEMO</span>
+          </div>
+          <div className="space-y-3" style={{ color: 'var(--paper-muted)' }}>
+            <p className="text-base">&gt; awaiting connection to agent backend</p>
+            <p className="text-base">&gt; system status: <span className="text-[var(--warning)]">STANDBY</span></p>
+            <p className="text-base">&gt; connect backend to activate real-time stream</p>
+            <div className="mt-4 space-y-2">
+              <p className="text-base text-[var(--accent-dim)]">// When connected, this panel displays:</p>
+              <p className="text-base pl-4">- Emergence grid visualization</p>
+              <p className="text-base pl-4">- Consciousness, memory & mood metrics</p>
+              <p className="text-base pl-4">- Real-time agent interaction logs</p>
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 pt-4 border-t" style={{ borderColor: 'var(--paper-border)' }}>
+          <div className="flex items-center justify-between">
+            <span className="text-base" style={{ color: 'var(--paper-muted)' }}>LAST UPDATE: --:--:--</span>
+            <span className="animate-pulse text-base" style={{ color: 'var(--paper-muted)' }}>● OFFLINE</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div 
       className="crt-screen flex flex-col relative overflow-hidden p-4"
       style={{ 
-        backgroundColor: 'var(--term-charcoal)',
-        border: '2px solid var(--ui-bezel)'
+        backgroundColor: 'var(--paper-deep)',
+border: '1px solid var(--paper-border)'
       }}
     >
       {/* Header */}
       <div 
-        className="flex items-center gap-3 mb-4 pb-3 border-b-2"
-        style={{ borderColor: 'var(--ui-bezel)' }}
+        className="flex items-center gap-3 mb-4 pb-3 border-b"
+        style={{ borderColor: 'var(--paper-border)' }}
       >
         <div 
           className={`w-10 h-10 flex items-center justify-center ${tierConfig.glow ? 'animate-glow-pulse' : ''}`}
-          style={{ 
-            backgroundColor: `${tierConfig.color}20`, 
-            border: `2px solid ${tierConfig.color}`,
-            boxShadow: tierConfig.glow ? `0 0 15px ${tierConfig.color}40` : 'none'
-          }}
+            style={{ 
+              backgroundColor: 'var(--accent-primary)20', 
+              border: `2px solid ${tierConfig.color}`,
+              boxShadow: tierConfig.glow ? `0 0 15px ${tierConfig.color}40` : 'none'
+            }}
         >
           <TierIcon size={20} style={{ color: tierConfig.color }} />
         </div>
@@ -202,7 +234,7 @@ export const AgentStream: React.FC = React.memo(() => {
               className="text-lg font-bold tracking-tight m-0"
               style={{ 
                 fontFamily: 'var(--font-display)',
-                color: 'var(--shell-text)'
+                color: 'var(--paper-text)'
               }}
             >
               Agent stream
@@ -210,29 +242,29 @@ export const AgentStream: React.FC = React.memo(() => {
           </div>
           <div className="flex items-center gap-3 mt-1">
             <span 
-              className="text-xs font-mono uppercase tracking-wider px-2 py-0.5 rounded"
+              className="text-base font-mono uppercase tracking-wider px-2 py-0.5 rounded"
               style={{ 
-                backgroundColor: 'var(--shell-surface-2)',
-                color: 'var(--shell-text-muted)'
+                backgroundColor: 'var(--paper-elevated)',
+                color: 'var(--paper-muted)'
               }}
             >
               TIER: {tier}
             </span>
-            <span className="text-xs" style={{ color: 'var(--shell-border)' }}>|</span>
+            <span className="text-base" style={{ color: 'var(--paper-border)' }}>|</span>
             <span 
-              className="text-xs font-mono px-2 py-0.5 rounded"
+              className="text-base font-mono px-2 py-0.5 rounded"
               style={{ 
-                backgroundColor: 'var(--shell-surface-2)',
-                color: 'var(--shell-text-muted)'
+                backgroundColor: 'var(--paper-elevated)',
+                color: 'var(--paper-muted)'
               }}
             >
               STAKE: {diemStaked.toFixed(1)} DIEM
             </span>
-            <span className="text-xs" style={{ color: 'var(--shell-border)' }}>|</span>
+            <span className="text-base" style={{ color: 'var(--paper-border)' }}>|</span>
             <span 
-              className="text-xs font-mono"
+              className="text-base font-mono"
               style={{ 
-                color: isConnected ? 'var(--shell-success)' : 'var(--shell-text-muted)'
+                color: isConnected ? 'var(--success)' : 'var(--paper-muted)'
               }}
             >
               {isConnected ? 'Connected' : 'Offline preview'}
@@ -253,18 +285,18 @@ export const AgentStream: React.FC = React.memo(() => {
         <div className="flex-shrink-0">
           <div 
             className="flex items-center justify-between mb-1"
-            style={{ color: 'var(--term-green-dim)' }}
+            style={{ color: 'var(--accent-dim)' }}
           >
-            <span className="text-[10px] font-mono tracking-wider uppercase">Emergence Matrix</span>
-            <span className="text-[10px] font-mono" style={{ fontFamily: 'var(--font-terminal)' }}>
+            <span className="text-base font-mono tracking-wider uppercase">Emergence Matrix</span>
+            <span className="text-base font-mono" style={{ fontFamily: 'var(--font-mono)' }}>
               GEN:{generation.toString().padStart(3, '0')}
             </span>
           </div>
           <div 
             className="p-1 border-2"
             style={{ 
-              backgroundColor: 'var(--term-void)',
-              borderColor: 'var(--ui-bezel)'
+              backgroundColor: 'var(--paper-void)',
+              borderColor: 'var(--paper-border)'
             }}
           >
             <div 
@@ -289,17 +321,17 @@ export const AgentStream: React.FC = React.memo(() => {
           <div>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
-                <Brain size={12} style={{ color: 'var(--term-green)' }} />
+                <Brain size={12} style={{ color: 'var(--accent-primary)' }} />
                 <span 
-                  className="text-[10px] font-mono tracking-wider uppercase"
-                  style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-green-dim)' }}
+                  className="text-base font-mono tracking-wider uppercase"
+                  style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-dim)' }}
                 >
                   CONSCIOUSNESS
                 </span>
               </div>
               <span 
-                className="text-[10px] font-mono"
-                style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-green)' }}
+                className="text-base font-mono"
+                style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)' }}
               >
                 {consciousness.toFixed(0)}%
               </span>
@@ -307,8 +339,8 @@ export const AgentStream: React.FC = React.memo(() => {
             <div 
               className="h-2 border"
               style={{ 
-                backgroundColor: 'var(--term-void)',
-                borderColor: 'var(--ui-bezel)'
+                backgroundColor: 'var(--paper-void)',
+                borderColor: 'var(--paper-border)'
               }}
             >
               <div 
@@ -316,8 +348,8 @@ export const AgentStream: React.FC = React.memo(() => {
                 style={{ 
                   width: `${consciousness}%`,
                   transition: 'width 500ms var(--ease-out)',
-                  backgroundColor: 'var(--term-green)',
-                  boxShadow: '0 0 8px var(--term-green)'
+                  backgroundColor: 'var(--accent-primary)',
+                  boxShadow: '0 0 8px var(--accent-primary)'
                 }}
               />
             </div>
@@ -327,26 +359,26 @@ export const AgentStream: React.FC = React.memo(() => {
           <div>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
-                <Cpu size={12} style={{ color: 'var(--term-amber)' }} />
+                <Cpu size={12} style={{ color: 'var(--warning)' }} />
                 <span 
-                  className="text-[10px] font-mono tracking-wider uppercase"
-                  style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-green-dim)' }}
+                  className="text-base font-mono tracking-wider uppercase"
+                  style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-dim)' }}
                 >
                   MEMORY
                 </span>
               </div>
-<span 
-              className="text-[10px] font-mono"
-              style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-amber)', fontVariantNumeric: 'tabular-nums' }}
-            >
-              {memoryUsage.toFixed(0)}%
+              <span 
+                className="text-base font-mono"
+                style={{ fontFamily: 'var(--font-mono)', color: 'var(--warning)', fontVariantNumeric: 'tabular-nums' }}
+              >
+                {memoryUsage.toFixed(0)}%
               </span>
             </div>
             <div 
               className="h-2 border"
               style={{ 
-                backgroundColor: 'var(--term-void)',
-                borderColor: 'var(--ui-bezel)'
+                backgroundColor: 'var(--paper-void)',
+                borderColor: 'var(--paper-border)'
               }}
             >
               <div 
@@ -354,8 +386,8 @@ export const AgentStream: React.FC = React.memo(() => {
                 style={{ 
                   width: `${memoryUsage}%`,
                   transition: 'width 500ms var(--ease-out)',
-                  backgroundColor: 'var(--term-amber)',
-                  boxShadow: '0 0 8px var(--term-amber)'
+                  backgroundColor: 'var(--warning)',
+                  boxShadow: '0 0 8px var(--warning)'
                 }}
               />
             </div>
@@ -367,16 +399,16 @@ export const AgentStream: React.FC = React.memo(() => {
               <div className="flex items-center gap-1.5">
                 <Wifi size={12} style={{ color: MOOD_COLORS[mood] }} />
                 <span 
-                  className="text-[10px] font-mono tracking-wider uppercase"
-                  style={{ fontFamily: 'var(--font-terminal)', color: 'var(--term-green-dim)' }}
+                  className="text-base font-mono tracking-wider uppercase"
+                  style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-dim)' }}
                 >
                   STATUS
                 </span>
               </div>
               <span 
-                className="text-[10px] font-mono uppercase"
+                className="text-base font-mono uppercase"
                 style={{ 
-                  fontFamily: 'var(--font-terminal)', 
+                  fontFamily: 'var(--font-mono)', 
                   color: MOOD_COLORS[mood],
                   textShadow: `0 0 5px ${MOOD_COLORS[mood]}`
                 }}
@@ -387,8 +419,8 @@ export const AgentStream: React.FC = React.memo(() => {
             <div 
               className="h-2 border"
               style={{ 
-                backgroundColor: 'var(--term-void)',
-                borderColor: 'var(--ui-bezel)'
+                backgroundColor: 'var(--paper-void)',
+                borderColor: 'var(--paper-border)'
               }}
             >
               <div 
@@ -408,8 +440,8 @@ export const AgentStream: React.FC = React.memo(() => {
 
       {/* Log Stream */}
       <div 
-        className="flex-1 overflow-y-auto text-[13px] space-y-2 pr-2 max-h-[180px]"
-        style={{ fontFamily: 'var(--font-terminal)' }}
+        className="flex-1 overflow-y-auto text-base space-y-2 pr-2 max-h-[180px]"
+        style={{ fontFamily: 'var(--font-mono)' }}
         aria-live="polite"
       >
         {logs.map((log) => (
@@ -417,13 +449,13 @@ export const AgentStream: React.FC = React.memo(() => {
             key={log.id} 
             className="animate-fade-in flex gap-3"
           >
-            <span style={{ color: 'var(--term-ash)', fontVariantNumeric: 'tabular-nums' }}>
+            <span               style={{ color: 'var(--paper-muted)', fontVariantNumeric: 'tabular-nums' }}>
               {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}
             </span>
             <span style={{ color: getColor(log.type) }}>
               {log.type === 'action' ? '> ' : ''}{(() => {
               const msg = log.message;
-              return msg.replace(/the agent/gi, 'I').replace(/Agent/gi, 'me');
+              return msg.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/the agent/gi, 'I').replace(/Agent/gi, 'me');
             })()}
             </span>
           </div>
@@ -432,15 +464,15 @@ export const AgentStream: React.FC = React.memo(() => {
       </div>
 
       {/* Status bar */}
-      <div 
-        className="mt-4 pt-3 border-t-2 flex items-center justify-between text-[10px]"
-        style={{ 
-          borderColor: 'var(--ui-bezel)',
-          fontFamily: 'var(--font-terminal)',
-          color: 'var(--term-green-dim)'
-        }}
-      >
-        <span>LAST UPDATE: {lastUpdate.toLocaleTimeString()}</span>
+          <div 
+            className="mt-4 pt-3 border-t flex items-center justify-between text-base"
+            style={{ 
+              borderColor: 'var(--paper-border)',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--accent-dim)'
+            }}
+          >
+        <span>LAST UPDATE: {lastUpdate ? lastUpdate.toLocaleTimeString() : '--:--:--'}</span>
         <span className="animate-pulse">● SYSTEM ACTIVE</span>
       </div>
     </div>

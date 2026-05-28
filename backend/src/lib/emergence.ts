@@ -227,6 +227,10 @@ class ConwayEngine {
   }
 
   toggleCell(x: number, y: number, alive: boolean): void {
+    if (x < 0 || x >= this.gridSize || y < 0 || y >= this.gridSize) {
+      console.warn(`[Emergence] Invalid cell coordinates: (${x}, ${y})`);
+      return;
+    }
     this.setCell(x, y, alive);
     this.persist();
   }

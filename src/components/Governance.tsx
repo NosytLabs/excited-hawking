@@ -5,7 +5,7 @@ import { Plus, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Leaf } from '
 import { api } from '../services/api';
 import { DelegationPanel } from './DelegationPanel';
 import { GovernanceProposal } from './GovernanceProposal';
-import { ListSkeleton } from './LoadingSkeleton';
+
 
 type ProposalStatus = 'DRAFT' | 'ACTIVE' | 'VOTING' | 'PASSED' | 'FAILED' | 'EXECUTED';
 export type ProposalCategory = 'TREASURY' | 'PARAMETER' | 'EMERGENCY' | 'CONSTITUTION' | 'PARTNERSHIP';
@@ -46,12 +46,12 @@ const STATUS_LABELS: Record<ProposalStatus, string> = {
 };
 
 const STATUS_COLORS: Record<ProposalStatus, React.CSSProperties['color']> = {
-  DRAFT: 'var(--term-amber)',
-  ACTIVE: 'var(--term-amber)',
-  VOTING: 'var(--term-green)',
-  PASSED: 'var(--term-green-glow)',
-  FAILED: 'var(--term-red)',
-  EXECUTED: 'var(--term-green)',
+  DRAFT: 'var(--warning)',
+  ACTIVE: 'var(--warning)',
+  VOTING: 'var(--accent-primary)',
+  PASSED: 'var(--accent-glow)',
+  FAILED: 'var(--danger)',
+  EXECUTED: 'var(--accent-primary)',
 };
 
 const CATEGORY_LABELS: Record<ProposalCategory, string> = {
@@ -220,37 +220,50 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
   const quorumPercentage = (p: ProposalDetail) => Math.min(100, (totalVotes(p) / p.quorumRequired) * 100);
 
   if (!backendAvailable && proposals.length === 0) {
-    return <ListSkeleton />;
+    return (
+      <div className="font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 gap-3" style={{
+        color: 'var(--accent-primary)',
+        backgroundColor: 'var(--paper-void)',
+        border: '1px solid var(--accent-dim)',
+      }}>
+        <div className="flex items-center gap-3">
+          <span aria-hidden="true">⚙</span>
+          <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--accent-glow)' }}>System Governance</span>
+          <span className="text-xs px-2 py-0.5 rounded bg-[var(--warning)]/30 text-[var(--warning)]">STANDBY</span>
+        </div>
+        <span className="text-sm font-mono" style={{ color: 'var(--paper-muted)' }}>&gt; connect backend to view proposals</span>
+      </div>
+    );
   }
 
   return (
     <div className="relative font-mono rounded-lg overflow-hidden" style={{
-      color: 'var(--term-green)',
-      backgroundColor: 'var(--term-void)',
-      border: '2px solid var(--term-green-dim)',
+      color: 'var(--accent-primary)',
+      backgroundColor: 'var(--paper-void)',
+      border: '1px solid var(--accent-dim)',
       boxShadow: '0 10px 15px -3px oklch(0% 0% 0% / 0.4), 0 4px 6px -4px oklch(0% 0% 0% / 0.4)',
     }}>
       <div className="absolute inset-0 pointer-events-none opacity-5"
         style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, var(--term-scanline) 2px, var(--term-scanline) 4px)',
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, var(--paper-border) 2px, var(--paper-border) 4px)',
         }}
       />
 
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--term-green-glow)] to-transparent opacity-60" />
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--term-green-glow)] to-transparent opacity-60" />
-      <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-transparent via-[var(--term-green-glow)] to-transparent opacity-60" />
-      <div className="absolute top-0 right-0 h-full w-1 bg-gradient-to-b from-transparent via-[var(--term-green-glow)] to-transparent opacity-60" />
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--accent-glow)] to-transparent opacity-60" />
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--accent-glow)] to-transparent opacity-60" />
+      <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-transparent via-[var(--accent-glow)] to-transparent opacity-60" />
+      <div className="absolute top-0 right-0 h-full w-1 bg-gradient-to-b from-transparent via-[var(--accent-glow)] to-transparent opacity-60" />
 
       <div className="relative z-10 p-4">
-            <div className="flex items-center justify-between mb-4 pb-3" style={{ borderBottom: '1px solid var(--term-green-dim)' }}>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 pb-3 gap-3" style={{ borderBottom: '1px solid var(--accent-dim)' }}>
           <div className="flex items-center gap-3">
             <div className="flex flex-col items-center">
-              <span className="text-[10px] tracking-widest" style={{ color: 'var(--term-green-dim)' }}>ROBCO INDUSTRIES</span>
+              <span className="text-xs tracking-widest" style={{ color: 'var(--accent-dim)' }}>ROBCO INDUSTRIES</span>
               <h3 className="text-sm font-mono uppercase tracking-wider flex items-center gap-2">
-                <span style={{ color: 'var(--term-green-glow)' }} aria-hidden="true">&gt;</span>
+                <span style={{ color: 'var(--accent-glow)' }} aria-hidden="true">&gt;</span>
                 SYSTEM GOVERNANCE
               </h3>
-              <span className="text-[10px] tracking-widest" style={{ color: 'var(--term-green-dim)' }}>TERMINAL v3.14</span>
+              <span className="text-xs tracking-widest" style={{ color: 'var(--accent-dim)' }}>TERMINAL v3.14</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -258,8 +271,8 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
               aria-label="Manage Delegation"
               type="button"
               onClick={() => setShowDelegationPanel(!showDelegationPanel)}
-              className="text-xs font-mono flex items-center gap-1 transition-colors border px-2 py-1 rounded"
-              style={{ color: 'var(--term-green-dim)', borderColor: 'var(--term-concrete)' }}
+              className="text-sm font-mono flex items-center gap-1 transition-colors border px-2 min-h-[44px] rounded"
+              style={{ color: 'var(--accent-dim)', borderColor: 'var(--paper-border)' }}
             >
               <Leaf size={12} />
               DELEGATE
@@ -268,8 +281,8 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
               aria-label="Create New Proposal"
               type="button"
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="text-xs font-mono px-3 py-1.5 rounded flex items-center gap-1 transition-colors"
-              style={{ color: 'var(--term-green)', border: '1px solid var(--term-green-dim)', backgroundColor: 'var(--term-cta-bg)' }}
+              className="text-sm font-mono px-3 min-h-[44px] rounded flex items-center gap-1 transition-colors"
+              style={{ color: 'var(--accent-primary)', border: '1px solid var(--accent-dim)', backgroundColor: 'var(--paper-elevated)' }}
             >
               <Plus size={14} />
               NEW
@@ -299,26 +312,26 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
         )}
 
           {showCreateForm && (
-          <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--term-void)', border: '1px solid var(--term-green-dim)' }}>
-            <h4 className="text-xs font-mono mb-3" style={{ color: 'var(--term-green)' }}>&gt; CREATE NEW PROPOSAL</h4>
+          <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--paper-void)', border: '1px solid var(--accent-dim)' }}>
+            <h4 className="text-base font-mono mb-3" style={{ color: 'var(--accent-primary)' }}>&gt; CREATE NEW PROPOSAL</h4>
             <input
               type="text"
               value={newProposal.title}
               onChange={(e) => setNewProposal(prev => ({ ...prev, title: e.target.value }))}
               placeholder="Enter proposal title..."
-              className="w-full mb-3 bg-black/50 border border-[var(--term-green-dim)] rounded px-3 py-2 text-sm font-mono text-[var(--term-green)] placeholder-[var(--term-concrete)] focus:outline-none focus:border-[var(--term-green)]"
+              className="w-full mb-3 bg-black/50 border border-[var(--accent-dim)] rounded px-3 py-2 text-base font-mono text-[var(--accent-primary)] placeholder-[var(--paper-muted)] focus:outline-none focus:border-[var(--accent-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
             />
             <textarea
               value={newProposal.description}
               onChange={(e) => setNewProposal(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Enter proposal description..."
-              className="w-full mb-3 bg-black/50 border border-[var(--term-green-dim)] rounded px-3 py-2 text-sm font-mono text-[var(--term-green)] placeholder-[var(--term-concrete)] focus:outline-none focus:border-[var(--term-green)] h-20 resize-none"
+              className="w-full mb-3 bg-black/50 border border-[var(--accent-dim)] rounded px-3 py-2 text-base font-mono text-[var(--accent-primary)] placeholder-[var(--paper-muted)] focus:outline-none focus:border-[var(--accent-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)] h-20 resize-none"
             />
             <div className="flex gap-3 mb-3">
               <select
                 value={newProposal.category}
                 onChange={(e) => setNewProposal(prev => ({ ...prev, category: e.target.value as ProposalCategory }))}
-                className="bg-black/50 border border-[var(--term-green-dim)] rounded px-3 py-2 text-xs font-mono text-[var(--term-green)] focus:outline-none focus:border-[var(--term-green)]"
+                className="bg-black/50 border border-[var(--accent-dim)] rounded px-3 py-2 text-base font-mono text-[var(--accent-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
               >
                 <option value="TREASURY">COMPOST</option>
                 <option value="PARAMETER">SOIL</option>
@@ -327,28 +340,28 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
                 <option value="PARTNERSHIP">GRAFT</option>
               </select>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-[var(--term-green-dim)]">Deposit:</span>
+                <span className="text-base font-mono text-[var(--accent-dim)]">Deposit:</span>
                 <input
                   type="number"
                   value={newProposal.depositAmount}
                   onChange={(e) => setNewProposal(prev => ({ ...prev, depositAmount: parseFloat(e.target.value) || 0 }))}
-                  className="w-20 bg-black/50 border border-[var(--term-green-dim)] rounded px-2 py-2 text-xs font-mono text-[var(--term-green)] focus:outline-none focus:border-[var(--term-green)]"
+                  className="w-20 bg-black/50 border border-[var(--accent-dim)] rounded px-2 py-2 text-base font-mono text-[var(--accent-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
                 />
-                <span className="text-xs font-mono text-[var(--term-green-dim)]">seeds</span>
+                <span className="text-base font-mono text-[var(--accent-dim)]">seeds</span>
               </div>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={handleCreateProposal}
                 disabled={!newProposal.title.trim()}
-                className="flex-1 bg-[var(--term-concrete)]/50 hover:bg-[var(--term-concrete)]/70 text-[var(--term-green)] border border-[var(--term-green)] text-xs font-mono py-2 rounded transition-colors disabled:opacity-50"
+                className="flex-1 bg-[var(--paper-border)]/50 hover:bg-[var(--paper-border)]/70 text-[var(--accent-primary)] border border-[var(--accent-primary)] text-base font-mono py-2 rounded transition-colors disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
               >
                 [SUBMIT PROPOSAL]
               </button>
               <button
                 type="button"
                 onClick={() => setShowCreateForm(false)}
-                className="px-4 bg-[var(--term-charcoal)]/50 hover:bg-[var(--term-charcoal)]/70 text-[var(--term-green-dim)] border border-[var(--term-concrete)] text-xs font-mono py-2 rounded transition-colors"
+                className="px-4 bg-[var(--paper-deep)]/50 hover:bg-[var(--paper-deep)]/70 text-[var(--accent-dim)] border border-[var(--paper-border)] text-base font-mono py-2 rounded transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-dim)]"
               >
                 [CANCEL]
               </button>
@@ -360,7 +373,7 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as ProposalStatus | 'ALL')}
-            className="rounded px-2 py-1.5 text-xs font-mono focus:outline-none" style={{ backgroundColor: 'oklch(12% 2% 250deg / 0.7)', border: '1px solid var(--term-green-dim)', color: 'var(--term-green-glow)' }}
+            className="rounded px-2 py-1.5 text-sm font-mono focus:outline-none bg-[var(--paper-deep)] border border-[var(--accent-dim)] text-[var(--accent-glow)]"
           >
             <option value="ALL">ALL STATUS</option>
             <option value="DRAFT">SEEDLING</option>
@@ -373,7 +386,7 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value as ProposalCategory | 'ALL')}
-            className="rounded px-2 py-1.5 text-xs font-mono focus:outline-none" style={{ backgroundColor: 'oklch(12% 2% 250deg / 0.7)', border: '1px solid var(--term-green-dim)', color: 'var(--term-green-glow)' }}
+            className="rounded px-2 py-1.5 text-sm font-mono focus:outline-none bg-[var(--paper-deep)] border border-[var(--accent-dim)] text-[var(--accent-glow)]"
           >
             <option value="ALL">ALL CATEGORIES</option>
             <option value="TREASURY">COMPOST</option>
@@ -385,30 +398,34 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
           <button
                 type="button"
                 onClick={() => setShowMyProposals(!showMyProposals)}
-            className={`px-2 py-1.5 text-xs font-mono rounded transition-colors border ${
+                aria-pressed={showMyProposals}
+            className={`px-2 py-1.5 text-sm font-mono rounded transition-colors border ${
               showMyProposals
-                ? 'bg-[var(--term-green-dim)]/30 border-[var(--term-green)]'
-                : 'bg-[var(--term-void)]/70 border-[var(--term-concrete)]'
+                ? 'bg-[var(--accent-dim)]/30 border-[var(--accent-primary)]'
+                : 'bg-[var(--paper-void)]/70 border-[var(--paper-border)]'
             }`}
-            style={{ color: showMyProposals ? 'var(--term-green)' : 'var(--term-green-dim)', whiteSpace: 'nowrap' }}
+            style={{ color: showMyProposals ? 'var(--accent-primary)' : 'var(--accent-dim)', whiteSpace: 'nowrap' }}
           >
             {showMyProposals ? '[MY PROPOSALS]' : 'MY PROPOSALS'}
           </button>
+          <span className="text-sm font-mono ml-auto mr-2" style={{ color: 'var(--paper-muted)' }}>
+            {filteredProposals.length} PROPOSAL{filteredProposals.length !== 1 ? 'S' : ''}
+          </span>
         </div>
 
         <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-thin">
           {filteredProposals.map(proposal => (
             <div
               key={proposal.id}
-              className="rounded p-3 transition-all hover:border-[var(--term-green)]"
+              className="rounded p-3 transition-all hover:border-[var(--accent-primary)]"
               style={{
                 border: '1px solid',
-                backgroundColor: proposal.isEmergency ? 'var(--term-emergency-bg)' : 'var(--term-ash)',
-                borderColor: proposal.isEmergency ? 'oklch(55% 20% 25deg / 0.31)' : (selectedProposal?.id === proposal.id ? 'var(--term-green)' : 'var(--term-concrete)'),
+                backgroundColor: proposal.isEmergency ? 'var(--paper-deep)' : 'var(--paper-surface)',
+                borderColor: proposal.isEmergency ? 'var(--danger)' : (selectedProposal?.id === proposal.id ? 'var(--accent-primary)' : 'var(--paper-border)'),
               }}
             >
               {proposal.isEmergency && (
-                <div className="flex items-center gap-2 mb-2 text-xs font-mono" style={{ color: 'var(--term-red)' }}>
+                <div className="flex items-center gap-2 mb-2 text-sm font-mono" style={{ color: 'var(--danger)' }}>
                   <AlertTriangle size={12} className="animate-pulse" />
                   <span>[!] URGENT PROPOSAL</span>
                 </div>
@@ -417,34 +434,43 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
               <div
                 className="cursor-pointer"
                 onClick={() => setSelectedProposal(selectedProposal?.id === proposal.id ? null : proposal)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedProposal(selectedProposal?.id === proposal.id ? null : proposal);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-expanded={selectedProposal?.id === proposal.id}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex-1">
-                    <h4 className="text-sm font-mono text-[var(--term-green)] leading-tight">{proposal.title}</h4>
+                    <h4 className="text-sm font-mono text-[var(--accent-primary)] leading-tight">{proposal.title}</h4>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-mono uppercase" style={{ color: STATUS_COLORS[proposal.status] }}>
+                      <span className="text-xs font-mono uppercase" style={{ color: STATUS_COLORS[proposal.status] }}>
                         {STATUS_LABELS[proposal.status]}
                       </span>
-                      <span className="text-[10px] font-mono text-[var(--term-green-dim)] uppercase">
+                      <span className="text-xs font-mono text-[var(--accent-dim)] uppercase">
                         {CATEGORY_LABELS[proposal.category]}
                       </span>
                     </div>
                   </div>
                   {selectedProposal?.id === proposal.id ? (
-                    <ChevronUp size={14} className="text-[var(--term-green-dim)] shrink-0" />
+                    <ChevronUp size={14} className="text-[var(--accent-dim)] shrink-0" />
                   ) : (
-                    <ChevronDown size={14} className="text-[var(--term-green-dim)] shrink-0" />
+                    <ChevronDown size={14} className="text-[var(--accent-dim)] shrink-0" />
                   )}
                 </div>
 
                 <div className="w-full h-1.5 bg-black rounded-full overflow-hidden flex">
                   <div
                     className="h-full"
-                    style={{ width: `${forPercentage(proposal)}%`, backgroundColor: 'var(--term-green)', transition: 'width 200ms var(--ease-out)' }}
+                    style={{ width: `${forPercentage(proposal)}%`, backgroundColor: 'var(--accent-primary)', transition: 'width 200ms var(--ease-out)' }}
                   />
                   <div
                     className="h-full"
-                    style={{ width: `${100 - forPercentage(proposal)}%`, backgroundColor: 'var(--term-red)', transition: 'width 200ms var(--ease-out)' }}
+                    style={{ width: `${100 - forPercentage(proposal)}%`, backgroundColor: 'var(--danger)', transition: 'width 200ms var(--ease-out)' }}
                   />
                 </div>
 
@@ -452,12 +478,12 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
                   <div className="flex-1 h-1 bg-black rounded-full overflow-hidden">
                     <div
                       className="h-full"
-                      style={{ width: `${quorumPercentage(proposal)}%`, backgroundColor: proposal.quorumReached ? 'var(--term-green)' : 'var(--term-amber)', transition: 'width 200ms var(--ease-out)' }}
+                      style={{ width: `${quorumPercentage(proposal)}%`, backgroundColor: proposal.quorumReached ? 'var(--accent-primary)' : 'var(--warning)', transition: 'width 200ms var(--ease-out)' }}
                     />
                   </div>
-                  <span className="text-[10px] font-mono text-[var(--term-green-dim)]">
+                  <span className="text-xs font-mono text-[var(--accent-dim)]">
                     {proposal.quorumReached ? (
-                      <CheckCircle size={10} className="text-[var(--term-green)]" />
+                      <CheckCircle size={10} className="text-[var(--accent-primary)]" />
                     ) : (
                       <span>{totalVotes(proposal)}/{proposal.quorumRequired}</span>
                     )}
@@ -479,14 +505,16 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
         </div>
 
         {filteredProposals.length === 0 && (
-          <div className="text-center py-8 text-[var(--term-green-dim)] text-sm font-mono">
-            &gt; NO PROPOSALS FOUND
+          <div className="text-center py-8 md:py-12 text-[var(--paper-muted)] text-sm font-mono animate-fade-in">
+            <div className="text-3xl md:text-4xl mb-4 opacity-30">...</div>
+            <div className="text-[var(--accent-dim)] text-base md:text-lg mb-2">&gt; NO PROPOSALS FOUND</div>
+            <div className="text-sm text-[var(--paper-muted)]">Check back when the community wakes up</div>
           </div>
         )}
 
-        <div className="mt-4 pt-3 border-t border-[var(--term-concrete)] flex items-center justify-between">
-          <span className="text-[10px] font-mono text-[var(--term-concrete)]">ROBCO INDUSTRIES © 2077</span>
-          <span className="text-[10px] font-mono text-[var(--term-concrete)]">SYS.GOV</span>
+        <div className="mt-4 pt-3 border-t border-[var(--paper-border)] flex items-center justify-between">
+          <span className="text-xs font-mono text-[var(--paper-border)]">ROBCO INDUSTRIES © 2077</span>
+          <span className="text-xs font-mono text-[var(--paper-border)]">SYS.GOV</span>
         </div>
       </div>
     </div>

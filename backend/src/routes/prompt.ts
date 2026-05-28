@@ -11,6 +11,7 @@ import { validateDiemPayment, getPaymentAmount } from '../services/x402.js';
 interface PromptBody {
   content: string;
   wallet?: string;
+  model?: string;
 }
 
 export async function promptRoutes(fastify: FastifyInstance) {
@@ -18,6 +19,7 @@ export async function promptRoutes(fastify: FastifyInstance) {
     const body = request.body;
     const content = sanitizeForHTML(body.content, 5000);
     let wallet = body.wallet || 'anonymous';
+    const model = body.model;
     if (wallet !== 'anonymous') {
       wallet = sanitizeString(wallet);
       if (!isValidWalletAddress(wallet)) {
@@ -85,12 +87,12 @@ export async function promptRoutes(fastify: FastifyInstance) {
 
     updatePromptStatus(promptId, 'processing');
 
-    try {
-      const response = await processPrompt(wallet, content, promptId);
+     try {
+       const response = await processPrompt(wallet, content, promptId, model);
 
-      updatePromptStatus(promptId, 'completed');
-      emitPromptComplete(promptId);
-      recordPrompt(content);
+       updatePromptStatus(promptId, 'completed');
+       emitPromptComplete(promptId);
+       recordPrompt(content);
 
       return {
         success: true,

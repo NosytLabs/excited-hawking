@@ -18,7 +18,16 @@ export interface ChallengeData {
 }
 
 const activeChallenges = new Map<string, ChallengeData>();
-const usedVoteNonces = new Set<string>();
+const usedVoteNonces = new Map<string, number>();
+
+function cleanupExpiredVoteNonces(): void {
+  const now = Date.now();
+  for (const [key, expiresAt] of usedVoteNonces.entries()) {
+    if (expiresAt < now) {
+      usedVoteNonces.delete(key);
+    }
+  }
+}
 
 function cleanupExpiredChallenges(): void {
   const now = Date.now();
@@ -34,16 +43,24 @@ export function createVoteNonce(wallet: string): { nonce: string; expiresAt: num
     return null;
   }
 
+  cleanupExpiredVoteNonces();
+
   const nonce = randomBytes(NONCE_BYTES).toString('hex');
   const expiresAt = Date.now() + 5 * 60 * 1000;
-  
-  usedVoteNonces.add(`${wallet.toLowerCase()}:${nonce}`);
+
+  usedVoteNonces.set(`${wallet.toLowerCase()}:${nonce}`, expiresAt);
 
   return { nonce, expiresAt };
 }
 
 export function verifyVoteNonce(wallet: string, nonce: string): boolean {
   const key = `${wallet.toLowerCase()}:${nonce}`;
+  const expiresAt = usedVoteNonces.get(key);
+  if (!expiresAt) return false;
+  if (expiresAt < Date.now()) {
+    usedVoteNonces.delete(key);
+    return false;
+  }
   return usedVoteNonces.delete(key);
 }
 

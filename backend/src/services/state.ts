@@ -184,6 +184,20 @@ export function deductBalance(wallet: string, amount: bigint): boolean {
   return true;
 }
 
+export function depositBalance(wallet: string, amount: bigint): boolean {
+  if (amount <= 0n) return false;
+  
+  const existing = state.balances.get(wallet);
+  state.balances.set(wallet, {
+    wallet,
+    diemBalance: (existing?.diemBalance ?? 0n) + amount,
+    vvvStaked: existing?.vvvStaked ?? 0n,
+    tier: existing?.tier ?? 'free'
+  });
+  triggerPersist();
+  return true;
+}
+
 export function addToTreasury(amount: bigint): void {
   state.treasuryUSDC += Number(amount);
   triggerPersist();
@@ -211,10 +225,14 @@ export function updatePromptStatus(id: string, status: PromptStatus): void {
   }
 }
 
-export function votePrompt(id: string): void {
+export function votePrompt(id: string, type: 'up' | 'down' = 'up'): void {
   const prompt = state.prompts.find(p => p.id === id);
   if (prompt) {
-    prompt.votes++;
+    if (type === 'up') {
+      prompt.votes++;
+    } else {
+      prompt.votes = Math.max(0, prompt.votes - 1);
+    }
     triggerPersist();
   }
 }

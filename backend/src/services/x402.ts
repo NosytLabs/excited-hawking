@@ -117,6 +117,8 @@ export async function validatePayment(
     if (!isValidSignature) {
       return { valid: false, error: 'Signature verification failed: signature does not match wallet' };
     }
+  } else {
+    return { valid: false, error: 'Authentication required for paid endpoint' };
   }
 
   return { valid: true, payment };

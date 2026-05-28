@@ -23,6 +23,7 @@ export interface AgentContext {
   promptId: string;
   iteration: number;
   maxIterations: number;
+  model?: string;
 }
 
 export interface ToolResult {
@@ -318,7 +319,8 @@ async function runAgentLoop(
     const thinkResponse = await chatCompletion({
       messages: [...messages],
       temperature: 0.7,
-      max_tokens: 500
+      max_tokens: 500,
+      model: context.model
     });
 
     let thinkData: AgentThought;
@@ -365,15 +367,16 @@ async function runAgentLoop(
       };
 
       if (!toolResult.success) {
-        const errorResponse = await chatCompletion({
-          messages: [
-            ...messages,
-            { role: 'assistant', content: JSON.stringify(currentThought) },
-            { role: 'user', content: `The tool returned an error: ${toolResult.error}. Provide a helpful response acknowledging this.` }
-          ],
-          temperature: 0.7,
-          max_tokens: 500
-        });
+         const errorResponse = await chatCompletion({
+           messages: [
+             ...messages,
+             { role: 'assistant', content: JSON.stringify(currentThought) },
+             { role: 'user', content: `The tool returned an error: ${toolResult.error}. Provide a helpful response acknowledging this.` }
+           ],
+           temperature: 0.7,
+           max_tokens: 500,
+           model: context.model
+         });
         
         const errorData = JSON.parse(errorResponse.content.match(/\{[\s\S]*\}/)?.[0] || '{"response":"An error occurred"}');
         if (errorData.response) {
@@ -409,13 +412,15 @@ async function runAgentLoop(
 export async function processPrompt(
   wallet: string,
   prompt: string,
-  promptId: string
+  promptId: string,
+  model?: string
 ): Promise<string> {
   const context: AgentContext = {
     wallet,
     promptId,
     iteration: 0,
-    maxIterations: 10
+    maxIterations: 10,
+    model
   };
 
   return runAgentLoop(context, prompt);
@@ -424,17 +429,19 @@ export async function processPrompt(
 export async function* processPromptStream(
   wallet: string,
   prompt: string,
-  promptId: string
+  promptId: string,
+  model?: string
 ): AsyncGenerator<string, void, unknown> {
   const context: AgentContext = {
     wallet,
     promptId,
     iteration: 0,
-    maxIterations: 10
+    maxIterations: 10,
+    model
   };
 
   const fullResponse = await runAgentLoop(context, prompt);
-  
+
   for (const char of fullResponse) {
     yield char;
   }

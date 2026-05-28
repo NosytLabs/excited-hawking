@@ -31,6 +31,9 @@ dist-ssr
 memvid.json
 emergence.json
 backend/data/emergence.json
+backend/.env
+*.env
+!.env.example
 
 # Build artifacts
 .vercel/

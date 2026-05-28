@@ -77,6 +77,19 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export async function voteOnPrompt(promptId: string, vote: 'up' | 'down', walletAddress: string, signature: string, nonce: string): Promise<{ success: boolean; newVoteCount: number }> {
+  return fetchJson(`${BASE_URL}/api/vote`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-wallet-address': walletAddress,
+      'x-signature': signature,
+      'x-nonce': nonce,
+    },
+    body: JSON.stringify({ promptId, vote }),
+  });
+}
+
 function normalizeStatusResponse(payload: ApiStatusEnvelope): StatusResponse {
   return {
     diemStaked: payload.agent.diemStaked,

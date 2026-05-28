@@ -1,6 +1,19 @@
+export {};
+
+declare global {
+  interface Window {
+    ethereum?: {
+      isMetaMask?: boolean;
+    };
+  }
+}
+
 export type WalletMode = 'preview' | 'signed';
 
 export function getWalletMode(): WalletMode {
+  if (typeof window !== 'undefined' && window.ethereum?.isMetaMask) {
+    return 'signed';
+  }
   return 'preview';
 }
 
