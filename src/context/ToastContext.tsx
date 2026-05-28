@@ -1,6 +1,13 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, createContext } from 'react';
 import { registerToastFunction, unregisterToastFunction, type ToastType, type Toast } from '../lib/toast';
-import { ToastContext } from './toast-context';
+
+export interface ToastContextValue {
+  toasts: Toast[];
+  addToast: (message: string, type?: ToastType, duration?: number) => void;
+  removeToast: (id: string) => void;
+}
+
+export const ToastContext = createContext<ToastContextValue | null>(null);
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);

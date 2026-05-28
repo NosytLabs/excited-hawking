@@ -24,6 +24,12 @@ export default defineConfig([
     },
   },
   {
+    files: ['src/context/ToastContext.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
     files: ['backend/**/*.ts', 'cli.ts', '*.config.ts', 'shared/**/*.ts'],
     extends: [
       js.configs.recommended,

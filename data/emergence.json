@@ -4100,44 +4100,44 @@
   "generation": 1,
   "events": [
     {
-      "id": "48dd0487-f694-4ec6-858f-86eb22ba6928",
-      "timestamp": 1780010505968,
+      "id": "d348028d-0a1b-4d33-96c2-c2f9a8cfa866",
+      "timestamp": 1780012613696,
       "type": "explosion",
       "x": 0,
       "y": 0,
       "description": "Seed density: 0.1%"
     },
     {
-      "id": "32db669f-9ac2-4d41-ada5-d59e296026fd",
-      "timestamp": 1780010505969,
-      "type": "oscillator",
+      "id": "e63ad259-2b07-43e5-beec-0a79d9fd46b5",
+      "timestamp": 1780012613697,
+      "type": "glider",
       "x": 2,
       "y": 3,
-      "description": "Cells pulse in rhythmic harmony"
+      "description": "Cell cluster propagates through space"
     },
     {
-      "id": "0597a7ae-7f6b-40d1-bfa1-91ff106ff8f0",
-      "timestamp": 1780010505969,
+      "id": "37cac086-cd50-4e60-bcc2-a80aeed9fe51",
+      "timestamp": 1780012613697,
       "type": "still_life",
       "x": 3,
       "y": 2,
-      "description": "Stable structure crystallizes"
+      "description": "A permanent form emerges from chaos"
     },
     {
-      "id": "7fb6b0a4-2deb-4e1c-9b45-9d40e50582d3",
-      "timestamp": 1780010505969,
-      "type": "explosion",
+      "id": "ad05575a-f182-4fe0-a589-6f1322f811f4",
+      "timestamp": 1780012613697,
+      "type": "collapse",
       "x": 3,
       "y": 3,
-      "description": "Activity spreads outward"
+      "description": "A structure crumbles to dust"
     },
     {
-      "id": "36df80c9-d254-437f-850d-32cc5934fcc7",
-      "timestamp": 1780010505969,
-      "type": "still_life",
+      "id": "248ad3ef-b773-40e5-bc3c-b8a9519b0d71",
+      "timestamp": 1780012613697,
+      "type": "oscillator",
       "x": 4,
       "y": 4,
-      "description": "A permanent form emerges from chaos"
+      "description": "Cells pulse in rhythmic harmony"
     }
   ]
 }
