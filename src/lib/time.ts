@@ -9,10 +9,3 @@ export function formatTimeAgo(timestamp: number | string): string {
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
   return date.toLocaleDateString();
 }
-
-export function formatTimeShort(timestamp: number): string {
-  const diff = Date.now() - timestamp;
-  if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  return `${Math.floor(diff / 3600000)}h ago`;
-}

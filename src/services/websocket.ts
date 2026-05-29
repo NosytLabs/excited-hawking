@@ -112,6 +112,7 @@ interface SocketHandlers {
   [WSEvents.EMERGENCE_CELL_TOGGLE]: EventHandler<{ x: number; y: number; alive: boolean }>;
   [WSEvents.GUESTBOOK_ENTRY]: EventHandler<GuestbookEntry>;
   [WSEvents.GUESTBOOK_UPVOTE]: EventHandler<GuestbookUpvoteEvent>;
+  [WSEvents.GUESTBOOK_REPLY]: EventHandler<GuestbookReply>;
   [WSEvents.MEMORY_NEW]: EventHandler<MemoryNewEvent>;
   [WSEvents.CREATURE_UPDATE]: EventHandler<CreatureEvent>;
 }
@@ -181,6 +182,7 @@ class WebSocketService {
       WSEvents.EMERGENCE_CELL_TOGGLE,
       WSEvents.GUESTBOOK_ENTRY,
       WSEvents.GUESTBOOK_UPVOTE,
+      WSEvents.GUESTBOOK_REPLY,
       WSEvents.MEMORY_NEW,
       WSEvents.CREATURE_UPDATE,
     ];
@@ -232,12 +234,4 @@ class WebSocketService {
 
 export const websocketService = new WebSocketService();
 
-export function useWebSocket() {
-  return {
-    connect: () => websocketService.connect(),
-    disconnect: () => websocketService.disconnect(),
-    on: <K extends keyof SocketHandlers>(event: K, handler: SocketHandlers[K]) => websocketService.on(event, handler),
-    off: <K extends keyof SocketHandlers>(event: K, handler?: SocketHandlers[K]) => websocketService.off(event, handler),
-    isConnected: () => websocketService.getConnectionStatus(),
-  };
-}
+

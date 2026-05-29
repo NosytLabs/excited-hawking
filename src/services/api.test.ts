@@ -56,22 +56,6 @@ describe('API Service', () => {
     });
   });
 
-  describe('getLogs', () => {
-    it('fetches from /api/logs/list', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ logs: [] })
-      });
-
-      await api.getLogs();
-      
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/logs/list'),
-        expect.any(Object)
-      );
-    });
-  });
-
   describe('vote', () => {
     it('posts signed vote request correctly', async () => {
       mockFetch.mockResolvedValueOnce({

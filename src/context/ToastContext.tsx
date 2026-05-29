@@ -26,21 +26,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => unregisterToastFunction();
   }, [addToast]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setToasts(prev => {
-        const now = Date.now();
-        return prev.filter(t => {
-          if (t.duration && now - parseInt(t.id.split('-')[1]) > t.duration) {
-            return false;
-          }
-          return true;
-        });
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
       {children}

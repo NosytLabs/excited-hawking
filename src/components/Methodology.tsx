@@ -7,24 +7,24 @@ export const Methodology = () => {
         <span id="methodology-heading" className="text-sm font-mono text-[var(--paper-muted)]">Research methodology</span>
       </div>
 
-      <div className="space-y-3 md:space-y-4 text-sm md:text-base">
-        <div className="p-3 bg-[var(--paper-surface)] border border-[var(--paper-border)] rounded-lg">
+      <div className="space-y-3 text-sm">
+        <div className="p-4 bg-[var(--paper-surface)] border border-[var(--paper-border)] rounded-lg">
           <div className="flex items-center gap-2 mb-2">
-            <Target size={12} className="text-[var(--accent-primary)]" />
+            <Target size={14} className="text-[var(--accent-primary)]" />
             <span className="font-medium text-[var(--paper-text)]">Research Question</span>
           </div>
-          <p className="text-[var(--shell-text-muted)] leading-relaxed">
+          <p className="text-[var(--paper-muted)] leading-relaxed">
             How do structured participant interactions affect pattern emergence in a deterministic computational system?
             Can decentralized coordination produce measurable structural complexity over time?
           </p>
         </div>
         
-        <div className="p-3 bg-[var(--paper-surface)] border border-[var(--paper-border)] rounded-lg">
+        <div className="p-4 bg-[var(--paper-surface)] border border-[var(--paper-border)] rounded-lg">
           <div className="flex items-center gap-2 mb-2">
-            <BarChart3 size={12} className="text-[var(--accent-primary)]" />
-            <span className="font-medium text-[var(--shell-text)]">Metrics</span>
+            <BarChart3 size={14} className="text-[var(--accent-primary)]" />
+            <span className="font-medium text-[var(--paper-text)]">Metrics</span>
           </div>
-          <p className="text-[var(--shell-text-muted)] leading-relaxed">
+          <p className="text-[var(--paper-muted)] leading-relaxed">
             Grid Complexity: Structural pattern density in response generation<br />
             Contribution Weight: Token-weighted input influence<br />
             Governance Participation: Voting rates on proposals<br />
@@ -32,12 +32,12 @@ export const Methodology = () => {
           </p>
         </div>
         
-<div className="p-3 bg-[var(--paper-surface)] border border-[var(--paper-border)] rounded-lg">
+        <div className="p-4 bg-[var(--paper-surface)] border border-[var(--paper-border)] rounded-lg">
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle size={12} className="text-[var(--warning)]" />
-            <span className="font-medium text-[var(--shell-text)]">Limitations</span>
+            <AlertTriangle size={14} className="text-[var(--warning)]" />
+            <span className="font-medium text-[var(--paper-text)]">Limitations</span>
           </div>
-          <p className="text-[var(--shell-text-muted)] leading-relaxed">
+          <p className="text-[var(--paper-muted)] leading-relaxed">
             Results may not generalize beyond this specific system. The creature does not experience, 
             learn, or have preferences. Participation patterns reflect structured interactions, not autonomous behavior.
           </p>

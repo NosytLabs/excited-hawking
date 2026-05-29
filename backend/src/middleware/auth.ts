@@ -369,7 +369,7 @@ export function requireWalletWithSignature(
       error: 'Signature verification failed',
       message: 'Invalid or missing wallet signature.'
     });
-    return { wallet, isValidWallet: true, signatureVerified: false };
+    return { wallet, isValidWallet: false, signatureVerified: false };
   }
 
   return {

@@ -16,10 +16,14 @@ export const DelegationPanel: React.FC<DelegationPanelProps> = ({
   delegationAddress,
   onDelegationAddressChange,
   onDelegate,
+  onClose,
 }) => (
   <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--paper-void)', border: '1px solid var(--accent-dim)' }}>
-    <div className="flex items-center gap-2 mb-3">
+    <div className="flex items-center justify-between gap-2 mb-3">
       <span className="text-base font-mono" style={{ color: 'var(--accent-primary)' }}>CULTIVATION CIRCLE</span>
+      {onClose && (
+        <button type="button" onClick={onClose} className="text-[var(--paper-muted)] hover:text-[var(--accent-primary)] transition-colors" aria-label="Close delegation panel">✕</button>
+      )}
     </div>
     <div className="space-y-2">
       <div className="flex justify-between items-center text-base font-mono">

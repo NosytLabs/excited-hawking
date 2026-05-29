@@ -3,6 +3,17 @@ import { useAgent } from '../context/useAgent';
 import { Activity, TrendingUp, Zap, Clock, Sparkles, Radio } from 'lucide-react';
 const ThreeDCanvas = lazy(() => import('./ThreeDCanvas'));
 
+function withAlpha(color: string, alphaHex: string): string {
+  if (color.startsWith('#')) return color + alphaHex;
+  const alpha = parseInt(alphaHex, 16) / 255;
+  if (color.startsWith('oklch(')) {
+    return color.includes('/') ? color.replace(/\/[^)]*\)/, `/ ${alpha})`) : color.replace(')', ` / ${alpha})`);
+  }
+  if (color.startsWith('rgb(')) return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+  if (color.startsWith('hsl(')) return color.replace('hsl(', 'hsla(').replace(')', `, ${alpha})`);
+  return color;
+}
+
 interface MetricPoint {
   timestamp: number;
   value: number;
@@ -85,7 +96,7 @@ const ProgressRing = ({ progress, color, size = 60, strokeWidth = 4 }: { progres
       // Progress ring with gradient
       const gradient = ctx.createLinearGradient(0, 0, size, size);
       gradient.addColorStop(0, color);
-      gradient.addColorStop(1, color + '80');
+      gradient.addColorStop(1, withAlpha(color, '80'));
 
       ctx.beginPath();
       ctx.arc(cx, cy, radius, -Math.PI / 2, -Math.PI / 2 + (progress / 100) * Math.PI * 2);
@@ -100,7 +111,7 @@ const ProgressRing = ({ progress, color, size = 60, strokeWidth = 4 }: { progres
       // Inner glow
       ctx.beginPath();
       ctx.arc(cx, cy, radius * 0.7, 0, Math.PI * 2);
-      ctx.fillStyle = color + '10';
+      ctx.fillStyle = withAlpha(color, '10');
       ctx.fill();
 
       animRef.current = requestAnimationFrame(draw);
@@ -127,8 +138,8 @@ const MiniSparkline = ({ data, color, height = 30 }: { data: MetricPoint[]; colo
 
     // Gradient fill
     const gradient = ctx.createLinearGradient(0, 0, 0, h);
-    gradient.addColorStop(0, color + '40');
-    gradient.addColorStop(1, color + '00');
+    gradient.addColorStop(0, withAlpha(color, '40'));
+    gradient.addColorStop(1, withAlpha(color, '00'));
 
     ctx.clearRect(0, 0, w, h);
     ctx.beginPath();
@@ -184,7 +195,7 @@ const MiniBarChart = ({ data, color }: { data: MetricPoint[]; color: string }) =
       const x = i * barWidth + 1;
       const y = h - barH;
 
-      ctx.fillStyle = color + '60';
+      ctx.fillStyle = withAlpha(color, '60');
       ctx.fillRect(x, y, barWidth - 2, barH);
 
       ctx.fillStyle = color;
@@ -240,7 +251,7 @@ const ParticleField = ({ colors }: { colors: string[] }) => {
         const alpha = 1 - p.life / p.maxLife;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = p.color + Math.floor(alpha * 99).toString(16).padStart(2, '0');
+        ctx.fillStyle = withAlpha(p.color, Math.floor(alpha * 99).toString(16).padStart(2, '0'));
         ctx.fill();
 
         return p.life < p.maxLife;
@@ -266,6 +277,7 @@ const LivePulseIndicator = ({ color }: { color: string }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let animId: number;
     const draw = () => {
       ctx.clearRect(0, 0, 20, 20);
       animRef.current = (animRef.current + 0.08) % (Math.PI * 2);
@@ -285,10 +297,11 @@ const LivePulseIndicator = ({ color }: { color: string }) => {
       ctx.fillStyle = color;
       ctx.fill();
 
-      requestAnimationFrame(draw);
+      animId = requestAnimationFrame(draw);
     };
 
     draw();
+    return () => cancelAnimationFrame(animId);
   }, [color]);
 
   return <canvas ref={canvasRef} width={20} height={20} />;
@@ -304,6 +317,7 @@ const OrbitalRing = ({ color, size = 80, speed = 0.02 }: { color: string; size?:
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let animId: number;
     const draw = () => {
       ctx.clearRect(0, 0, size, size);
       angleRef.current = (angleRef.current + speed) % (Math.PI * 2);
@@ -315,7 +329,7 @@ const OrbitalRing = ({ color, size = 80, speed = 0.02 }: { color: string; size?:
       // Orbital ring
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = color + '30';
+      ctx.strokeStyle = withAlpha(color, '30');
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
       ctx.lineDashOffset = angleRef.current * 20;
@@ -334,10 +348,11 @@ const OrbitalRing = ({ color, size = 80, speed = 0.02 }: { color: string; size?:
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      requestAnimationFrame(draw);
+      animId = requestAnimationFrame(draw);
     };
 
     draw();
+    return () => cancelAnimationFrame(animId);
   }, [color, size, speed]);
 
   return <canvas ref={canvasRef} width={size} height={size} style={{ position: 'absolute' }} />;
@@ -368,14 +383,14 @@ function MetricBar({ label, value, color, icon }: { label: string; value: number
           {Math.round(value)}%
         </span>
       </div>
-      <div style={{ height: 6, background: 'var(--paper-void)', borderRadius: 3, overflow: 'hidden', position: 'relative', opacity: 0.05 }}>
+      <div style={{ height: 6, background: 'var(--paper-void)', borderRadius: 3, overflow: 'hidden', position: 'relative' }}>
         <div style={{
           height: '100%',
           width: `${Math.min(100, Math.max(0, value))}%`,
-          background: `linear-gradient(90deg, ${color}80, ${color})`,
+          background: `linear-gradient(90deg, ${withAlpha(color, '80')}, ${color})`,
           borderRadius: 3,
           transition: 'width 300ms ease',
-          boxShadow: `0 0 ${10 + glowIntensity * 15}px ${color}60, inset 0 1px 0 rgba(255,255,255,0.3)`,
+          boxShadow: `0 0 ${10 + glowIntensity * 15}px ${withAlpha(color, '60')}, inset 0 1px 0 rgba(255,255,255,0.3)`,
           position: 'relative',
         }}>
           <div style={{
@@ -407,6 +422,30 @@ export const LiveMetrics = () => {
   const prevMomentum = useRef(creatureStats?.momentum);
   const prevCoherence = useRef(creatureStats?.coherence);
   const updatesRef = useRef<number[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Sync canvas pixel resolution to container width for sharp rendering on all screens
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const observer = new ResizeObserver(() => {
+      const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(160 * dpr);
+    });
+
+    observer.observe(container);
+    // Initial sizing
+    const rect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(160 * dpr);
+
+    return () => observer.disconnect();
+  }, []);
 
   // Track metric history
   useEffect(() => {
@@ -465,9 +504,9 @@ export const LiveMetrics = () => {
 
       // Create gradient fill
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, color + '40');
-      gradient.addColorStop(0.5, color + '15');
-      gradient.addColorStop(1, color + '00');
+      gradient.addColorStop(0, withAlpha(color, '40'));
+      gradient.addColorStop(0.5, withAlpha(color, '15'));
+      gradient.addColorStop(1, withAlpha(color, '00'));
 
       // Draw filled area with smooth interpolation
       ctx.beginPath();
@@ -512,7 +551,7 @@ export const LiveMetrics = () => {
         // Outer glow
         ctx.beginPath();
         ctx.arc(x, y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = color + '30';
+        ctx.fillStyle = withAlpha(color, '30');
         ctx.fill();
 
         // Middle ring
@@ -579,7 +618,7 @@ export const LiveMetrics = () => {
         const alpha = 1 - p.life / p.maxLife;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = p.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+        ctx.fillStyle = withAlpha(p.color, Math.floor(alpha * 255).toString(16).padStart(2, '0'));
         ctx.fill();
 
         return p.life < p.maxLife;
@@ -590,7 +629,7 @@ export const LiveMetrics = () => {
       const accentColor = getColor('var(--accent-primary)');
       const scanGradient = ctx.createLinearGradient(offset - 30, 0, offset + 30, 0);
       scanGradient.addColorStop(0, 'transparent');
-      scanGradient.addColorStop(0.5, `${accentColor}26`);
+      scanGradient.addColorStop(0.5, withAlpha(accentColor, '26'));
       scanGradient.addColorStop(1, 'transparent');
       ctx.fillStyle = scanGradient;
       ctx.fillRect(offset - 30, 0, 60, h);
@@ -608,7 +647,7 @@ export const LiveMetrics = () => {
 
   return (
     <div style={{
-      background: `linear-gradient(145deg, ${getColor('var(--paper-void)')}f2, ${getColor('var(--paper-deep)')}e6)`,
+      background: `linear-gradient(145deg, ${withAlpha(getColor('var(--paper-void)'), 'f2')}, ${withAlpha(getColor('var(--paper-deep)'), 'e6')})`,
       border: `1px solid ${getColor('var(--paper-border)')}`,
       borderRadius: 'var(--radius-lg)',
       padding: '24px',
@@ -623,7 +662,7 @@ export const LiveMetrics = () => {
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: `radial-gradient(ellipse at 50% 0%, ${getColor('var(--accent-primary)')}14, transparent 60%)`,
+        background: `radial-gradient(ellipse at 50% 0%, ${withAlpha(getColor('var(--accent-primary)'), '14')}, transparent 60%)`,
         pointerEvents: 'none',
       }} />
 
@@ -636,7 +675,7 @@ export const LiveMetrics = () => {
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--paper-text)', margin: 0, letterSpacing: 2 }}>
           LIVE TELEMETRY
         </h3>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: `${getColor('var(--paper-surface)')}0d`, borderRadius: 'var(--radius-sm)', border: `1px solid ${getColor('var(--paper-border)')}0d` }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: `${withAlpha(getColor('var(--paper-surface)'), '0d')}`, borderRadius: 'var(--radius-sm)', border: `1px solid ${withAlpha(getColor('var(--paper-border)'), '0d')}` }}>
           <Radio size={10} style={{ color: getColor('var(--success)') }} />
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--paper-muted)' }}>{updateFrequency} Hz</span>
         </div>
@@ -675,14 +714,14 @@ export const LiveMetrics = () => {
       </div>
 
       {/* Large sparkline canvas */}
-      <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: `1px solid ${getColor('var(--paper-border)')}`, marginBottom: 20 }}>
+      <div ref={containerRef} style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: `1px solid ${getColor('var(--paper-border)')}`, marginBottom: 20 }}>
         <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          <Suspense fallback={<div style={{ width: 460, height: 160 }} />}>
+          <Suspense fallback={<div style={{ height: 160 }} />}>
             <ThreeDCanvas width={460} height={160} />
           </Suspense>
         </div>
-        <canvas ref={canvasRef} width={460} height={160} style={{ width: '100%', height: 160, display: 'block', position: 'relative', zIndex: 2 }} />
-        <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 8, background: `${getColor('var(--paper-void)')}cc`, padding: '6px 10px', borderRadius: 'var(--radius-sm)', backdropFilter: 'blur(8px)' }}>
+        <canvas ref={canvasRef} style={{ width: '100%', height: 160, display: 'block', position: 'relative', zIndex: 2 }} />
+        <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 8, background: `${withAlpha(getColor('var(--paper-void)'), 'cc')}`, padding: '6px 10px', borderRadius: 'var(--radius-sm)', backdropFilter: 'blur(8px)' }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: getColor('var(--success)') }}>&#9679; VIT</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: getColor('var(--accent-primary)') }}>&#9679; MOM</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: getColor('var(--accent-dim)') }}>&#9679; COH</span>
@@ -694,13 +733,13 @@ export const LiveMetrics = () => {
       </div>
 
       {/* Stats grid with mini charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+      <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: 12, marginBottom: 20 }}>
         <div style={{
           textAlign: 'center',
           padding: '12px 8px',
-          background: `${getColor('var(--paper-surface)')}05`,
+          background: `${withAlpha(getColor('var(--paper-surface)'), '05')}`,
           borderRadius: 'var(--radius-md)',
-          border: `1px solid ${getColor('var(--paper-border)')}0d`,
+          border: `1px solid ${withAlpha(getColor('var(--paper-border)'), '0d')}`,
           position: 'relative',
         }}>
           <MiniSparkline data={vitalityHistory} color={getColor('var(--success)')} height={25} />
@@ -712,9 +751,9 @@ export const LiveMetrics = () => {
         <div style={{
           textAlign: 'center',
           padding: '12px 8px',
-          background: `${getColor('var(--paper-surface)')}05`,
+          background: `${withAlpha(getColor('var(--paper-surface)'), '05')}`,
           borderRadius: 'var(--radius-md)',
-          border: `1px solid ${getColor('var(--paper-border)')}0d`,
+          border: `1px solid ${withAlpha(getColor('var(--paper-border)'), '0d')}`,
           position: 'relative',
         }}>
           <MiniSparkline data={momentumHistory} color={getColor('var(--accent-primary)')} height={25} />
@@ -726,11 +765,11 @@ export const LiveMetrics = () => {
         <div style={{
           textAlign: 'center',
           padding: '12px 8px',
-          background: `linear-gradient(145deg, ${getColor('var(--warning)')}1a, ${getColor('var(--warning)')}05)`,
+          background: `linear-gradient(145deg, ${withAlpha(getColor('var(--warning)'), '1a')}, ${withAlpha(getColor('var(--warning)'), '05')})`,
           borderRadius: 'var(--radius-md)',
-          border: `1px solid ${getColor('var(--warning)')}33`,
+          border: `1px solid ${withAlpha(getColor('var(--warning)'), '33')}`,
           position: 'relative',
-          boxShadow: `0 0 20px ${getColor('var(--warning)')}1a, inset 0 0 20px ${getColor('var(--warning)')}0d`,
+          boxShadow: `0 0 20px ${withAlpha(getColor('var(--warning)'), '1a')}, inset 0 0 20px ${withAlpha(getColor('var(--warning)'), '0d')}`,
         }}>
           <MiniBarChart data={coherenceHistory} color={getColor('var(--warning)')} />
           <div style={{
@@ -739,7 +778,7 @@ export const LiveMetrics = () => {
             fontWeight: 700,
             color: getColor('var(--warning)'),
             marginTop: 4,
-            textShadow: `0 0 20px ${getColor('var(--warning)')}80`,
+            textShadow: `0 0 20px ${withAlpha(getColor('var(--warning)'), '80')}`,
           }}>
             <AnimatedCounter value={diemStaked || 0} color={getColor('var(--warning)')} />
           </div>
@@ -758,7 +797,7 @@ export const LiveMetrics = () => {
       <div style={{
         marginTop: 16,
         padding: '14px 18px',
-        background: `linear-gradient(145deg, ${getColor('var(--paper-void)')}4d, ${getColor('var(--paper-void)')}33)`,
+        background: `linear-gradient(145deg, ${withAlpha(getColor('var(--paper-void)'), '4d')}, ${withAlpha(getColor('var(--paper-void)'), '33')})`,
         border: `1px solid ${getColor('var(--paper-border)')}`,
         borderRadius: 'var(--radius-md)',
         display: 'flex',
@@ -771,7 +810,7 @@ export const LiveMetrics = () => {
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: `linear-gradient(90deg, transparent, ${moodColor}10, transparent)`,
+          background: `linear-gradient(90deg, transparent, ${withAlpha(moodColor, '10')}, transparent)`,
           animation: 'shimmer 3s ease-in-out infinite',
         }} />
 
@@ -786,7 +825,7 @@ export const LiveMetrics = () => {
           color: moodColor,
           textTransform: 'uppercase',
           letterSpacing: 2,
-          textShadow: `0 0 15px ${moodColor}80`,
+          textShadow: `0 0 15px ${withAlpha(moodColor, '80')}`,
           animation: 'pulse 2s ease-in-out infinite',
         }}>
           {creatureMood || 'STANDBY'}
@@ -799,7 +838,7 @@ export const LiveMetrics = () => {
               width: 4,
               height: 16,
               borderRadius: 2,
-              background: creatureMood === mood ? moodColor : `${getColor('var(--paper-text)')}1a`,
+              background: creatureMood === mood ? moodColor : withAlpha(getColor('var(--paper-text)'), '1a'),
               boxShadow: creatureMood === mood ? `0 0 8px ${moodColor}` : 'none',
               transition: 'all 300ms ease',
             }} />
@@ -807,16 +846,6 @@ export const LiveMetrics = () => {
         </div>
       </div>
 
-      <style>{`
-        @keyframes shimmer {
-          0%, 100% { transform: translateX(-100%); }
-          50% { transform: translateX(100%); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-      `}</style>
     </div>
   );
 };

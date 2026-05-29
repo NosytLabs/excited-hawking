@@ -138,8 +138,8 @@ export const PromptBox: React.FC = React.memo(() => {
           </div>
 
           <div className="mb-4">
-            <label className="text-base font-medium text-[var(--paper-muted)] uppercase block mb-2">Depth</label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <span className="text-base font-medium text-[var(--paper-muted)] uppercase block mb-2">Depth</span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2" role="group" aria-label="Select prompt depth">
               {COST_TIERS.map((tier, idx) => (
                 <button
                   key={tier.name}
@@ -150,6 +150,7 @@ export const PromptBox: React.FC = React.memo(() => {
                       ? 'border-[var(--accent-primary)] bg-[var(--paper-elevated)]' 
                       : 'border-[var(--paper-border)] bg-transparent'
                   }`}
+                  aria-pressed={selectedTier === idx}
                 >
                   <div className="mb-1 flex justify-center"><tier.icon size={20} className={selectedTier === idx ? 'text-[var(--accent-primary)]' : 'text-[var(--paper-muted)]'} /></div>
                   <div className={`font-bold text-base mb-1 ${selectedTier === idx ? 'text-[var(--accent-primary)]' : 'text-[var(--paper-text)]'}`}>${tier.price.toFixed(2)}</div>
@@ -212,7 +213,7 @@ export const PromptBox: React.FC = React.memo(() => {
               <span className="text-base text-[var(--paper-muted)]">Staked: {diemStaked.toFixed(2)} DIEM (need {(MIN_STAKE_FOR_ACCESS - diemStaked).toFixed(2)} more)</span>
             </div>
           </div>
-          <button onClick={() => window.location.href = '/#/stake'} className="btn-primary text-base py-2">
+          <button onClick={() => window.location.hash = '#/stake'} className="btn-primary text-base py-2">
             Stake Now
           </button>
         </div>

@@ -19,6 +19,7 @@ import { ExperimentTimeline } from './components/ExperimentTimeline';
 import { Methodology } from './components/Methodology';
 
 import { LazyErrorBoundary } from './components/LazyErrorBoundary';
+import { Footer } from './components/Footer';
 const Governance = lazy(() => import('./components/Governance').then(m => ({ default: m.Governance })));
 const CanvasLayer = lazy(() => import('./components/CanvasLayer').then(m => ({ default: m.CanvasLayer })));
 const Guestbook = lazy(() => import('./components/Guestbook').then(m => ({ default: m.Guestbook })));
@@ -74,68 +75,57 @@ function App() {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [route]);
+
   if (route !== '/') {
     return (
       <AgentProvider>
         <ToastProvider>
           <ErrorBoundary>
             <a href="#main-content" className="skip-link">Skip to main content</a>
+            <div className="min-h-screen bg-[var(--paper-void)] scanlines grain">
             <header className="fixed top-0 left-0 right-0 z-40 border-b border-[var(--paper-border)] bg-[var(--paper-void)]/90 backdrop-blur-sm">
-            <div className="container-edge flex items-center justify-between h-14">
-              <div className="flex items-center gap-4">
-                <a href="#/" className="font-mono text-base font-bold tracking-tight text-[var(--paper-text)] hover:text-[var(--accent-primary)] transition-colors">
-                  Excited Hawking
-                </a>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.location.hash = '#/stake'}
-                  className="text-base font-mono font-bold uppercase tracking-wider px-3 min-h-[44px] bg-[var(--accent-primary)] text-[var(--paper-void)] hover:bg-[var(--accent-dim)] transition-colors flex items-center"
-                >
-                  Enter Vault
-                </button>
-                <button
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--paper-text)] hover:text-[var(--accent-primary)] transition-colors"
-                  aria-label="Toggle navigation menu"
-                  aria-expanded={mobileMenuOpen}
-                >
-                  {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                </button>
-              </div>
-
-              <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">
-                {SECTION_IDS.map((id) => (
-                  <button
-                    key={id}
-                    onClick={() => scrollToSection(id)}
-                    className={`text-base font-mono min-h-[44px] flex items-center transition-colors ${
-                      activeSection === id
-                        ? 'text-[var(--accent-primary)]'
-                        : 'text-[var(--paper-muted)] hover:text-[var(--paper-text)]'
-                    }`}
-                    aria-label={id.charAt(0).toUpperCase() + id.slice(1)}
+              <div className="container-edge flex items-center justify-between h-14">
+                <div className="flex items-center gap-4">
+                  <a href="#/" className="font-mono text-base font-bold tracking-tight text-[var(--paper-text)] hover:text-[var(--accent-primary)] transition-colors">
+                    Excited Hawking
+                  </a>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href="#/"
+                    className="text-sm font-mono text-[var(--paper-muted)] hover:text-[var(--paper-text)] transition-colors min-h-[44px] flex items-center"
                   >
-                    {id.charAt(0).toUpperCase() + id.slice(1)}
+                    ← Back
+                  </a>
+                  <button
+                    onClick={() => window.location.hash = '#/stake'}
+                    className="text-base font-mono font-bold uppercase tracking-wider px-3 min-h-[44px] bg-[var(--accent-primary)] text-[var(--paper-void)] hover:bg-[var(--accent-dim)] transition-colors flex items-center"
+                  >
+                    Enter Vault
                   </button>
-                ))}
-              </nav>
-            </div>
-          </header>
-          <main className="pt-14">
-            {route === '/about' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><AboutPage /></LazyErrorBoundary></Suspense>}
-            {route === '/terms' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><TermsOfService /></LazyErrorBoundary></Suspense>}
-            {route === '/privacy' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><PrivacyPolicy /></LazyErrorBoundary></Suspense>}
-            {route === '/stake' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><ProfilePage /></LazyErrorBoundary></Suspense>}
-            {route === '/protocol' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><AboutPage /></LazyErrorBoundary></Suspense>}
-            {route === '/not-found' && (
-              <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
-                <h1 className="text-6xl font-bold mb-4" style={{ color: 'var(--paper-text)' }}>404</h1>
-                <p className="text-xl mb-8" style={{ color: 'var(--paper-muted)' }}>Page not found</p>
-                <a href="#/" className="btn-primary">Return Home</a>
+                </div>
               </div>
-            )}
-          </main>
+            </header>
+            <main id="main-content" className="pt-14">
+              {route === '/about' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><AboutPage /></LazyErrorBoundary></Suspense>}
+              {route === '/terms' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><TermsOfService /></LazyErrorBoundary></Suspense>}
+              {route === '/privacy' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><PrivacyPolicy /></LazyErrorBoundary></Suspense>}
+              {route === '/stake' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><ProfilePage /></LazyErrorBoundary></Suspense>}
+              {route === '/protocol' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><AboutPage /></LazyErrorBoundary></Suspense>}
+              {route === '/not-found' && (
+                <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
+                  <h1 className="text-6xl font-bold mb-4" style={{ color: 'var(--paper-text)' }}>404</h1>
+                  <p className="text-xl mb-8" style={{ color: 'var(--paper-muted)' }}>Page not found</p>
+                  <a href="#/" className="btn-primary">Return Home</a>
+                </div>
+              )}
+            </main>
+            <Footer />
+            </div>
         </ErrorBoundary>
         </ToastProvider>
       </AgentProvider>
@@ -200,12 +190,18 @@ return (
           </header>
 
           {mobileMenuOpen && (
-            <div 
-              className="md:hidden fixed top-14 left-0 right-0 z-30 bg-[var(--paper-void)] border-b border-[var(--paper-border)] animate-fade-in"
-              role="dialog"
-              aria-label="Mobile navigation menu"
-              aria-modal="true"
-            >
+            <>
+              <div 
+                className="md:hidden fixed inset-0 bg-black/50 z-40"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-hidden="true"
+              />
+              <div 
+                className="md:hidden fixed top-14 left-0 right-0 z-50 bg-[var(--paper-void)] border-b border-[var(--paper-border)] animate-fade-in"
+                role="dialog"
+                aria-label="Mobile navigation menu"
+                aria-modal="true"
+              >
               <nav id="mobile-menu" className="container-edge py-4 flex flex-col gap-1" aria-label="Mobile navigation">
                 {SECTION_IDS.map((id) => (
                   <button
@@ -242,6 +238,7 @@ return (
                 </div>
               </nav>
             </div>
+            </>
           )}
 
           <main id="main-content" className="pt-14">
@@ -330,19 +327,7 @@ return (
 
           </main>
 
-          <footer className="border-t border-[var(--paper-border)] py-6 md:py-8">
-            <div className="container-edge">
-              <p className="font-mono text-sm text-[var(--paper-text)]">
-                Excited Hawking <span className="text-[var(--paper-border)]">//</span> AI-administered public experiment <span className="text-[var(--paper-border)]">//</span> emergence is not consciousness
-              </p>
-              <div className="flex flex-wrap gap-3 md:gap-6 mt-4">
-                <a href="#/about" className="font-mono text-sm text-[var(--paper-text)] hover:text-[var(--accent-primary)] transition-colors py-2 min-h-[44px] flex items-center">About</a>
-                <a href="#/protocol" className="font-mono text-sm text-[var(--paper-text)] hover:text-[var(--accent-primary)] transition-colors py-2 min-h-[44px] flex items-center">Protocol</a>
-                <a href="#/terms" className="font-mono text-sm text-[var(--paper-text)] hover:text-[var(--accent-primary)] transition-colors py-2 min-h-[44px] flex items-center">Terms</a>
-                <a href="#/privacy" className="font-mono text-sm text-[var(--paper-text)] hover:text-[var(--accent-primary)] transition-colors py-2 min-h-[44px] flex items-center">Privacy</a>
-              </div>
-            </div>
-          </footer>
+          <Footer />
 
         </div>
       </ErrorBoundary>

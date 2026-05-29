@@ -228,8 +228,8 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
       }}>
         <div className="flex items-center gap-3">
           <span aria-hidden="true">⚙</span>
-          <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--accent-glow)' }}>System Governance</span>
-          <span className="text-xs px-2 py-0.5 rounded bg-[var(--warning)]/30 text-[var(--warning)]">STANDBY</span>
+          <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--accent-primary)' }}>System Governance</span>
+          <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'rgba(0,0,0,0.3)', color: 'var(--warning)' }}>STANDBY</span>
         </div>
         <span className="text-sm font-mono" style={{ color: 'var(--paper-muted)' }}>&gt; connect backend to view proposals</span>
       </div>
@@ -254,16 +254,16 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
       <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-transparent via-[var(--accent-glow)] to-transparent opacity-60" />
       <div className="absolute top-0 right-0 h-full w-1 bg-gradient-to-b from-transparent via-[var(--accent-glow)] to-transparent opacity-60" />
 
-      <div className="relative z-10 p-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 pb-3 gap-3" style={{ borderBottom: '1px solid var(--accent-dim)' }}>
+<div className="relative z-10 p-4 md:p-5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 pb-4 gap-4" style={{ borderBottom: '1px solid var(--paper-border)' }}>
           <div className="flex items-center gap-3">
-            <div className="flex flex-col items-center">
-              <span className="text-xs tracking-widest" style={{ color: 'var(--accent-dim)' }}>ROBCO INDUSTRIES</span>
-              <h3 className="text-sm font-mono uppercase tracking-wider flex items-center gap-2">
-                <span style={{ color: 'var(--accent-glow)' }} aria-hidden="true">&gt;</span>
-                SYSTEM GOVERNANCE
-              </h3>
-              <span className="text-xs tracking-widest" style={{ color: 'var(--accent-dim)' }}>TERMINAL v3.14</span>
+            <span aria-hidden="true" className="text-xl" style={{ color: 'var(--accent-primary)' }}>▶</span>
+            <div>
+              <h3 className="text-base font-bold tracking-wide" style={{ 
+                color: 'var(--paper-text)', 
+                fontFamily: 'var(--font-display)' 
+              }}>System Governance</h3>
+              <span className="text-xs" style={{ color: 'var(--paper-muted)' }}>Decentralized protocol</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -271,24 +271,28 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
               aria-label="Manage Delegation"
               type="button"
               onClick={() => setShowDelegationPanel(!showDelegationPanel)}
-              className="text-sm font-mono flex items-center gap-1 transition-colors border px-2 min-h-[44px] rounded"
-              style={{ color: 'var(--accent-dim)', borderColor: 'var(--paper-border)' }}
+              className="text-sm font-mono flex items-center gap-2 transition-colors border px-3 min-h-[44px] rounded"
+              style={{ color: 'var(--paper-muted)', borderColor: 'var(--paper-border)' }}
             >
-              <Leaf size={12} />
-              DELEGATE
+              <Leaf size={14} />
+              Delegate
             </button>
             <button
               aria-label="Create New Proposal"
               type="button"
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="text-sm font-mono px-3 min-h-[44px] rounded flex items-center gap-1 transition-colors"
-              style={{ color: 'var(--accent-primary)', border: '1px solid var(--accent-dim)', backgroundColor: 'var(--paper-elevated)' }}
+              className="text-sm font-mono font-bold px-4 min-h-[44px] rounded flex items-center gap-2 transition-colors"
+              style={{ 
+                color: 'var(--paper-void)', 
+                backgroundColor: 'var(--accent-primary)',
+                border: '1px solid var(--accent-primary)'
+              }}
             >
               <Plus size={14} />
-              NEW
+              New Proposal
             </button>
           </div>
-        </div>
+</div>
 
         {showDelegationPanel && (
           <DelegationPanel
@@ -329,6 +333,7 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
             />
             <div className="flex gap-3 mb-3">
               <select
+                aria-label="Proposal category"
                 value={newProposal.category}
                 onChange={(e) => setNewProposal(prev => ({ ...prev, category: e.target.value as ProposalCategory }))}
                 className="bg-black/50 border border-[var(--accent-dim)] rounded px-3 py-2 text-base font-mono text-[var(--accent-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
@@ -371,6 +376,7 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
 
         <div className="flex flex-wrap gap-2 mb-4">
           <select
+            aria-label="Filter by status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as ProposalStatus | 'ALL')}
             className="rounded px-2 py-1.5 text-sm font-mono focus:outline-none bg-[var(--paper-deep)] border border-[var(--accent-dim)] text-[var(--accent-glow)]"
@@ -384,6 +390,7 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
             <option value="EXECUTED">EXECUTED</option>
           </select>
           <select
+            aria-label="Filter by category"
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value as ProposalCategory | 'ALL')}
             className="rounded px-2 py-1.5 text-sm font-mono focus:outline-none bg-[var(--paper-deep)] border border-[var(--accent-dim)] text-[var(--accent-glow)]"
@@ -513,8 +520,8 @@ export const Governance: React.FC<{ proposals?: ProposalDetail[] }> = React.memo
         )}
 
         <div className="mt-4 pt-3 border-t border-[var(--paper-border)] flex items-center justify-between">
-          <span className="text-xs font-mono text-[var(--paper-border)]">ROBCO INDUSTRIES © 2077</span>
-          <span className="text-xs font-mono text-[var(--paper-border)]">SYS.GOV</span>
+          <span className="text-xs font-mono text-[var(--paper-muted)]">ROBCO INDUSTRIES © 2077</span>
+          <span className="text-xs font-mono text-[var(--paper-muted)]">SYS.GOV</span>
         </div>
       </div>
     </div>

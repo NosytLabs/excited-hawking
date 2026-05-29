@@ -76,14 +76,14 @@ function Toggle({ enabled, onChange, label, description }: ToggleProps) {
     <div className="flex items-center justify-between py-3 border-b border-[var(--paper-border)] last:border-b-0">
       <div className="flex-1">
         <p className="font-medium text-[var(--paper-text)]">{label}</p>
-        <p className="text-base text-[var(--paper-text-muted)]">{description}</p>
+        <p className="text-base text-[var(--paper-muted)]">{description}</p>
       </div>
       <button
         onClick={onChange}
         role="switch"
         aria-checked={enabled}
         aria-label={label}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled ? 'bg-[var(--paper-accent)]' : 'bg-[var(--paper-text-muted)]/40'}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled ? 'bg-[var(--accent-primary)]' : 'bg-[var(--paper-muted)]/40'}`}
       >
         <span
           className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`}
@@ -138,14 +138,14 @@ export function ProfilePage() {
               <h1 className="text-3xl md:text-4xl font-display font-bold mb-2 tracking-tight" style={{ color: 'var(--paper-text)' }}>
                 Participant Profile
               </h1>
-              <p style={{ color: 'var(--paper-text-muted)' }}>
+              <p style={{ color: 'var(--paper-muted)' }}>
                 Your staking position and activity within The Vault Experiment
               </p>
             </div>
 
             <section className="card mb-6" aria-labelledby="wallet-tier-heading">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--paper-accent)] to-[var(--paper-accent-dim,var(--paper-accent))] flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-dim)] flex items-center justify-center">
                   <Wallet size={24} style={{ color: 'var(--paper-text)' }} />
                 </div>
                 <div className="flex-1">
@@ -170,23 +170,23 @@ export function ProfilePage() {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
                   <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{formatNumber(user.stats.totalDiemStaked)}</p>
-                  <p className="text-base" style={{ color: 'var(--paper-text-muted)' }}>DIEM Staked</p>
+                  <p className="text-base" style={{ color: 'var(--paper-muted)' }}>DIEM Staked</p>
                 </div>
                 <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
                   <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{formatNumber(user.stats.quadraticVotingWeight)}</p>
-                  <p className="text-base" style={{ color: 'var(--paper-text-muted)' }}>Voting Weight</p>
+                  <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Voting Weight</p>
                 </div>
                 <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
                   <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{user.stats.promptsSubmitted}</p>
-                  <p className="text-base" style={{ color: 'var(--paper-text-muted)' }}>Prompts</p>
+                  <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Prompts</p>
                 </div>
                 <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
                   <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{user.stats.proposalsCreated}</p>
-                  <p className="text-base" style={{ color: 'var(--paper-text-muted)' }}>Proposals</p>
+                  <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Proposals</p>
                 </div>
                 <div className="rounded-lg p-4 text-center md:col-span-1" style={{ backgroundColor: 'var(--paper-surface)' }}>
                   <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{user.stats.votingHistoryCount}</p>
-                  <p className="text-base" style={{ color: 'var(--paper-text-muted)' }}>Votes Cast</p>
+                  <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Votes Cast</p>
                 </div>
               </div>
             </section>
@@ -207,13 +207,13 @@ export function ProfilePage() {
                       aria-label={`${activity.description}, ${activity.time}`}
                     >
                       <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--paper-surface)' }}>
-                        <ActivityIcon size={18} style={{ color: 'var(--paper-text-muted)' }} />
+                        <ActivityIcon size={18} style={{ color: 'var(--paper-muted)' }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate" style={{ color: 'var(--paper-text)' }}>{activity.description}</p>
-                        <p className="text-base" style={{ color: 'var(--paper-text-muted)' }}>{activity.time}</p>
+                        <p className="text-base" style={{ color: 'var(--paper-muted)' }}>{activity.time}</p>
                       </div>
-                      <div className="flex-shrink-0" style={{ color: activity.impact === 'positive' ? 'var(--paper-success)' : activity.impact === 'negative' ? 'var(--paper-danger)' : 'var(--paper-text-muted)' }}>
+                      <div className="flex-shrink-0" style={{ color: activity.impact === 'positive' ? 'var(--success)' : activity.impact === 'negative' ? 'var(--danger)' : 'var(--paper-muted)' }}>
                         <ImpactIcon size={16} />
                       </div>
                     </div>
@@ -224,7 +224,7 @@ export function ProfilePage() {
 
             <section className="card" aria-labelledby="settings-heading">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(to bottom, var(--paper-surface), var(--paper-text-muted))' }}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(to bottom, var(--paper-surface), var(--paper-muted))' }}>
                   <Settings size={18} style={{ color: 'var(--paper-text)' }} />
                 </div>
                 <h2 id="settings-heading" className="text-lg font-display font-semibold" style={{ color: 'var(--paper-text)' }}>

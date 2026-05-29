@@ -96,8 +96,11 @@ export const AgentStream: React.FC = React.memo(() => {
     if (!container || !canvas) return;
     
     const size = Math.min(container.clientWidth, container.clientHeight);
-    canvas.width = size;
-    canvas.height = size;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    canvas.style.width = `${size}px`;
+    canvas.style.height = `${size}px`;
   }, []);
 
   useEffect(() => {
@@ -136,10 +139,15 @@ export const AgentStream: React.FC = React.memo(() => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const cellSize = canvas.width / gridCells.length;
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const cellSize = canvas.width / dpr / gridCells.length;
     
+    const cssWidth = canvas.width / dpr;
+    const cssHeight = canvas.height / dpr;
     ctx.fillStyle = canvasColors.bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, cssWidth, cssHeight);
 
     gridCells.forEach((row, i) => {
       row.forEach((cell, j) => {
@@ -220,7 +228,7 @@ border: '1px solid var(--paper-border)'
         <div 
           className={`w-10 h-10 flex items-center justify-center ${tierConfig.glow ? 'animate-glow-pulse' : ''}`}
             style={{ 
-              backgroundColor: 'var(--accent-primary)20', 
+              backgroundColor: 'var(--accent-subtle)', 
               border: `2px solid ${tierConfig.color}`,
               boxShadow: tierConfig.glow ? `0 0 15px ${tierConfig.color}40` : 'none'
             }}

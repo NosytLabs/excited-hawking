@@ -17,6 +17,9 @@ export default defineConfig({
           if (id.includes('node_modules/three')) {
             return 'vendor-three';
           }
+          if (id.includes('node_modules/socket.io')) {
+            return 'vendor-socketio';
+          }
         }
       }
     }

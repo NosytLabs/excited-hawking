@@ -21,27 +21,6 @@ type ApiStatusEnvelope = {
   timestamp: number;
 };
 
-interface QueueResponse {
-  prompts: Array<{
-    id: string;
-    user: string;
-    text: string;
-    votes: number;
-    cost: number;
-    status: 'queued' | 'processing' | 'done';
-  }>;
-}
-
-interface LogsResponse {
-  logs: Array<{
-    id: string;
-    timestamp: string;
-    message: string;
-    type: 'info' | 'action' | 'success' | 'warning' | 'error';
-  }>;
-  total?: number;
-}
-
 type SignedVoteRequest = {
   promptId: string;
   vote: 'up' | 'down';
@@ -50,18 +29,6 @@ type SignedVoteRequest = {
   nonce: string;
   wallet?: string;
 };
-
-interface Proposal {
-  id: string;
-  title: string;
-  votesFor: number;
-  votesAgainst: number;
-  status: 'active' | 'passed' | 'failed';
-}
-
-interface ProposalsResponse {
-  proposals: Proposal[];
-}
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -77,18 +44,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function voteOnPrompt(promptId: string, vote: 'up' | 'down', walletAddress: string, signature: string, nonce: string): Promise<{ success: boolean; newVoteCount: number }> {
-  return fetchJson(`${BASE_URL}/api/vote`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-wallet-address': walletAddress,
-      'x-signature': signature,
-      'x-nonce': nonce,
-    },
-    body: JSON.stringify({ promptId, vote }),
-  });
-}
+
 
 function normalizeStatusResponse(payload: ApiStatusEnvelope): StatusResponse {
   return {
@@ -138,19 +94,7 @@ export const api = {
     });
   },
 
-  async getQueue(): Promise<QueueResponse> {
-    return fetchJson<QueueResponse>(`${BASE_URL}/api/queue`);
-  },
-
   vote,
-
-  async getLogs(): Promise<LogsResponse> {
-    return fetchJson<LogsResponse>(`${BASE_URL}/api/logs/list`);
-  },
-
-  async getGovernanceProposals(): Promise<ProposalsResponse> {
-    return fetchJson<ProposalsResponse>(`${BASE_URL}/api/governance/proposals`);
-  },
 
   async createProposal(title: string, description: string, category: string, deposit: number): Promise<{ proposalId: string }> {
     return fetchJson<{ proposalId: string }>(`${BASE_URL}/api/governance/proposal`, {
@@ -175,4 +119,4 @@ export const api = {
 };
 
 export { normalizeStatusResponse };
-export type { StatusResponse, ApiStatusEnvelope, SignedVoteRequest, QueueResponse, LogsResponse, ProposalsResponse, Proposal };
+export type { StatusResponse, ApiStatusEnvelope, SignedVoteRequest };

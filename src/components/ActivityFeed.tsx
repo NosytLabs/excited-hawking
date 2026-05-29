@@ -116,8 +116,8 @@ export const ActivityFeed = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[var(--paper-text)] truncate">{event.description}</span>
-                  <span className="text-xs text-[var(--paper-muted)] flex items-center gap-1 shrink-0">
-                    <Clock size={8} />
+                  <span className="text-xs text-[var(--paper-muted)] flex items-center gap-1 shrink-0" aria-label={`${formatTime(event.timestamp)} ago`}>
+                    <Clock size={8} aria-hidden="true" />
                     {formatTime(event.timestamp)}
                   </span>
                 </div>

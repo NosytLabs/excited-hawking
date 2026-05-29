@@ -65,13 +65,15 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const canVote = useMemo(() => canVoteWithCurrentWallet(walletMode, state.walletAddress), [walletMode, state.walletAddress]);
   const voteDisabledReason = useMemo(() => getVoteDisabledReason(walletMode), [walletMode]);
 
+  const handlersRef = useRef<Record<string, () => void>>({});
+
   useEffect(() => {
     abortControllerRef.current = new AbortController();
 
-    websocketService.on(WSEvents.CONNECT, () => setState(prev => ({ ...prev, isConnected: true, backendAvailable: true })));
-    websocketService.on(WSEvents.DISCONNECT, () => setState(prev => ({ ...prev, isConnected: false, backendAvailable: false })));
-    websocketService.on(WSEvents.CONNECT_ERROR, () => setState(prev => ({ ...prev, isConnected: false, backendAvailable: false })));
-    websocketService.on(WSEvents.PROMPT_NEW, (event: PromptEvent) => {
+    const handleConnect = () => setState(prev => ({ ...prev, isConnected: true, backendAvailable: true }));
+    const handleDisconnect = () => setState(prev => ({ ...prev, isConnected: false, backendAvailable: false }));
+    const handleConnectError = () => setState(prev => ({ ...prev, isConnected: false, backendAvailable: false }));
+    const handlePromptNew = (event: PromptEvent) => {
       setState(prev => {
         const existing = prev.prompts.find(p => p.id === event.id);
         if (existing) return { ...prev, prompts: prev.prompts.map(p => p.id === event.id ? { ...p, ...event } : p) };
@@ -79,34 +81,62 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         if (optimisticMatch) return { ...prev, prompts: prev.prompts.map(p => p.id === optimisticMatch.id ? { ...event } : p) };
         return { ...prev, prompts: [...prev.prompts, event as PromptItem] };
       });
-    });
-    websocketService.on(WSEvents.BALANCE_UPDATE, (event: BalanceEvent) => setState(prev => ({ ...prev, diemStaked: event.diemStaked })));
-    websocketService.on(WSEvents.TREASURY_UPDATE, (event: TreasuryEvent) => setState(prev => ({ ...prev, treasuryUSDC: event.treasuryUSDC })));
-    websocketService.on(WSEvents.TIER_CHANGE, (event: TierEvent) => setState(prev => ({ ...prev, tier: event.tier })));
-    websocketService.on(WSEvents.LOG_NEW, (event: LogEvent) => {
+    };
+    const handleBalanceUpdate = (event: BalanceEvent) => setState(prev => ({ ...prev, diemStaked: event.diemStaked }));
+    const handleTreasuryUpdate = (event: TreasuryEvent) => setState(prev => ({ ...prev, treasuryUSDC: event.treasuryUSDC }));
+    const handleTierChange = (event: TierEvent) => setState(prev => ({ ...prev, tier: event.tier }));
+    const handleLogNew = (event: LogEvent) => {
       setState(prev => ({ ...prev, logs: [...prev.logs.slice(-99), { ...event, id: `log-${logsIdCounter.current++}` }] }));
-    });
-    websocketService.on(WSEvents.GOVERNANCE_PROPOSAL, (event: GovernanceEvent) => {
+    };
+    const handleGovernanceProposal = (event: GovernanceEvent) => {
       setState(prev => {
         const existing = prev.proposals.find(p => p.id === event.id);
         if (existing) return { ...prev, proposals: prev.proposals.map(p => p.id === event.id ? { ...p, ...event } : p) };
         return { ...prev, proposals: [...prev.proposals, event as Proposal] };
       });
-    });
-    websocketService.on(WSEvents.CREATURE_UPDATE, (event: CreatureEvent) => {
+    };
+    const handleCreatureUpdate = (event: CreatureEvent) => {
       setState(prev => ({ ...prev, creatureStats: event.stats, creatureMood: event.mood, totalPromptsProcessed: event.totalPromptsProcessed }));
-    });
-    websocketService.on(WSEvents.EMERGENCE_UPDATE, (event: EmergenceEvent) => {
+    };
+    const handleEmergenceUpdate = (event: EmergenceEvent) => {
       const flatGrid: string[] = event.grid.flatMap(row => row.map(alive => (alive ? '1' : '')));
       setState(prev => ({ ...prev, emergenceGrid: flatGrid, emergenceGeneration: event.generation, emergencePatterns: event.patterns }));
-    });
-    websocketService.on(WSEvents.MEMORY_NEW, (event: MemoryNewEvent) => {
+    };
+    const handleMemoryNew = (event: MemoryNewEvent) => {
       setState(prev => {
         const newNode: AgentMemoryNode = { id: event.id, type: event.type, content: event.content, timestamp: event.timestamp, connections: event.connections };
         const updated = [newNode, ...prev.agentMemoryNodes];
         return { ...prev, agentMemoryNodes: updated.length > 50 ? updated.slice(0, 50) : updated };
       });
-    });
+    };
+
+    handlersRef.current = {
+      [WSEvents.CONNECT]: handleConnect,
+      [WSEvents.DISCONNECT]: handleDisconnect,
+      [WSEvents.CONNECT_ERROR]: handleConnectError,
+      [WSEvents.PROMPT_NEW]: handlePromptNew,
+      [WSEvents.BALANCE_UPDATE]: handleBalanceUpdate,
+      [WSEvents.TREASURY_UPDATE]: handleTreasuryUpdate,
+      [WSEvents.TIER_CHANGE]: handleTierChange,
+      [WSEvents.LOG_NEW]: handleLogNew,
+      [WSEvents.GOVERNANCE_PROPOSAL]: handleGovernanceProposal,
+      [WSEvents.CREATURE_UPDATE]: handleCreatureUpdate,
+      [WSEvents.EMERGENCE_UPDATE]: handleEmergenceUpdate,
+      [WSEvents.MEMORY_NEW]: handleMemoryNew,
+    };
+
+    websocketService.on(WSEvents.CONNECT, handlersRef.current[WSEvents.CONNECT]);
+    websocketService.on(WSEvents.DISCONNECT, handlersRef.current[WSEvents.DISCONNECT]);
+    websocketService.on(WSEvents.CONNECT_ERROR, handlersRef.current[WSEvents.CONNECT_ERROR]);
+    websocketService.on(WSEvents.PROMPT_NEW, handlersRef.current[WSEvents.PROMPT_NEW]);
+    websocketService.on(WSEvents.BALANCE_UPDATE, handlersRef.current[WSEvents.BALANCE_UPDATE]);
+    websocketService.on(WSEvents.TREASURY_UPDATE, handlersRef.current[WSEvents.TREASURY_UPDATE]);
+    websocketService.on(WSEvents.TIER_CHANGE, handlersRef.current[WSEvents.TIER_CHANGE]);
+    websocketService.on(WSEvents.LOG_NEW, handlersRef.current[WSEvents.LOG_NEW]);
+    websocketService.on(WSEvents.GOVERNANCE_PROPOSAL, handlersRef.current[WSEvents.GOVERNANCE_PROPOSAL]);
+    websocketService.on(WSEvents.CREATURE_UPDATE, handlersRef.current[WSEvents.CREATURE_UPDATE]);
+    websocketService.on(WSEvents.EMERGENCE_UPDATE, handlersRef.current[WSEvents.EMERGENCE_UPDATE]);
+    websocketService.on(WSEvents.MEMORY_NEW, handlersRef.current[WSEvents.MEMORY_NEW]);
 
     websocketService.connect();
 
@@ -137,18 +167,18 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     return () => {
       abortControllerRef.current?.abort();
-      websocketService.off(WSEvents.CONNECT);
-      websocketService.off(WSEvents.DISCONNECT);
-      websocketService.off(WSEvents.CONNECT_ERROR);
-      websocketService.off(WSEvents.PROMPT_NEW);
-      websocketService.off(WSEvents.BALANCE_UPDATE);
-      websocketService.off(WSEvents.TREASURY_UPDATE);
-      websocketService.off(WSEvents.TIER_CHANGE);
-      websocketService.off(WSEvents.LOG_NEW);
-      websocketService.off(WSEvents.GOVERNANCE_PROPOSAL);
-      websocketService.off(WSEvents.CREATURE_UPDATE);
-      websocketService.off(WSEvents.EMERGENCE_UPDATE);
-      websocketService.off(WSEvents.MEMORY_NEW);
+      websocketService.off(WSEvents.CONNECT, handlersRef.current[WSEvents.CONNECT]);
+      websocketService.off(WSEvents.DISCONNECT, handlersRef.current[WSEvents.DISCONNECT]);
+      websocketService.off(WSEvents.CONNECT_ERROR, handlersRef.current[WSEvents.CONNECT_ERROR]);
+      websocketService.off(WSEvents.PROMPT_NEW, handlersRef.current[WSEvents.PROMPT_NEW]);
+      websocketService.off(WSEvents.BALANCE_UPDATE, handlersRef.current[WSEvents.BALANCE_UPDATE]);
+      websocketService.off(WSEvents.TREASURY_UPDATE, handlersRef.current[WSEvents.TREASURY_UPDATE]);
+      websocketService.off(WSEvents.TIER_CHANGE, handlersRef.current[WSEvents.TIER_CHANGE]);
+      websocketService.off(WSEvents.LOG_NEW, handlersRef.current[WSEvents.LOG_NEW]);
+      websocketService.off(WSEvents.GOVERNANCE_PROPOSAL, handlersRef.current[WSEvents.GOVERNANCE_PROPOSAL]);
+      websocketService.off(WSEvents.CREATURE_UPDATE, handlersRef.current[WSEvents.CREATURE_UPDATE]);
+      websocketService.off(WSEvents.EMERGENCE_UPDATE, handlersRef.current[WSEvents.EMERGENCE_UPDATE]);
+      websocketService.off(WSEvents.MEMORY_NEW, handlersRef.current[WSEvents.MEMORY_NEW]);
       websocketService.disconnect();
     };
   }, []);

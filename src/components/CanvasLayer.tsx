@@ -184,17 +184,21 @@ export const CanvasLayer: React.FC = () => {
 
     lastGenCellsRef.current = currentCells;
 
-    const newHeatmap = heatmap.map(row => row.map(cell => cell * 0.95));
-    grid.forEach((row, y) => {
-      row.forEach((color, x) => {
-        if (color) {
-          newHeatmap[y][x] = Math.min(newHeatmap[y][x] + 0.3, 1);
-        }
+    const raf = requestAnimationFrame(() => {
+      setHeatmap(prev => {
+        const next = prev.map(row => row.map(cell => cell * 0.95));
+        grid.forEach((row, y) => {
+          row.forEach((color, x) => {
+            if (color) {
+              next[y][x] = Math.min(next[y][x] + 0.3, 1);
+            }
+          });
+        });
+        return next;
       });
     });
-    // Use setTimeout to avoid synchronous setState in effect
-    setTimeout(() => setHeatmap(newHeatmap), 0);
-  }, [grid, containerSize, heatmap]);
+    return () => cancelAnimationFrame(raf);
+  }, [grid, containerSize]);
 
   useEffect(() => {
     if (displayBirths > 0) {
@@ -238,7 +242,6 @@ export const CanvasLayer: React.FC = () => {
       const newAlive = !currentState;
       setIsInteracting(true);
       setTimeout(() => setIsInteracting(false), 300);
-      console.log(`[CanvasLayer] Cell (${x},${y}) toggled: ${currentState ? 'alive→dead' : 'dead→alive'}`);
       websocketService.emit('emergence:cell-toggle', { x, y, alive: newAlive });
     }
   }, [containerSize, canvasPixels]);
@@ -471,17 +474,6 @@ export const CanvasLayer: React.FC = () => {
     });
 
   }, [grid, containerSize, canvasColors, heatmap, hexToRgb]);
-
-  useEffect(() => {
-    let animationId: number;
-    const animate = () => {
-      if (!document.hidden) {
-        animationId = requestAnimationFrame(animate);
-      }
-    };
-    animationId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationId);
-  }, []);
 
   const totalPixels = canvasPixels.filter(c => c).length;
   const density = (totalPixels / (GRID_SIZE * GRID_SIZE) * 100).toFixed(1);

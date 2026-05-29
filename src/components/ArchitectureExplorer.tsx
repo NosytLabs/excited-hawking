@@ -144,9 +144,17 @@ export const ArchitectureExplorer = () => {
               <g
                 key={node.id}
                 style={{ cursor: 'pointer' }}
+                role="button"
+                tabIndex={0}
                 onMouseEnter={() => setHoveredNode(node.id)}
                 onMouseLeave={() => setHoveredNode(null)}
                 onClick={() => setSelectedNode(isSelected ? null : node.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedNode(isSelected ? null : node.id);
+                  }
+                }}
               >
                 {/* Glow */}
                 {(isSelected || isHovered) && (

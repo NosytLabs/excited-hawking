@@ -4100,44 +4100,44 @@
   "generation": 1,
   "events": [
     {
-      "id": "97a5174c-860f-4d6b-8833-2fd34f21c3d2",
-      "timestamp": 1780012657862,
+      "id": "14e07dc8-629f-4f30-bc1d-f106848150c6",
+      "timestamp": 1780017335084,
       "type": "explosion",
       "x": 0,
       "y": 0,
       "description": "Seed density: 0.1%"
     },
     {
-      "id": "c89e3590-f5b8-4d47-bfa2-ebd6efd554db",
-      "timestamp": 1780012657862,
-      "type": "glider",
+      "id": "5566818b-0780-489d-82c9-8119c03e99f1",
+      "timestamp": 1780017335085,
+      "type": "oscillator",
       "x": 2,
       "y": 3,
-      "description": "A glider moves diagonally across the grid"
+      "description": "A heartbeat emerges from the void"
     },
     {
-      "id": "33fa7f44-6555-4165-91b0-b16df1d4adc6",
-      "timestamp": 1780012657863,
+      "id": "dd185ae7-9158-4ad4-bf49-65147b1982c0",
+      "timestamp": 1780017335086,
       "type": "glider",
       "x": 3,
       "y": 2,
-      "description": "A glider moves diagonally across the grid"
+      "description": "Cell cluster propagates through space"
     },
     {
-      "id": "5e5e0f27-a127-4435-8ac6-7e77b7ccaf36",
-      "timestamp": 1780012657863,
-      "type": "collapse",
+      "id": "8e27e19e-1171-4456-8960-0382b1c2b156",
+      "timestamp": 1780017335086,
+      "type": "explosion",
       "x": 3,
       "y": 3,
-      "description": "Order dissolves into randomness"
+      "description": "Life multiplies exponentially"
     },
     {
-      "id": "d52fd62f-999a-434e-85ca-17d977693429",
-      "timestamp": 1780012657863,
+      "id": "ef44e976-0c7a-4213-b544-e287dd92a92f",
+      "timestamp": 1780017335086,
       "type": "glider",
       "x": 4,
       "y": 4,
-      "description": "Cell cluster propagates through space"
+      "description": "A glider moves diagonally across the grid"
     }
   ]
 }

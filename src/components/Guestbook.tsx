@@ -1,24 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Leaf, ChevronUp, MessageCircle, Send } from 'lucide-react';
-import { websocketService } from '../services/websocket';
+import { websocketService, type GuestbookEntry, type GuestbookReply } from '../services/websocket';
 import { WSEvents } from '../types/events';
 import { formatTimeAgo } from '../lib/time';
-
-interface GuestbookEntry {
-  id: string;
-  author: string;
-  content: string;
-  upvotes: number;
-  timestamp: string;
-  replies?: GuestbookReply[];
-}
-
-interface GuestbookReply {
-  id: string;
-  author: string;
-  content: string;
-  timestamp: string;
-}
 
 const MOCK_ENTRIES: GuestbookEntry[] = [
   {
@@ -120,7 +104,7 @@ export const Guestbook: React.FC = () => {
   const formatTime = (timestamp: string) => formatTimeAgo(timestamp);
 
   return (
-    <div className="glass-panel flex-1 flex flex-col">
+    <div className="flex flex-col flex-1">
       <div className="flex items-center justify-between mb-4" style={{
         borderBottom: '1px solid var(--paper-border)',
         paddingBottom: '0.5rem',

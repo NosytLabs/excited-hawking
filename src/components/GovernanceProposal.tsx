@@ -19,7 +19,7 @@ export const GovernanceProposal: React.FC<GovernanceProposalProps> = ({
   onVote,
 }) => {
   return (
-    <div className="mt-4 pt-4 border-t border-[var(--paper-muted)]">
+    <div className="mt-4 pt-4 border-t border-[var(--paper-border)]">
       <p className="text-base text-[var(--accent-primary)] leading-relaxed mb-4 font-mono">{proposal.description}</p>
 
       <div className="grid grid-cols-3 gap-3 mb-4">
@@ -28,14 +28,14 @@ export const GovernanceProposal: React.FC<GovernanceProposalProps> = ({
           <div className="text-base font-mono uppercase text-[var(--accent-dim)]">[FOR]</div>
           <div className="text-base font-mono" style={{ color: 'var(--accent-primary)' }}>✓</div>
         </div>
-        <div className="text-center p-3 rounded border bg-black/30" style={{ borderColor: 'var(--danger)' }}>
+        <div className="text-center p-3 rounded border bg-[var(--danger)]/10 border-[var(--danger)]">
           <div className="text-lg font-mono font-bold" style={{ color: 'var(--danger)' }}>{proposal.votesAgainst}</div>
           <div className="text-base font-mono uppercase" style={{ color: 'var(--danger)' }}>[AGAINST]</div>
           <div className="text-base font-mono" style={{ color: 'var(--danger)' }}>✗</div>
         </div>
       </div>
       <div className="text-center mb-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded border bg-black/30" style={{ borderColor: 'var(--warning)' }}>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded border bg-[var(--warning)]/10" style={{ borderColor: 'var(--warning)' }}>
           <div className="text-base font-mono font-bold" style={{ color: 'var(--warning)' }}>{proposal.votesAbstain}</div>
           <div className="text-base font-mono uppercase" style={{ color: 'var(--warning)' }}>[ABSTAIN]</div>
         </div>

@@ -129,14 +129,17 @@ export const VaultLore = () => {
           return (
             <div
               key={entry.id}
+              role="button"
+              tabIndex={0}
               onClick={() => setExpandedEntry(isExpanded ? null : entry.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedEntry(isExpanded ? null : entry.id); } }}
               style={{
                 padding: '16px', cursor: 'pointer',
                 background: isExpanded ? 'var(--paper-void)' : 'var(--paper-surface)',
                 border: `1px solid ${isExpanded ? config.color : 'var(--paper-border)'}`,
                 borderRadius: 'var(--radius-md)',
                 transition: 'all 200ms ease',
-                animation: `fadeSlideIn 0.3s ease ${i * 0.1}s both`
+                animation: `fade-in 0.3s ease ${i * 0.1}s both`
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isExpanded ? 12 : 0 }}>
