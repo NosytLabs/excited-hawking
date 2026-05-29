@@ -4,6 +4,7 @@ import { emitGovernanceUpdate } from './websocket.js';
 import { generateId } from '../lib/crypto.js';
 import { getVoterWeight } from './governance.js';
 import { bigIntSqrt } from '../utils/math.js';
+import { persistToFile, loadFromFile } from '../lib/persistence.js';
 
 const DEFAULT_CONFIG: StakingConfig = {
   minStakeAmount: 1n,
@@ -17,6 +18,99 @@ const stakingPositions = new Map<string, StakingPosition>();
 const unstakingRequests = new Map<string, UnstakingRequest[]>();
 
 let config = { ...DEFAULT_CONFIG };
+
+interface SerializedStakingPosition {
+  wallet: string;
+  amount: string;
+  votingPower: string;
+  inferenceBudget: string;
+  lastUpdated: number;
+}
+
+interface SerializedUnstakingRequest {
+  id: string;
+  wallet: string;
+  amount: string;
+  requestedAt: number;
+  unlockableAt: number;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+}
+
+function serializeStakingPosition(pos: StakingPosition): SerializedStakingPosition {
+  return {
+    wallet: pos.wallet,
+    amount: pos.amount.toString(),
+    votingPower: pos.votingPower.toString(),
+    inferenceBudget: pos.inferenceBudget.toString(),
+    lastUpdated: pos.lastUpdated
+  };
+}
+
+function deserializeStakingPosition(data: SerializedStakingPosition): StakingPosition {
+  return {
+    wallet: data.wallet,
+    amount: BigInt(data.amount),
+    votingPower: BigInt(data.votingPower),
+    inferenceBudget: BigInt(data.inferenceBudget),
+    lastUpdated: data.lastUpdated
+  };
+}
+
+async function saveStakingState(): Promise<void> {
+  const positions: SerializedStakingPosition[] = [];
+  for (const pos of stakingPositions.values()) {
+    positions.push(serializeStakingPosition(pos));
+  }
+
+  const unstaking: [string, SerializedUnstakingRequest[]][] = [];
+  for (const [wallet, requests] of unstakingRequests.entries()) {
+    unstaking.push([
+      wallet,
+      requests.map(r => ({
+        id: r.id,
+        wallet: r.wallet,
+        amount: r.amount.toString(),
+        requestedAt: r.requestedAt,
+        unlockableAt: r.unlockableAt,
+        status: r.status as 'pending' | 'processing' | 'completed' | 'cancelled'
+      }))
+    ]);
+  }
+
+  await persistToFile('staking:positions.json', positions);
+  await persistToFile('staking:unstaking.json', unstaking);
+}
+
+async function loadStakingState(): Promise<void> {
+  const positions = await loadFromFile<SerializedStakingPosition[]>('staking:positions.json', []);
+  for (const data of positions) {
+    const pos = deserializeStakingPosition(data);
+    stakingPositions.set(pos.wallet, pos);
+  }
+
+  const unstaking = await loadFromFile<[string, SerializedUnstakingRequest[]][]>('staking:unstaking.json', []);
+  for (const [wallet, requests] of unstaking) {
+    unstakingRequests.set(
+      wallet,
+      requests.map(r => ({
+        id: r.id,
+        wallet: r.wallet,
+        amount: BigInt(r.amount),
+        requestedAt: r.requestedAt,
+        unlockableAt: r.unlockableAt,
+        status: r.status
+      }))
+    );
+  }
+
+  if (positions.length > 0 || unstaking.length > 0) {
+    console.log(`[STAKING] Loaded ${positions.length} positions, ${unstaking.length} wallets with unstaking requests`);
+  }
+}
+
+loadStakingState().catch(err => {
+  console.error('[STAKING] Failed to load staking state:', err);
+});
 
 export function getStakingConfig(): StakingConfig {
   return { ...config };
@@ -101,6 +195,10 @@ export function stakeDiem(
     votingPower: position.votingPower.toString()
   });
 
+  saveStakingState().catch(err => {
+    console.error('[STAKING] Failed to save staking state:', err);
+  });
+
   return { success: true, position };
 }
 
@@ -132,6 +230,10 @@ export function requestUnstake(
     wallet,
     amount: amount.toString(),
     unlockableAt: request.unlockableAt
+  });
+
+  saveStakingState().catch(err => {
+    console.error('[STAKING] Failed to save staking state:', err);
   });
 
   return { success: true, request };
@@ -195,6 +297,10 @@ export function processUnstakeRequest(wallet: string, requestId: string): { succ
     remainingStaked: position.amount.toString()
   });
 
+  saveStakingState().catch(err => {
+    console.error('[STAKING] Failed to save staking state:', err);
+  });
+
   return { success: true };
 }
 
@@ -252,4 +358,7 @@ export function getStakeStats(): {
 export function resetStaking(): void {
   stakingPositions.clear();
   unstakingRequests.clear();
+  saveStakingState().catch(err => {
+    console.error('[STAKING] Failed to save staking state:', err);
+  });
 }

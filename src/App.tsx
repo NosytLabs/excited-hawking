@@ -20,6 +20,7 @@ import { Methodology } from './components/Methodology';
 
 import { LazyErrorBoundary } from './components/LazyErrorBoundary';
 import { Footer } from './components/Footer';
+import { TerminalLoader } from './components/TerminalLoader';
 const Governance = lazy(() => import('./components/Governance').then(m => ({ default: m.Governance })));
 const CanvasLayer = lazy(() => import('./components/CanvasLayer').then(m => ({ default: m.CanvasLayer })));
 const Guestbook = lazy(() => import('./components/Guestbook').then(m => ({ default: m.Guestbook })));
@@ -111,11 +112,11 @@ function App() {
               </div>
             </header>
             <main id="main-content" className="pt-14">
-              {route === '/about' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><AboutPage /></LazyErrorBoundary></Suspense>}
-              {route === '/terms' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><TermsOfService /></LazyErrorBoundary></Suspense>}
-              {route === '/privacy' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><PrivacyPolicy /></LazyErrorBoundary></Suspense>}
-              {route === '/stake' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><ProfilePage /></LazyErrorBoundary></Suspense>}
-              {route === '/protocol' && <Suspense fallback={<div className="p-6">Loading...</div>}><LazyErrorBoundary><AboutPage /></LazyErrorBoundary></Suspense>}
+              {route === '/about' && <Suspense fallback={<TerminalLoader />}><LazyErrorBoundary><AboutPage /></LazyErrorBoundary></Suspense>}
+              {route === '/terms' && <Suspense fallback={<TerminalLoader />}><LazyErrorBoundary><TermsOfService /></LazyErrorBoundary></Suspense>}
+              {route === '/privacy' && <Suspense fallback={<TerminalLoader />}><LazyErrorBoundary><PrivacyPolicy /></LazyErrorBoundary></Suspense>}
+              {route === '/stake' && <Suspense fallback={<TerminalLoader />}><LazyErrorBoundary><ProfilePage /></LazyErrorBoundary></Suspense>}
+              {route === '/protocol' && <Suspense fallback={<TerminalLoader />}><LazyErrorBoundary><AboutPage /></LazyErrorBoundary></Suspense>}
               {route === '/not-found' && (
                 <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
                   <h1 className="text-6xl font-bold mb-4" style={{ color: 'var(--paper-text)' }}>404</h1>

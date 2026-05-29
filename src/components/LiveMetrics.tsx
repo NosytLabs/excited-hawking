@@ -65,10 +65,108 @@ const AnimatedCounter = ({ value, duration = 500, color }: AnimatedCounterProps)
   return <span style={{ color }}>{displayValue.toLocaleString()}</span>;
 };
 
-const ProgressRing = ({ progress, color, size = 60, strokeWidth = 4 }: { progress: number; color: string; size?: number; strokeWidth?: number }) => {
+interface ConsolidatedAnimationRefs {
+  progressGlow?: number;
+  pulseAngle?: number;
+  orbitalAngle?: number;
+}
+
+const ConsolidatedRings = ({
+  vitality, momentum, coherence,
+  colors, size = 60, strokeWidth = 4
+}: {
+  vitality: number; momentum: number; coherence: number;
+  colors: { vitality: string; momentum: string; coherence: string };
+  size?: number; strokeWidth?: number;
+}) => {
+  const vitalityRef = useRef<HTMLCanvasElement>(null);
+  const momentumRef = useRef<HTMLCanvasElement>(null);
+  const coherenceRef = useRef<HTMLCanvasElement>(null);
+  const animRefs = useRef<ConsolidatedAnimationRefs>({});
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    const ctxVitality = vitalityRef.current?.getContext('2d');
+    const ctxMomentum = momentumRef.current?.getContext('2d');
+    const ctxCoherence = coherenceRef.current?.getContext('2d');
+    if (!ctxVitality || !ctxMomentum || !ctxCoherence) return;
+
+    const draw = () => {
+      const drawProgressRing = (ctx: CanvasRenderingContext2D, progress: number, color: string) => {
+        const cx = size / 2;
+        const cy = size / 2;
+        const radius = (size - strokeWidth) / 2;
+
+        ctx.clearRect(0, 0, size, size);
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.lineWidth = strokeWidth;
+        ctx.stroke();
+
+        animRefs.current.progressGlow = ((animRefs.current.progressGlow || 0) + 0.05) % (Math.PI * 2);
+        const glowIntensity = 0.3 + Math.sin(animRefs.current.progressGlow) * 0.2;
+
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, withAlpha(color, '80'));
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, -Math.PI / 2, -Math.PI / 2 + (progress / 100) * Math.PI * 2);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = strokeWidth;
+        ctx.lineCap = 'round';
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8 * glowIntensity;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.7, 0, Math.PI * 2);
+        ctx.fillStyle = withAlpha(color, '10');
+        ctx.fill();
+      };
+
+      drawProgressRing(ctxVitality, vitality, colors.vitality);
+      drawProgressRing(ctxMomentum, momentum, colors.momentum);
+      drawProgressRing(ctxCoherence, coherence, colors.coherence);
+
+      rafRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [vitality, momentum, coherence, colors, size, strokeWidth]);
+
+  return (
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ position: 'relative' }}>
+        <canvas ref={vitalityRef} width={size} height={size} style={{ transform: 'rotate(-90deg)' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--paper-muted)', marginTop: 2 }}>VIT</span>
+        </div>
+      </div>
+      <div style={{ position: 'relative' }}>
+        <canvas ref={momentumRef} width={size} height={size} style={{ transform: 'rotate(-90deg)' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--paper-muted)', marginTop: 2 }}>MOM</span>
+        </div>
+      </div>
+      <div style={{ position: 'relative' }}>
+        <canvas ref={coherenceRef} width={size} height={size} style={{ transform: 'rotate(-90deg)' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--paper-muted)', marginTop: 2 }}>COH</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ConsolidatedPulseIndicator = ({ color }: { color: string }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animRef = useRef<number>(0);
-  const glowRef = useRef(0);
+  const animRef = useRef(0);
+  const rafRef = useRef<number>(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -77,51 +175,32 @@ const ProgressRing = ({ progress, color, size = 60, strokeWidth = 4 }: { progres
     if (!ctx) return;
 
     const draw = () => {
-      ctx.clearRect(0, 0, size, size);
-      const cx = size / 2;
-      const cy = size / 2;
-      const radius = (size - strokeWidth) / 2;
+      ctx.clearRect(0, 0, 20, 20);
+      animRef.current = (animRef.current + 0.08) % (Math.PI * 2);
 
-      // Background ring
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-      ctx.lineWidth = strokeWidth;
-      ctx.stroke();
-
-      // Glow effect
-      glowRef.current = (glowRef.current + 0.05) % (Math.PI * 2);
-      const glowIntensity = 0.3 + Math.sin(glowRef.current) * 0.2;
-
-      // Progress ring with gradient
-      const gradient = ctx.createLinearGradient(0, 0, size, size);
-      gradient.addColorStop(0, color);
-      gradient.addColorStop(1, withAlpha(color, '80'));
+      const scale = 1 + Math.sin(animRef.current) * 0.3;
+      const alpha = 0.5 + Math.sin(animRef.current) * 0.3;
 
       ctx.beginPath();
-      ctx.arc(cx, cy, radius, -Math.PI / 2, -Math.PI / 2 + (progress / 100) * Math.PI * 2);
-      ctx.strokeStyle = gradient;
-      ctx.lineWidth = strokeWidth;
-      ctx.lineCap = 'round';
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 8 * glowIntensity;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+      ctx.arc(10, 10, 6 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = alpha;
+      ctx.fill();
+      ctx.globalAlpha = 1;
 
-      // Inner glow
       ctx.beginPath();
-      ctx.arc(cx, cy, radius * 0.7, 0, Math.PI * 2);
-      ctx.fillStyle = withAlpha(color, '10');
+      ctx.arc(10, 10, 3, 0, Math.PI * 2);
+      ctx.fillStyle = color;
       ctx.fill();
 
-      animRef.current = requestAnimationFrame(draw);
+      rafRef.current = requestAnimationFrame(draw);
     };
 
     draw();
-    return () => cancelAnimationFrame(animRef.current);
-  }, [progress, color, size, strokeWidth]);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [color]);
 
-  return <canvas ref={canvasRef} width={size} height={size} style={{ transform: 'rotate(-90deg)' }} />;
+  return <canvas ref={canvasRef} width={20} height={20} />;
 };
 
 const MiniSparkline = ({ data, color, height = 30 }: { data: MetricPoint[]; color: string; height?: number }) => {
@@ -267,97 +346,6 @@ const ParticleField = ({ colors }: { colors: string[] }) => {
   return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />;
 };
 
-const LivePulseIndicator = ({ color }: { color: string }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animRef = useRef(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animId: number;
-    const draw = () => {
-      ctx.clearRect(0, 0, 20, 20);
-      animRef.current = (animRef.current + 0.08) % (Math.PI * 2);
-
-      const scale = 1 + Math.sin(animRef.current) * 0.3;
-      const alpha = 0.5 + Math.sin(animRef.current) * 0.3;
-
-      ctx.beginPath();
-      ctx.arc(10, 10, 6 * scale, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.globalAlpha = alpha;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-
-      ctx.beginPath();
-      ctx.arc(10, 10, 3, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-
-      animId = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(animId);
-  }, [color]);
-
-  return <canvas ref={canvasRef} width={20} height={20} />;
-};
-
-const OrbitalRing = ({ color, size = 80, speed = 0.02 }: { color: string; size?: number; speed?: number }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const angleRef = useRef(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animId: number;
-    const draw = () => {
-      ctx.clearRect(0, 0, size, size);
-      angleRef.current = (angleRef.current + speed) % (Math.PI * 2);
-
-      const cx = size / 2;
-      const cy = size / 2;
-      const radius = size / 2 - 5;
-
-      // Orbital ring
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha(color, '30');
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
-      ctx.lineDashOffset = angleRef.current * 20;
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Orbiting dot
-      const dotX = cx + Math.cos(angleRef.current) * radius;
-      const dotY = cy + Math.sin(angleRef.current) * radius;
-
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 8;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      animId = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(animId);
-  }, [color, size, speed]);
-
-  return <canvas ref={canvasRef} width={size} height={size} style={{ position: 'absolute' }} />;
-};
-
 function MetricBar({ label, value, color, icon }: { label: string; value: number; color: string; icon: React.ReactNode }) {
   const [glowIntensity, setGlowIntensity] = useState(0);
   const prevValue = useRef(value);
@@ -416,7 +404,6 @@ export const LiveMetrics = () => {
   const [updateFrequency, setUpdateFrequency] = useState(0);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animFrameRef = useRef<number>(0);
   const particlesRef = useRef<Particle[]>([]);
   const prevVitality = useRef(creatureStats?.vitality);
   const prevMomentum = useRef(creatureStats?.momentum);
@@ -502,20 +489,17 @@ export const LiveMetrics = () => {
     const drawLine = (data: MetricPoint[], color: string) => {
       if (data.length < 2) return;
 
-      // Create gradient fill
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
       gradient.addColorStop(0, withAlpha(color, '40'));
       gradient.addColorStop(0.5, withAlpha(color, '15'));
       gradient.addColorStop(1, withAlpha(color, '00'));
 
-      // Draw filled area with smooth interpolation
       ctx.beginPath();
       ctx.moveTo(0, canvas.height);
 
       for (let i = 0; i < data.length; i++) {
         const x = (i / (data.length - 1)) * canvas.width;
         const y = canvas.height - (data[i].value / 100) * canvas.height;
-
         ctx.lineTo(x, y);
       }
 
@@ -524,7 +508,6 @@ export const LiveMetrics = () => {
       ctx.fillStyle = gradient;
       ctx.fill();
 
-      // Draw line with glow
       ctx.beginPath();
       ctx.moveTo(0, canvas.height - (data[0].value / 100) * canvas.height);
 
@@ -542,26 +525,22 @@ export const LiveMetrics = () => {
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // Current value point with pulse
       if (data.length > 0) {
         const last = data[data.length - 1];
         const x = canvas.width;
         const y = canvas.height - (last.value / 100) * canvas.height;
 
-        // Outer glow
         ctx.beginPath();
         ctx.arc(x, y, 8, 0, Math.PI * 2);
         ctx.fillStyle = withAlpha(color, '30');
         ctx.fill();
 
-        // Middle ring
         ctx.beginPath();
         ctx.arc(x, y, 5, 0, Math.PI * 2);
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Inner dot
         ctx.beginPath();
         ctx.arc(x, y, 3, 0, Math.PI * 2);
         ctx.fillStyle = color;
@@ -570,7 +549,6 @@ export const LiveMetrics = () => {
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Spawn particles on significant change
         if (Math.abs(last.value - (data[data.length - 2]?.value ?? last.value)) > 5) {
           if (particlesRef.current.length < 20) {
             particlesRef.current.push(createParticle(x, y, color));
@@ -579,66 +557,67 @@ export const LiveMetrics = () => {
       }
     };
 
-    const draw = () => {
-      const w = canvas.width;
-      const h = canvas.height;
+    let rafId: number;
 
-      // Clear with fade effect for trails
-      ctx.fillStyle = 'rgba(10, 10, 20, 0.3)';
-      ctx.fillRect(0, 0, w, h);
+    const draw = (time: number) => {
+      if (!document.hidden) {
+        const w = canvas.width;
+        const h = canvas.height;
 
-      // Animated grid background
-      ctx.strokeStyle = 'rgba(255,255,255,0.02)';
-      ctx.lineWidth = 0.5;
-      for (let y = 0; y < h; y += 12) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
+        ctx.fillStyle = 'rgba(10, 10, 20, 0.3)';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+        ctx.lineWidth = 0.5;
+        for (let y = 0; y < h; y += 12) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+        for (let x = 0; x < w; x += 12) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+        }
+
+        drawLine(vitalityHistory, getColor('var(--success)'));
+        drawLine(momentumHistory, getColor('var(--accent-primary)'));
+        drawLine(coherenceHistory, getColor('var(--accent-dim)'));
+
+        particlesRef.current = particlesRef.current.filter(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.02;
+          p.life++;
+
+          const alpha = 1 - p.life / p.maxLife;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = withAlpha(p.color, Math.floor(alpha * 255).toString(16).padStart(2, '0'));
+          ctx.fill();
+
+          return p.life < p.maxLife;
+        });
+
+        offset = (offset + 1) % w;
+        const accentColor = getColor('var(--accent-primary)');
+        const scanGradient = ctx.createLinearGradient(offset - 30, 0, offset + 30, 0);
+        scanGradient.addColorStop(0, 'transparent');
+        scanGradient.addColorStop(0.5, withAlpha(accentColor, '26'));
+        scanGradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = scanGradient;
+        ctx.fillRect(offset - 30, 0, 60, h);
+
+        lastTime = time;
       }
-      for (let x = 0; x < w; x += 12) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
 
-      // Draw data lines with fills
-      drawLine(vitalityHistory, getColor('var(--success)'));
-      drawLine(momentumHistory, getColor('var(--accent-primary)'));
-      drawLine(coherenceHistory, getColor('var(--accent-dim)'));
-
-      // Draw and update particles
-      particlesRef.current = particlesRef.current.filter(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.02; // gravity
-        p.life++;
-
-        const alpha = 1 - p.life / p.maxLife;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = withAlpha(p.color, Math.floor(alpha * 255).toString(16).padStart(2, '0'));
-        ctx.fill();
-
-        return p.life < p.maxLife;
-      });
-
-      // Scanning line effect
-      offset = (offset + 1) % w;
-      const accentColor = getColor('var(--accent-primary)');
-      const scanGradient = ctx.createLinearGradient(offset - 30, 0, offset + 30, 0);
-      scanGradient.addColorStop(0, 'transparent');
-      scanGradient.addColorStop(0.5, withAlpha(accentColor, '26'));
-      scanGradient.addColorStop(1, 'transparent');
-      ctx.fillStyle = scanGradient;
-      ctx.fillRect(offset - 30, 0, 60, h);
-
-      animFrameRef.current = requestAnimationFrame(draw);
+      rafId = requestAnimationFrame(draw);
     };
 
-    draw();
-    return () => cancelAnimationFrame(animFrameRef.current);
+    rafId = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(rafId);
   }, [vitalityHistory, momentumHistory, coherenceHistory]);
 
   const moodColor = creatureMood === 'ecstatic' ? getColor('var(--success)') :
@@ -670,7 +649,7 @@ export const LiveMetrics = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, position: 'relative' }}>
         <div style={{ position: 'relative' }}>
           <Activity size={18} style={{ color: getColor('var(--accent-primary)'), filter: `drop-shadow(0 0 8px ${getColor('var(--accent-primary)')})` }} />
-          <LivePulseIndicator color={getColor('var(--success)')} />
+          <ConsolidatedPulseIndicator color={getColor('var(--success)')} />
         </div>
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--paper-text)', margin: 0, letterSpacing: 2 }}>
           LIVE TELEMETRY
@@ -688,29 +667,14 @@ export const LiveMetrics = () => {
           <MetricBar label="MOMENTUM" value={creatureStats?.momentum || 0} color={getColor('var(--accent-primary)')} icon={<TrendingUp size={10} />} />
           <MetricBar label="COHERENCE" value={creatureStats?.coherence || 0} color={getColor('var(--accent-dim)')} icon={<Zap size={10} />} />
         </div>
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ position: 'relative' }}>
-            <OrbitalRing color={getColor('var(--success)')} size={70} speed={0.015} />
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-              <ProgressRing progress={creatureStats?.vitality || 0} color={getColor('var(--success)')} size={50} strokeWidth={3} />
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--paper-muted)', marginTop: 2 }}>VIT</div>
-            </div>
-          </div>
-          <div style={{ position: 'relative' }}>
-            <OrbitalRing color={getColor('var(--accent-primary)')} size={70} speed={0.02} />
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-              <ProgressRing progress={creatureStats?.momentum || 0} color={getColor('var(--accent-primary)')} size={50} strokeWidth={3} />
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--paper-muted)', marginTop: 2 }}>MOM</div>
-            </div>
-          </div>
-          <div style={{ position: 'relative' }}>
-            <OrbitalRing color={getColor('var(--accent-dim)')} size={70} speed={0.025} />
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-              <ProgressRing progress={creatureStats?.coherence || 0} color={getColor('var(--accent-dim)')} size={50} strokeWidth={3} />
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--paper-muted)', marginTop: 2 }}>COH</div>
-            </div>
-          </div>
-        </div>
+        <ConsolidatedRings
+          vitality={creatureStats?.vitality || 0}
+          momentum={creatureStats?.momentum || 0}
+          coherence={creatureStats?.coherence || 0}
+          colors={{ vitality: getColor('var(--success)'), momentum: getColor('var(--accent-primary)'), coherence: getColor('var(--accent-dim)') }}
+          size={50}
+          strokeWidth={3}
+        />
       </div>
 
       {/* Large sparkline canvas */}

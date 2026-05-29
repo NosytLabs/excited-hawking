@@ -1,5 +1,15 @@
 import { useEffect, useRef, useMemo } from 'react';
-import * as THREE from 'three';
+import {
+  Scene,
+  PerspectiveCamera,
+  WebGLRenderer,
+  Points,
+  PointsMaterial,
+  BufferGeometry,
+  BufferAttribute,
+  GridHelper,
+  AdditiveBlending,
+} from 'three';
 
 interface ThreeDCanvasProps {
   width: number;
@@ -30,43 +40,43 @@ const SEED_POSITIONS = (() => {
 export default function ThreeDCanvas({ width, height }: ThreeDCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<{
-    scene: THREE.Scene;
-    camera: THREE.PerspectiveCamera;
-    renderer: THREE.WebGLRenderer;
-    particles: THREE.Points;
+    scene: Scene;
+    camera: PerspectiveCamera;
+    renderer: WebGLRenderer;
+    particles: Points;
   } | null>(null);
 
   const particleGeometry = useMemo(() => {
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(SEED_POSITIONS.positions.slice(), 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(SEED_POSITIONS.colors.slice(), 3));
+    const geometry = new BufferGeometry();
+    geometry.setAttribute('position', new BufferAttribute(SEED_POSITIONS.positions.slice(), 3));
+    geometry.setAttribute('color', new BufferAttribute(SEED_POSITIONS.colors.slice(), 3));
     return geometry;
   }, []);
 
   useEffect(() => {
     if (!containerRef.current || width === 0 || height === 0) return;
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(75, width / height, 0.1, 1000);
     camera.position.z = 30;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    const renderer = new WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     containerRef.current.appendChild(renderer.domElement);
 
-    const particlesMaterial = new THREE.PointsMaterial({
+    const particlesMaterial = new PointsMaterial({
       size: 1.5,
       vertexColors: true,
       transparent: true,
       opacity: 0.6,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
     });
 
-    const particles = new THREE.Points(particleGeometry, particlesMaterial);
+    const particles = new Points(particleGeometry, particlesMaterial);
     scene.add(particles);
 
-    const gridHelper = new THREE.GridHelper(60, 30, 0x1a1a2e, 0x0a0a0f);
+    const gridHelper = new GridHelper(60, 30, 0x1a1a2e, 0x0a0a0f);
     gridHelper.position.y = -15;
     scene.add(gridHelper);
 

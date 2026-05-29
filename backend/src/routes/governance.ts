@@ -123,6 +123,9 @@ export async function governanceRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/api/governance/proposal/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    if (!/^[a-zA-Z0-9_-]+$/.test(request.params.id)) {
+      return reply.status(400).send({ error: 'Invalid proposal ID format' });
+    }
     const proposal = getProposal(request.params.id);
     if (!proposal) {
       return reply.status(404).send({ error: 'Proposal not found' });
@@ -166,7 +169,10 @@ export async function governanceRoutes(fastify: FastifyInstance) {
     return { success: true, vote: result };
   });
 
-  fastify.get('/api/governance/votes/:proposalId', async (request: FastifyRequest<{ Params: { proposalId: string } }>, _reply) => {
+  fastify.get('/api/governance/votes/:proposalId', async (request: FastifyRequest<{ Params: { proposalId: string } }>, reply) => {
+    if (!/^[a-zA-Z0-9_-]+$/.test(request.params.proposalId)) {
+      return reply.status(400).send({ error: 'Invalid proposal ID format' });
+    }
     const votes = getVotes(request.params.proposalId);
     return { votes };
   });
@@ -210,6 +216,9 @@ export async function governanceRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/api/governance/finalize/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    if (!/^[a-zA-Z0-9_-]+$/.test(request.params.id)) {
+      return reply.status(400).send({ error: 'Invalid proposal ID format' });
+    }
     const auth = requireWalletWithSignature(request, reply);
     if (!auth.isValidWallet || !auth.signatureVerified) {
       return reply.status(403).send({ error: 'Admin signature required' });
@@ -226,6 +235,9 @@ export async function governanceRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/api/governance/execute/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    if (!/^[a-zA-Z0-9_-]+$/.test(request.params.id)) {
+      return reply.status(400).send({ error: 'Invalid proposal ID format' });
+    }
     const auth = requireWalletWithSignature(request, reply);
     if (!auth.isValidWallet || !auth.signatureVerified) {
       return reply.status(403).send({ error: 'Admin signature required' });
@@ -245,6 +257,9 @@ export async function governanceRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/api/governance/public/vote/:proposalId', async (request: FastifyRequest<{ Params: { proposalId: string } }>, reply) => {
+    if (!/^[a-zA-Z0-9_-]+$/.test(request.params.proposalId)) {
+      return reply.status(400).send({ error: 'Invalid proposal ID format' });
+    }
     const { proposalId } = request.params;
     const proposal = getProposal(proposalId);
 

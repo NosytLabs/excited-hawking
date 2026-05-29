@@ -71,8 +71,14 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     abortControllerRef.current = new AbortController();
 
     const handleConnect = () => setState(prev => ({ ...prev, isConnected: true, backendAvailable: true }));
-    const handleDisconnect = () => setState(prev => ({ ...prev, isConnected: false, backendAvailable: false }));
-    const handleConnectError = () => setState(prev => ({ ...prev, isConnected: false, backendAvailable: false }));
+    const handleDisconnect = () => {
+      setState(prev => ({ ...prev, isConnected: false, backendAvailable: false }));
+      showToast('Backend disconnected. Attempting to reconnect...', 'warning');
+    };
+    const handleConnectError = () => {
+      setState(prev => ({ ...prev, isConnected: false, backendAvailable: false }));
+      showToast('Connection error. Retrying...', 'error');
+    };
     const handlePromptNew = (event: PromptEvent) => {
       setState(prev => {
         const existing = prev.prompts.find(p => p.id === event.id);

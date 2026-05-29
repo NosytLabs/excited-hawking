@@ -1,6 +1,9 @@
 import { Server } from 'socket.io';
 import type { Server as HttpServer } from 'http';
 
+const MAX_CONNECTIONS_PER_IP = 10;
+const connectionCounts = new Map<string, { count: number; resetAt: number }>();
+
 const WSEvents = {
   PROMPT_NEW: 'prompt:new',
   PROMPT_COMPLETE: 'prompt:complete',
@@ -70,10 +73,33 @@ export function initWebSocket(httpServer: HttpServer): Server {
   console.log(`[WS] CORS enabled with allowed origins: ${allowedOrigins.length > 0 ? allowedOrigins.join(', ') : '(none - production mode requires explicit origins)'}`);
 
   io.on('connection', (socket) => {
+    const ip = socket.handshake.address || 'unknown';
+    const now = Date.now();
+
+    for (const [key, entry] of connectionCounts.entries()) {
+      if (now >= entry.resetAt) connectionCounts.delete(key);
+    }
+
+    let entry = connectionCounts.get(ip);
+    if (!entry || now >= entry.resetAt) {
+      entry = { count: 0, resetAt: now + 60000 };
+      connectionCounts.set(ip, entry);
+    }
+
+    if (entry.count >= MAX_CONNECTIONS_PER_IP) {
+      console.log(`[WS] Connection rejected: too many connections from ${ip}`);
+      socket.disconnect(true);
+      return;
+    }
+    entry.count++;
+
     console.log('Client connected:', socket.id);
 
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id);
+      const ip = socket.handshake.address || 'unknown';
+      const entry = connectionCounts.get(ip);
+      if (entry && entry.count > 0) entry.count--;
     });
   });
 

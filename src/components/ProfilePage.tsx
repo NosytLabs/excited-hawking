@@ -1,38 +1,15 @@
 /* Hallmark · component: profile-page · genre: terminal-aesthetic · theme: Terminal */
-import { useState } from 'react';
-import { Wallet, TrendingUp, FileText, CheckSquare, Settings, Clock, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Wallet, Settings } from 'lucide-react';
 import { useAgent } from '../context/useAgent';
-
-const PLACEHOLDER_USER = {
-  walletAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f2d123',
-  stakingTier: 'Participant' as const,
-  stats: {
-    totalDiemStaked: 15000,
-    quadraticVotingWeight: 342.5,
-    promptsSubmitted: 23,
-    proposalsCreated: 4,
-    votingHistoryCount: 67,
-  },
-  recentActivity: [
-    { id: 1, type: 'vote', description: 'Voted on Proposal #42', time: '2 hours ago', impact: 'positive' },
-    { id: 2, type: 'prompt', description: 'Submitted prompt to creature', time: '5 hours ago', impact: 'neutral' },
-    { id: 3, type: 'stake', description: 'Staked 500 DIEM', time: '1 day ago', impact: 'positive' },
-    { id: 4, type: 'proposal', description: 'Created Proposal #41', time: '2 days ago', impact: 'neutral' },
-    { id: 5, type: 'vote', description: 'Voted on Proposal #40', time: '3 days ago', impact: 'negative' },
-  ],
-  settings: {
-    emailNotifications: true,
-    pushNotifications: false,
-    proposalAlerts: true,
-    creatureUpdates: true,
-  },
-};
+import { api } from '../services/api';
 
 const TIER_COLORS: Record<string, string> = {
   Observer: 'var(--paper-muted)',
   Participant: 'var(--accent-primary)',
   Contributor: 'var(--accent-primary)',
   Overseer: 'var(--success)',
+  Minimal: 'var(--paper-muted)',
 };
 
 const truncateAddress = (address: string): string => {
@@ -44,24 +21,6 @@ function formatNumber(num: number): string {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return num.toLocaleString();
-}
-
-function getActivityIcon(type: string) {
-  switch (type) {
-    case 'vote': return CheckSquare;
-    case 'prompt': return FileText;
-    case 'stake': return TrendingUp;
-    case 'proposal': return FileText;
-    default: return Clock;
-  }
-}
-
-function getImpactIcon(impact: string) {
-  switch (impact) {
-    case 'positive': return ArrowUpRight;
-    case 'negative': return ArrowDownRight;
-    default: return Minus;
-  }
 }
 
 interface ToggleProps {
@@ -100,14 +59,56 @@ interface SettingsState {
   creatureUpdates: boolean;
 }
 
+interface StakingData {
+  diemStaked: number;
+  tier: string;
+  quadraticVotingWeight: number;
+  promptsSubmitted: number;
+  proposalsCreated: number;
+  votingHistoryCount: number;
+}
+
 export function ProfilePage() {
-  const user = PLACEHOLDER_USER;
-  const { connectWallet, walletAddress } = useAgent();
-  const [settings, setSettings] = useState<SettingsState>(user.settings);
+  const { connectWallet, walletAddress, diemStaked: contextDiemStaked, tier: contextTier } = useAgent();
+  const [stakingData, setStakingData] = useState<StakingData | null>(null);
+  const [settings, setSettings] = useState<SettingsState>({
+    emailNotifications: true,
+    pushNotifications: false,
+    proposalAlerts: true,
+    creatureUpdates: true,
+  });
+
+  useEffect(() => {
+    if (walletAddress) {
+      api.getStatus().then((status) => {
+        setStakingData({
+          diemStaked: status.diemStaked,
+          tier: status.tier,
+          quadraticVotingWeight: 0,
+          promptsSubmitted: 0,
+          proposalsCreated: 0,
+          votingHistoryCount: 0,
+        });
+      }).catch((err) => {
+        console.error('Failed to fetch staking data:', err);
+        setStakingData({
+          diemStaked: contextDiemStaked,
+          tier: contextTier,
+          quadraticVotingWeight: 0,
+          promptsSubmitted: 0,
+          proposalsCreated: 0,
+          votingHistoryCount: 0,
+        });
+      });
+    }
+  }, [walletAddress, contextDiemStaked, contextTier]);
 
   const handleConnectWallet = async () => {
     await connectWallet();
   };
+
+  const displayTier = stakingData?.tier || contextTier || 'Not connected';
+  const displayDiemStaked = stakingData?.diemStaked ?? contextDiemStaked ?? 0;
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-6" style={{ backgroundColor: 'var(--paper-void)' }}>
@@ -155,8 +156,8 @@ export function ProfilePage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-base font-medium" style={{ color: TIER_COLORS[user.stakingTier] }}>
-                      {user.stakingTier}
+                    <span className="text-base font-medium" style={{ color: TIER_COLORS[displayTier] || 'var(--paper-muted)' }}>
+                      {displayTier}
                     </span>
                   </div>
                 </div>
@@ -169,23 +170,23 @@ export function ProfilePage() {
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
-                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{formatNumber(user.stats.totalDiemStaked)}</p>
+                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{formatNumber(displayDiemStaked)}</p>
                   <p className="text-base" style={{ color: 'var(--paper-muted)' }}>DIEM Staked</p>
                 </div>
                 <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
-                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{formatNumber(user.stats.quadraticVotingWeight)}</p>
+                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{formatNumber(stakingData?.quadraticVotingWeight ?? 0)}</p>
                   <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Voting Weight</p>
                 </div>
                 <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
-                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{user.stats.promptsSubmitted}</p>
+                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{stakingData?.promptsSubmitted ?? 0}</p>
                   <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Prompts</p>
                 </div>
                 <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
-                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{user.stats.proposalsCreated}</p>
+                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{stakingData?.proposalsCreated ?? 0}</p>
                   <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Proposals</p>
                 </div>
                 <div className="rounded-lg p-4 text-center md:col-span-1" style={{ backgroundColor: 'var(--paper-surface)' }}>
-                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{user.stats.votingHistoryCount}</p>
+                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{stakingData?.votingHistoryCount ?? 0}</p>
                   <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Votes Cast</p>
                 </div>
               </div>
@@ -195,30 +196,8 @@ export function ProfilePage() {
               <h2 id="activity-heading" className="text-lg font-display font-semibold mb-6" style={{ color: 'var(--paper-text)' }}>
                 Recent Activity
               </h2>
-              <div className="space-y-4" role="feed" aria-label="Recent activity feed">
-                {user.recentActivity.map((activity) => {
-                  const ActivityIcon = getActivityIcon(activity.type);
-                  const ImpactIcon = getImpactIcon(activity.impact);
-                  return (
-                    <div
-                      key={activity.id}
-                      className="flex items-center gap-4"
-                      role="article"
-                      aria-label={`${activity.description}, ${activity.time}`}
-                    >
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--paper-surface)' }}>
-                        <ActivityIcon size={18} style={{ color: 'var(--paper-muted)' }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate" style={{ color: 'var(--paper-text)' }}>{activity.description}</p>
-                        <p className="text-base" style={{ color: 'var(--paper-muted)' }}>{activity.time}</p>
-                      </div>
-                      <div className="flex-shrink-0" style={{ color: activity.impact === 'positive' ? 'var(--success)' : activity.impact === 'negative' ? 'var(--danger)' : 'var(--paper-muted)' }}>
-                        <ImpactIcon size={16} />
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="flex items-center justify-center py-8" style={{ color: 'var(--paper-muted)' }}>
+                <p>Activity data not yet available. Participate in governance to see your history.</p>
               </div>
             </section>
 
