@@ -3,14 +3,13 @@ import { useAgent } from '../context/useAgent';
 
 export const ExperimentHypothesis = () => {
   const { totalObservers } = useAgent();
-  const observerCount = totalObservers || 127;
 
   return (
     <div className="space-y-3 md:space-y-4">
       <h3 className="font-mono text-sm md:text-base font-bold text-[var(--paper-text)] leading-tight">
         What happens when{' '}
-        <span className="phosphor text-[var(--accent-primary)]">{observerCount} observers</span>{' '}
-        focus their attention together?
+        <span className="phosphor text-[var(--accent-primary)]">{totalObservers > 0 ? totalObservers : '--'}</span>{' '}
+        observers focus their attention together?
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-sm md:text-base text-[var(--paper-muted)]">

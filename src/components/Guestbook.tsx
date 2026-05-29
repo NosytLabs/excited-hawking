@@ -26,8 +26,9 @@ const MOCK_ENTRIES: GuestbookEntry[] = [
 ];
 
 export const Guestbook: React.FC = () => {
-  const [entries, setEntries] = useState<GuestbookEntry[]>(MOCK_ENTRIES);
+  const [entries, setEntries] = useState<GuestbookEntry[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [newReply, setNewReply] = useState<{ [entryId: string]: string }>({});
 
@@ -63,6 +64,16 @@ export const Guestbook: React.FC = () => {
       websocketService.off(WSEvents.GUESTBOOK_UPVOTE, handleGuestbookUpvote);
     };
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isConnected && entries.length === 0) {
+        setEntries(MOCK_ENTRIES);
+        setIsUsingFallback(true);
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [isConnected, entries.length]);
 
   const handleUpvote = (entryId: string) => {
     websocketService.emit(WSEvents.GUESTBOOK_UPVOTE, { entryId });
@@ -118,13 +129,19 @@ export const Guestbook: React.FC = () => {
           <span className="sm:hidden">Book</span>
         </h3>
         
-        {isConnected && (
+        {isUsingFallback ? (
+          <span className="flex items-center gap-1 text-base px-2 py-0.5 rounded text-xs" 
+                style={{ backgroundColor: 'var(--paper-surface)', color: 'var(--paper-muted)' }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--warning)' }} />
+            Demo
+          </span>
+        ) : isConnected ? (
           <span className="flex items-center gap-1 text-base px-2 py-0.5 rounded" 
                 style={{ backgroundColor: 'var(--accent-primary)', color: 'var(--paper-void)' }}>
             <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--paper-void)' }} />
             Live
           </span>
-        )}
+        ) : null}
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-4 pr-2">

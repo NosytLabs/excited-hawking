@@ -3,9 +3,9 @@ import { Terminal, Vote, Users, RefreshCw, Activity } from 'lucide-react';
 import { useAgent } from '../context/useAgent';
 
 export const WelcomeAgent: React.FC = () => {
-  const { totalPromptsProcessed, creatureMood, totalObservers, emergenceGeneration } = useAgent();
-  const prompts = totalPromptsProcessed || 1847;
-  const cycles = emergenceGeneration || 847;
+  const { totalPromptsProcessed, creatureMood, totalObservers, emergenceGeneration, backendAvailable } = useAgent();
+  const prompts = backendAvailable ? (totalPromptsProcessed || 0) : null;
+  const cycles = backendAvailable ? (emergenceGeneration || 0) : null;
   
   const moodLabel: Record<string, string> = {
     ecstatic: 'THRIVING',
@@ -22,13 +22,19 @@ export const WelcomeAgent: React.FC = () => {
         <h1 className="font-mono text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--paper-text)] leading-[1.1]">
           <span className="text-[var(--paper-muted)]">Something is forming in the grid.</span>
           <br />
-          <span className="text-[var(--accent-primary)] phosphor">{totalObservers.toLocaleString()}</span>
+          <span className="text-[var(--accent-primary)] phosphor">{totalObservers > 0 ? totalObservers.toLocaleString() : '--'}</span>
           <span className="text-[var(--paper-muted)]"> observers</span>
         </h1>
         <p className="font-mono text-sm md:text-base text-[var(--paper-muted)] leading-relaxed max-w-[60ch]">
           A collective experiment where weighted attention shapes pattern emergence.{' '}
-          <span className="text-[var(--accent-primary)]">{prompts.toLocaleString()}</span> prompts
-          processed across <span className="text-[var(--paper-text)]">{cycles.toLocaleString()}</span> cycles.
+          {prompts !== null ? (
+            <>
+              <span className="text-[var(--accent-primary)]">{prompts.toLocaleString()}</span> prompts
+              processed across <span className="text-[var(--paper-text)]">{cycles?.toLocaleString()}</span> cycles.
+            </>
+          ) : (
+            <span className="text-[var(--paper-muted)]">Connecting to the grid...</span>
+          )}
         </p>
       </div>
 
@@ -58,7 +64,7 @@ export const WelcomeAgent: React.FC = () => {
           <RefreshCw size={14} className="text-[var(--accent-primary)]" />
           <div>
             <div className="text-[10px] font-mono text-[var(--paper-muted)] uppercase tracking-widest">Cycle</div>
-            <div className="font-mono text-lg font-bold text-[var(--accent-primary)] phosphor">{cycles.toLocaleString()}</div>
+            <div className="font-mono text-lg font-bold text-[var(--accent-primary)] phosphor">{cycles !== null ? cycles.toLocaleString() : '--'}</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -72,7 +78,7 @@ export const WelcomeAgent: React.FC = () => {
           <Users size={14} className="text-[var(--paper-muted)]" />
           <div>
             <div className="text-[10px] font-mono text-[var(--paper-muted)] uppercase tracking-widest">Participants</div>
-            <div className="font-mono text-lg font-bold text-[var(--paper-text)]">{totalObservers.toLocaleString()}</div>
+            <div className="font-mono text-lg font-bold text-[var(--paper-text)]">{totalObservers > 0 ? totalObservers.toLocaleString() : '--'}</div>
           </div>
         </div>
       </div>

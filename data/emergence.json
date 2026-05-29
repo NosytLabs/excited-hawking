@@ -4100,44 +4100,44 @@
   "generation": 1,
   "events": [
     {
-      "id": "88a085f3-8180-4264-bd4c-703f767c7cb7",
-      "timestamp": 1780021605031,
+      "id": "c15aa4bf-3605-45a2-8285-114204fc4895",
+      "timestamp": 1780022794558,
       "type": "explosion",
       "x": 0,
       "y": 0,
       "description": "Seed density: 0.1%"
     },
     {
-      "id": "f801cfbb-f707-4dec-b4f1-44044af9e58c",
-      "timestamp": 1780021605032,
-      "type": "still_life",
+      "id": "93b15491-e505-4244-89f3-45966af42035",
+      "timestamp": 1780022794559,
+      "type": "glider",
       "x": 2,
       "y": 3,
-      "description": "A permanent form emerges from chaos"
+      "description": "Cell cluster propagates through space"
     },
     {
-      "id": "06f79e94-5404-4a48-a1d8-9e77f3e80f35",
-      "timestamp": 1780021605032,
+      "id": "65306122-13c0-4d4a-9fff-67aa5be54b8a",
+      "timestamp": 1780022794559,
       "type": "oscillator",
       "x": 3,
       "y": 2,
       "description": "Cells pulse in rhythmic harmony"
     },
     {
-      "id": "8f664e3f-98dd-4efe-bec3-a0264247703a",
-      "timestamp": 1780021605032,
+      "id": "ab631626-f190-43fc-912e-a04da761b253",
+      "timestamp": 1780022794559,
       "type": "collapse",
       "x": 3,
       "y": 3,
       "description": "Order dissolves into randomness"
     },
     {
-      "id": "aee29557-352a-4316-a040-ebacf603f174",
-      "timestamp": 1780021605032,
-      "type": "glider",
+      "id": "7c5c83d0-73d8-447c-9b9e-0861478f8404",
+      "timestamp": 1780022794559,
+      "type": "oscillator",
       "x": 4,
       "y": 4,
-      "description": "A glider moves diagonally across the grid"
+      "description": "Cells pulse in rhythmic harmony"
     }
   ]
 }

@@ -59,6 +59,20 @@ interface SettingsState {
   creatureUpdates: boolean;
 }
 
+const STORAGE_KEY = 'vault_notification_settings';
+
+function loadSettings(): SettingsState {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch { /* ignore */ }
+  return { emailNotifications: true, pushNotifications: false, proposalAlerts: true, creatureUpdates: true };
+}
+
+function saveSettings(s: SettingsState) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+}
+
 interface StakingData {
   diemStaked: number;
   tier: string;
@@ -71,12 +85,7 @@ interface StakingData {
 export function ProfilePage() {
   const { connectWallet, walletAddress, diemStaked: contextDiemStaked, tier: contextTier } = useAgent();
   const [stakingData, setStakingData] = useState<StakingData | null>(null);
-  const [settings, setSettings] = useState<SettingsState>({
-    emailNotifications: true,
-    pushNotifications: false,
-    proposalAlerts: true,
-    creatureUpdates: true,
-  });
+  const [settings, setSettings] = useState<SettingsState>(loadSettings);
 
   useEffect(() => {
     if (walletAddress) {
@@ -213,25 +222,41 @@ export function ProfilePage() {
               <div role="group" aria-label="Notification preferences">
                 <Toggle
                   enabled={settings.emailNotifications}
-                  onChange={() => setSettings((s: SettingsState) => ({ ...s, emailNotifications: !s.emailNotifications }))}
+                  onChange={() => {
+                    const next = { ...settings, emailNotifications: !settings.emailNotifications };
+                    setSettings(next);
+                    saveSettings(next);
+                  }}
                   label="Email Notifications"
                   description="Receive updates via email"
                 />
                 <Toggle
                   enabled={settings.pushNotifications}
-                  onChange={() => setSettings((s: SettingsState) => ({ ...s, pushNotifications: !s.pushNotifications }))}
+                  onChange={() => {
+                    const next = { ...settings, pushNotifications: !settings.pushNotifications };
+                    setSettings(next);
+                    saveSettings(next);
+                  }}
                   label="Push Notifications"
                   description="Receive browser push notifications"
                 />
                 <Toggle
                   enabled={settings.proposalAlerts}
-                  onChange={() => setSettings((s: SettingsState) => ({ ...s, proposalAlerts: !s.proposalAlerts }))}
+                  onChange={() => {
+                    const next = { ...settings, proposalAlerts: !settings.proposalAlerts };
+                    setSettings(next);
+                    saveSettings(next);
+                  }}
                   label="Proposal Alerts"
                   description="Get notified of new governance proposals"
                 />
                 <Toggle
                   enabled={settings.creatureUpdates}
-                  onChange={() => setSettings((s: SettingsState) => ({ ...s, creatureUpdates: !s.creatureUpdates }))}
+                  onChange={() => {
+                    const next = { ...settings, creatureUpdates: !settings.creatureUpdates };
+                    setSettings(next);
+                    saveSettings(next);
+                  }}
                   label="Creature Updates"
                   description="Notifications about creature state changes"
                 />

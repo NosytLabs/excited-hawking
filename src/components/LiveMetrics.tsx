@@ -349,16 +349,34 @@ const ParticleField = ({ colors }: { colors: string[] }) => {
 function MetricBar({ label, value, color, icon }: { label: string; value: number; color: string; icon: React.ReactNode }) {
   const [glowIntensity, setGlowIntensity] = useState(0);
   const prevValue = useRef(value);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (value !== prevValue.current) {
       setGlowIntensity(1);
       prevValue.current = value;
     }
-    const interval = setInterval(() => {
-      setGlowIntensity(prev => Math.max(0, prev - 0.02));
-    }, 16);
-    return () => clearInterval(interval);
+    
+    const animate = () => {
+      if (document.hidden) {
+        rafRef.current = requestAnimationFrame(animate);
+        return;
+      }
+      setGlowIntensity(prev => {
+        const next = Math.max(0, prev - 0.02);
+        if (next <= 0) {
+          if (rafRef.current) cancelAnimationFrame(rafRef.current);
+          return next;
+        }
+        return next;
+      });
+      rafRef.current = requestAnimationFrame(animate);
+    };
+    
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   }, [value]);
 
   return (
