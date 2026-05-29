@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import {
   Scene,
   PerspectiveCamera,
@@ -37,7 +37,39 @@ const SEED_POSITIONS = (() => {
   return { positions, colors };
 })();
 
+function checkWebGLSupport(): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    return !!gl;
+  } catch {
+    return false;
+  }
+}
+
+function WebGLFallback({ width, height }: { width: number; height: number }) {
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none flex items-center justify-center"
+      style={{ width, height, zIndex: 1, background: 'rgba(10, 10, 20, 0.3)' }}
+    >
+      <div
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 10,
+          color: 'var(--paper-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: 2,
+        }}
+      >
+        WebGL Unavailable
+      </div>
+    </div>
+  );
+}
+
 export default function ThreeDCanvas({ width, height }: ThreeDCanvasProps) {
+  const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<{
     scene: Scene;
@@ -54,6 +86,9 @@ export default function ThreeDCanvas({ width, height }: ThreeDCanvasProps) {
   }, []);
 
   useEffect(() => {
+    const supported = checkWebGLSupport();
+    setWebglSupported(supported);
+    if (!supported) return;
     if (!containerRef.current || width === 0 || height === 0) return;
 
     const scene = new Scene();
@@ -109,6 +144,9 @@ export default function ThreeDCanvas({ width, height }: ThreeDCanvasProps) {
       sceneRef.current = null;
     };
   }, [width, height, particleGeometry]);
+
+  if (webglSupported === null) return null;
+  if (!webglSupported) return <WebGLFallback width={width} height={height} />;
 
   return <div ref={containerRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }} />;
 }
