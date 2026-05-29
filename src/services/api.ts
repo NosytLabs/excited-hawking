@@ -104,9 +104,9 @@ export const api = {
   },
 
   async voteOnProposal(proposalId: string, vote: 'for' | 'against' | 'abstain'): Promise<{ success: boolean }> {
-    return fetchJson<{ success: boolean }>(`${BASE_URL}/api/governance/proposals/${proposalId}/vote`, {
+    return fetchJson<{ success: boolean }>(`${BASE_URL}/api/governance/vote`, {
       method: 'POST',
-      body: JSON.stringify({ vote }),
+      body: JSON.stringify({ proposalId, vote }),
     });
   },
 

@@ -4100,44 +4100,44 @@
   "generation": 1,
   "events": [
     {
-      "id": "14e07dc8-629f-4f30-bc1d-f106848150c6",
-      "timestamp": 1780017335084,
+      "id": "ced14bff-25fb-4e62-bbcc-42ba4d492c53",
+      "timestamp": 1780020714664,
       "type": "explosion",
       "x": 0,
       "y": 0,
       "description": "Seed density: 0.1%"
     },
     {
-      "id": "5566818b-0780-489d-82c9-8119c03e99f1",
-      "timestamp": 1780017335085,
+      "id": "bf14a41a-a8d4-42f2-95fd-87dfa495cae3",
+      "timestamp": 1780020714666,
       "type": "oscillator",
       "x": 2,
       "y": 3,
-      "description": "A heartbeat emerges from the void"
+      "description": "Cells pulse in rhythmic harmony"
     },
     {
-      "id": "dd185ae7-9158-4ad4-bf49-65147b1982c0",
-      "timestamp": 1780017335086,
+      "id": "422a77c5-d8b8-4876-961f-a4aba33e690e",
+      "timestamp": 1780020714667,
       "type": "glider",
       "x": 3,
       "y": 2,
-      "description": "Cell cluster propagates through space"
+      "description": "A glider moves diagonally across the grid"
     },
     {
-      "id": "8e27e19e-1171-4456-8960-0382b1c2b156",
-      "timestamp": 1780017335086,
+      "id": "3838011b-8d1a-40b4-8046-b349bc25f2b5",
+      "timestamp": 1780020714667,
       "type": "explosion",
       "x": 3,
       "y": 3,
-      "description": "Life multiplies exponentially"
+      "description": "Activity spreads outward"
     },
     {
-      "id": "ef44e976-0c7a-4213-b544-e287dd92a92f",
-      "timestamp": 1780017335086,
-      "type": "glider",
+      "id": "54d0f056-c01e-447a-bf4c-2ae8e3f0b0b4",
+      "timestamp": 1780020714667,
+      "type": "still_life",
       "x": 4,
       "y": 4,
-      "description": "A glider moves diagonally across the grid"
+      "description": "Stable structure crystallizes"
     }
   ]
 }
