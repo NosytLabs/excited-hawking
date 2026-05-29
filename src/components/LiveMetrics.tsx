@@ -559,7 +559,7 @@ export const LiveMetrics = () => {
 
     let rafId: number;
 
-    const draw = (time: number) => {
+    const draw = () => {
       if (!document.hidden) {
         const w = canvas.width;
         const h = canvas.height;
@@ -610,7 +610,6 @@ export const LiveMetrics = () => {
         ctx.fillStyle = scanGradient;
         ctx.fillRect(offset - 30, 0, 60, h);
 
-        lastTime = time;
       }
 
       rafId = requestAnimationFrame(draw);

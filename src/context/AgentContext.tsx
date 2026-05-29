@@ -65,7 +65,7 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const canVote = useMemo(() => canVoteWithCurrentWallet(walletMode, state.walletAddress), [walletMode, state.walletAddress]);
   const voteDisabledReason = useMemo(() => getVoteDisabledReason(walletMode), [walletMode]);
 
-  const handlersRef = useRef<Record<string, () => void>>({});
+  const handlersRef = useRef<Record<string, (data: unknown) => void>>({});
 
   useEffect(() => {
     abortControllerRef.current = new AbortController();
@@ -115,21 +115,20 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         return { ...prev, agentMemoryNodes: updated.length > 50 ? updated.slice(0, 50) : updated };
       });
     };
-
     handlersRef.current = {
       [WSEvents.CONNECT]: handleConnect,
       [WSEvents.DISCONNECT]: handleDisconnect,
       [WSEvents.CONNECT_ERROR]: handleConnectError,
-      [WSEvents.PROMPT_NEW]: handlePromptNew,
-      [WSEvents.BALANCE_UPDATE]: handleBalanceUpdate,
-      [WSEvents.TREASURY_UPDATE]: handleTreasuryUpdate,
-      [WSEvents.TIER_CHANGE]: handleTierChange,
-      [WSEvents.LOG_NEW]: handleLogNew,
-      [WSEvents.GOVERNANCE_PROPOSAL]: handleGovernanceProposal,
-      [WSEvents.CREATURE_UPDATE]: handleCreatureUpdate,
-      [WSEvents.EMERGENCE_UPDATE]: handleEmergenceUpdate,
-      [WSEvents.MEMORY_NEW]: handleMemoryNew,
-    };
+      [WSEvents.PROMPT_NEW]: handlePromptNew as (data: unknown) => void,
+      [WSEvents.BALANCE_UPDATE]: handleBalanceUpdate as (data: unknown) => void,
+      [WSEvents.TREASURY_UPDATE]: handleTreasuryUpdate as (data: unknown) => void,
+      [WSEvents.TIER_CHANGE]: handleTierChange as (data: unknown) => void,
+      [WSEvents.LOG_NEW]: handleLogNew as (data: unknown) => void,
+      [WSEvents.GOVERNANCE_PROPOSAL]: handleGovernanceProposal as (data: unknown) => void,
+      [WSEvents.CREATURE_UPDATE]: handleCreatureUpdate as (data: unknown) => void,
+      [WSEvents.EMERGENCE_UPDATE]: handleEmergenceUpdate as (data: unknown) => void,
+      [WSEvents.MEMORY_NEW]: handleMemoryNew as (data: unknown) => void,
+    } as Record<string, (data: unknown) => void>;
 
     websocketService.on(WSEvents.CONNECT, handlersRef.current[WSEvents.CONNECT]);
     websocketService.on(WSEvents.DISCONNECT, handlersRef.current[WSEvents.DISCONNECT]);
@@ -204,13 +203,13 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   const votePrompt = useCallback(async (_id: string) => {
-    if (!canVote) { console.warn(`[AgentContext] ${voteDisabledReason}`); return; }
+    if (!canVote) { console.warn(`[AgentContext] ${voteDisabledReason}`); showToast('Connect wallet to vote', 'warning'); return; }
     if (!state.walletAddress) { console.warn('[AgentContext] No wallet connected for voting'); return; }
     console.warn('[AgentContext] Prompt voting requires wallet signature - not yet implemented');
   }, [canVote, voteDisabledReason, state.walletAddress]);
 
   const voteProposal = useCallback((id: string, vote: 'for' | 'against' | 'abstain') => {
-    if (!canVote) { console.warn(`[AgentContext] ${voteDisabledReason}`); return; }
+    if (!canVote) { console.warn(`[AgentContext] ${voteDisabledReason}`); showToast('Connect wallet to vote', 'warning'); return; }
     const rollback = voteProposalRollbackRef.current;
     setState(prev => {
       const original = prev.proposals.find(p => p.id === id);

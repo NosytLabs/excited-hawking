@@ -101,15 +101,17 @@ export const PromptBox: React.FC = React.memo(() => {
           Start a prompt
         </h3>
         <div className="group relative inline-block">
-          <HelpCircle 
-            size={16} 
-            className="text-[var(--paper-muted)] cursor-help" 
+          <HelpCircle
+            size={16}
+            className="text-[var(--paper-muted)] cursor-help"
             aria-label="Cost explanation"
+            aria-describedby="cost-tooltip"
           />
-          <div 
+          <div
             id="cost-tooltip"
             className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[var(--paper-text)] text-[var(--paper-void)] rounded-lg px-3 py-2 text-sm whitespace-nowrap z-50 shadow-md hidden group-hover:block group-focus-within:block"
             role="tooltip"
+            aria-live="polite"
           >
             Costs support the system: 80% burns, 20% to treasury
           </div>

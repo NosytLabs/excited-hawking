@@ -30,6 +30,7 @@ function getFallbackEvents(): ActivityEvent[] {
 
 export const ActivityFeed = () => {
   const [events, setEvents] = useState<ActivityEvent[]>([]);
+  const [usingFallback, setUsingFallback] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [loading, setLoading] = useState(true);
 
@@ -41,11 +42,16 @@ export const ActivityFeed = () => {
         if (response.ok && !ignore) {
           const data = await response.json();
           setEvents(data.events || []);
+          setUsingFallback(false);
         } else if (!ignore) {
           setEvents(getFallbackEvents());
+          setUsingFallback(true);
         }
       } catch {
-        if (!ignore) setEvents(getFallbackEvents());
+        if (!ignore) {
+          setEvents(getFallbackEvents());
+          setUsingFallback(true);
+        }
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -81,10 +87,15 @@ export const ActivityFeed = () => {
         <div className="flex items-center gap-2">
           <Activity size={14} className="text-[var(--accent-primary)]" />
           <span className="text-sm font-mono text-[var(--paper-muted)]">Live Activity</span>
+          {usingFallback && (
+            <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--warning)]/20 text-[var(--warning)]">Demo</span>
+          )}
         </div>
-        <div role="status" aria-live="polite" className="flex items-center gap-1.5 text-sm text-[var(--success)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />
-          Live
+        <div role="status" aria-live="polite" className="flex items-center gap-1.5 text-sm">
+          <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${usingFallback ? 'bg-[var(--warning)]' : 'bg-[var(--success)]'}`} />
+          <span className={usingFallback ? 'text-[var(--warning)]' : 'text-[var(--success)]'}>
+            {usingFallback ? 'Offline' : 'Live'}
+          </span>
         </div>
       </div>
 
