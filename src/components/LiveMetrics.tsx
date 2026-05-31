@@ -86,12 +86,16 @@ const ConsolidatedRings = ({
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
     const ctxVitality = vitalityRef.current?.getContext('2d');
     const ctxMomentum = momentumRef.current?.getContext('2d');
     const ctxCoherence = coherenceRef.current?.getContext('2d');
     if (!ctxVitality || !ctxMomentum || !ctxCoherence) return;
 
     const draw = () => {
+      if (document.hidden) { rafRef.current = requestAnimationFrame(draw); return; }
       const drawProgressRing = (ctx: CanvasRenderingContext2D, progress: number, color: string) => {
         const cx = size / 2;
         const cy = size / 2;

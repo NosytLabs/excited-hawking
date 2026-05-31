@@ -4100,44 +4100,44 @@
   "generation": 1,
   "events": [
     {
-      "id": "43ced180-d93d-44fa-8d41-6edb3ba97e55",
-      "timestamp": 1780023664062,
+      "id": "b4401454-c2a0-4c22-a952-7f98f851057a",
+      "timestamp": 1780210046069,
       "type": "explosion",
       "x": 0,
       "y": 0,
       "description": "Seed density: 0.1%"
     },
     {
-      "id": "fd1bfed5-6e16-42a3-9600-c56583e25b39",
-      "timestamp": 1780023664063,
-      "type": "still_life",
+      "id": "7d940a8d-7279-451d-ab4e-bc783647a72b",
+      "timestamp": 1780210046070,
+      "type": "oscillator",
       "x": 2,
       "y": 3,
-      "description": "Stable structure crystallizes"
+      "description": "A heartbeat emerges from the void"
     },
     {
-      "id": "9eed914b-de09-4ed6-b9a2-98001db28a9a",
-      "timestamp": 1780023664063,
-      "type": "still_life",
+      "id": "5fcc5546-c401-44c4-94e8-d87ba18d2c7d",
+      "timestamp": 1780210046070,
+      "type": "oscillator",
       "x": 3,
       "y": 2,
-      "description": "A permanent form emerges from chaos"
+      "description": "A heartbeat emerges from the void"
     },
     {
-      "id": "d404e63b-bfa4-431a-9c69-10f12101040a",
-      "timestamp": 1780023664063,
+      "id": "74a2de7b-715f-4366-a6c0-1b02d39bac71",
+      "timestamp": 1780210046070,
       "type": "collapse",
       "x": 3,
       "y": 3,
-      "description": "A structure crumbles to dust"
+      "description": "Order dissolves into randomness"
     },
     {
-      "id": "e94a704f-ba48-415f-b2c9-5e44bc643f5c",
-      "timestamp": 1780023664063,
-      "type": "still_life",
+      "id": "5e7fc6e1-5a89-40f9-9f16-6dad31f03558",
+      "timestamp": 1780210046070,
+      "type": "glider",
       "x": 4,
       "y": 4,
-      "description": "Stable structure crystallizes"
+      "description": "A glider moves diagonally across the grid"
     }
   ]
 }

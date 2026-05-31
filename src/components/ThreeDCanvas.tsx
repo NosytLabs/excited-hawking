@@ -86,6 +86,9 @@ export default function ThreeDCanvas({ width, height }: ThreeDCanvasProps) {
   }, []);
 
   useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
     const supported = checkWebGLSupport();
     setWebglSupported(supported);
     if (!supported) return;
@@ -117,7 +120,7 @@ export default function ThreeDCanvas({ width, height }: ThreeDCanvasProps) {
 
     let animationId: number;
     const animate = () => {
-      animationId = requestAnimationFrame(animate);
+      if (document.hidden) { animationId = requestAnimationFrame(animate); return; }
       const time = Date.now() * 0.001;
       particles.rotation.y = time * 0.05;
       particles.rotation.x = Math.sin(time * 0.1) * 0.1;
@@ -129,6 +132,7 @@ export default function ThreeDCanvas({ width, height }: ThreeDCanvasProps) {
       particleGeometry.attributes.position.needsUpdate = true;
 
       renderer.render(scene, camera);
+      animationId = requestAnimationFrame(animate);
     };
 
     animate();

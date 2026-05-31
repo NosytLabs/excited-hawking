@@ -74,6 +74,7 @@ function saveSettings(s: SettingsState) {
 }
 
 interface StakingData {
+  status: 'loading' | 'loaded' | 'error';
   diemStaked: number;
   tier: string;
   quadraticVotingWeight: number;
@@ -84,13 +85,15 @@ interface StakingData {
 
 export function ProfilePage() {
   const { connectWallet, walletAddress, diemStaked: contextDiemStaked, tier: contextTier } = useAgent();
-  const [stakingData, setStakingData] = useState<StakingData | null>(null);
+  const [stakingData, setStakingData] = useState<StakingData>({ status: 'loading', diemStaked: 0, tier: '', quadraticVotingWeight: 0, promptsSubmitted: 0, proposalsCreated: 0, votingHistoryCount: 0 });
   const [settings, setSettings] = useState<SettingsState>(loadSettings);
 
   useEffect(() => {
     if (walletAddress) {
+      setStakingData(prev => ({ ...prev, status: 'loading' }));
       api.getStatus().then((status) => {
         setStakingData({
+          status: 'loaded',
           diemStaked: status.diemStaked,
           tier: status.tier,
           quadraticVotingWeight: 0,
@@ -101,6 +104,7 @@ export function ProfilePage() {
       }).catch((err) => {
         console.error('Failed to fetch staking data:', err);
         setStakingData({
+          status: 'error',
           diemStaked: contextDiemStaked,
           tier: contextTier,
           quadraticVotingWeight: 0,
@@ -109,6 +113,8 @@ export function ProfilePage() {
           votingHistoryCount: 0,
         });
       });
+    } else {
+      setStakingData({ status: 'loaded', diemStaked: contextDiemStaked, tier: contextTier, quadraticVotingWeight: 0, promptsSubmitted: 0, proposalsCreated: 0, votingHistoryCount: 0 });
     }
   }, [walletAddress, contextDiemStaked, contextTier]);
 
@@ -116,8 +122,7 @@ export function ProfilePage() {
     await connectWallet();
   };
 
-  const displayTier = stakingData?.tier || contextTier || 'Not connected';
-  const displayDiemStaked = stakingData?.diemStaked ?? contextDiemStaked ?? 0;
+  const displayTier = stakingData.tier || contextTier || 'Not connected';
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-6" style={{ backgroundColor: 'var(--paper-void)' }}>
@@ -177,28 +182,47 @@ export function ProfilePage() {
               <h2 id="stats-heading" className="text-lg font-display font-semibold mb-6" style={{ color: 'var(--paper-text)' }}>
                 Statistics
               </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
-                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{formatNumber(displayDiemStaked)}</p>
-                  <p className="text-base" style={{ color: 'var(--paper-muted)' }}>DIEM Staked</p>
+              {stakingData.status === 'loading' ? (
+                <div className="flex items-center justify-center py-8">
+                  <p style={{ color: 'var(--paper-muted)' }}>Loading staking data...</p>
                 </div>
-                <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
-                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{formatNumber(stakingData?.quadraticVotingWeight ?? 0)}</p>
-                  <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Voting Weight</p>
+              ) : stakingData.status === 'error' ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <p className="mb-4" style={{ color: 'var(--error)' }}>Failed to load staking data</p>
+                    <button
+                      onClick={() => setStakingData(prev => ({ ...prev, status: 'loading' }))}
+                      className="px-4 py-2 rounded-lg font-mono text-sm"
+                      style={{ backgroundColor: 'var(--accent-primary)', color: 'var(--paper-void)' }}
+                    >
+                      Retry
+                    </button>
+                  </div>
                 </div>
-                <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
-                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{stakingData?.promptsSubmitted ?? 0}</p>
-                  <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Prompts</p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
+                    <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{formatNumber(stakingData.diemStaked)}</p>
+                    <p className="text-base" style={{ color: 'var(--paper-muted)' }}>DIEM Staked</p>
+                  </div>
+                  <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
+                    <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{formatNumber(stakingData.quadraticVotingWeight)}</p>
+                    <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Voting Weight</p>
+                  </div>
+                  <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
+                    <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{stakingData.promptsSubmitted}</p>
+                    <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Prompts</p>
+                  </div>
+                  <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
+                    <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{stakingData.proposalsCreated}</p>
+                    <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Proposals</p>
+                  </div>
+                  <div className="rounded-lg p-4 text-center md:col-span-1" style={{ backgroundColor: 'var(--paper-surface)' }}>
+                    <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{stakingData.votingHistoryCount}</p>
+                    <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Votes Cast</p>
+                  </div>
                 </div>
-                <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
-                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{stakingData?.proposalsCreated ?? 0}</p>
-                  <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Proposals</p>
-                </div>
-                <div className="rounded-lg p-4 text-center md:col-span-1" style={{ backgroundColor: 'var(--paper-surface)' }}>
-                  <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{stakingData?.votingHistoryCount ?? 0}</p>
-                  <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Votes Cast</p>
-                </div>
-              </div>
+              )}
             </section>
 
             <section className="card mb-6" aria-labelledby="activity-heading">

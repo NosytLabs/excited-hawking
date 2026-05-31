@@ -60,6 +60,8 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const logsIdCounter = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
   const voteProposalRollbackRef = useRef<Map<string, Proposal>>(new Map());
+  const walletSignatureRef = useRef<string | undefined>(undefined);
+  const walletNonceRef = useRef<string | undefined>(undefined);
 
   const walletMode = useMemo(() => getWalletMode(), []);
   const canVote = useMemo(() => canVoteWithCurrentWallet(walletMode, state.walletAddress), [walletMode, state.walletAddress]);
@@ -70,7 +72,10 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   useEffect(() => {
     abortControllerRef.current = new AbortController();
 
-    const handleConnect = () => setState(prev => ({ ...prev, isConnected: true, backendAvailable: true }));
+    const handleConnect = () => {
+      setState(prev => ({ ...prev, isConnected: true, backendAvailable: true }));
+      websocketService.emit('emergence:subscribe', {});
+    };
     const handleDisconnect = () => {
       setState(prev => ({ ...prev, isConnected: false, backendAvailable: false }));
       showToast('Backend disconnected. Attempting to reconnect...', 'warning');
@@ -105,8 +110,15 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setState(prev => ({ ...prev, creatureStats: event.stats, creatureMood: event.mood, totalPromptsProcessed: event.totalPromptsProcessed }));
     };
     const handleEmergenceUpdate = (event: EmergenceEvent) => {
-      const flatGrid: string[] = event.grid.flatMap(row => row.map(alive => (alive ? '1' : '')));
+      const rawGrid = event.grid;
+      const flatGrid: string[] = Array.isArray(rawGrid) && rawGrid.length > 0 && Array.isArray(rawGrid[0])
+        ? (rawGrid as boolean[][]).flatMap(row => row.map((alive: boolean) => (alive ? '1' : '')))
+        : (rawGrid as unknown as (number | boolean)[]).map(v => (v ? '1' : ''));
       setState(prev => ({ ...prev, emergenceGrid: flatGrid, emergenceGeneration: event.generation, emergencePatterns: event.patterns }));
+    };
+    const handleEmergenceGrid = (event: { grid: number[]; generation: number }) => {
+      const flatGrid: string[] = event.grid.map(v => (v ? '1' : ''));
+      setState(prev => ({ ...prev, emergenceGrid: flatGrid, emergenceGeneration: event.generation }));
     };
     const handleMemoryNew = (event: MemoryNewEvent) => {
       setState(prev => {
@@ -127,6 +139,7 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       [WSEvents.GOVERNANCE_PROPOSAL]: handleGovernanceProposal as (data: unknown) => void,
       [WSEvents.CREATURE_UPDATE]: handleCreatureUpdate as (data: unknown) => void,
       [WSEvents.EMERGENCE_UPDATE]: handleEmergenceUpdate as (data: unknown) => void,
+      [WSEvents.EMERGENCE_GRID]: handleEmergenceGrid as (data: unknown) => void,
       [WSEvents.MEMORY_NEW]: handleMemoryNew as (data: unknown) => void,
     } as Record<string, (data: unknown) => void>;
 
@@ -141,6 +154,7 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     websocketService.on(WSEvents.GOVERNANCE_PROPOSAL, handlersRef.current[WSEvents.GOVERNANCE_PROPOSAL]);
     websocketService.on(WSEvents.CREATURE_UPDATE, handlersRef.current[WSEvents.CREATURE_UPDATE]);
     websocketService.on(WSEvents.EMERGENCE_UPDATE, handlersRef.current[WSEvents.EMERGENCE_UPDATE]);
+    websocketService.on(WSEvents.EMERGENCE_GRID, handlersRef.current[WSEvents.EMERGENCE_GRID]);
     websocketService.on(WSEvents.MEMORY_NEW, handlersRef.current[WSEvents.MEMORY_NEW]);
 
     websocketService.connect();
@@ -152,16 +166,20 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       fetch(`${window.location.origin}/api/emergence/state`, { signal: controller.signal }).then(r => r.json()),
       fetch(`${window.location.origin}/api/agent/memory?limit=20`, { signal: controller.signal }).then(r => r.json()),
     ]).then(([status, emergenceData, memoryData]) => {
+      const rawGrid = (emergenceData as { grid?: boolean[] | boolean[][] | number[] }).grid;
+      const emergenceGrid: string[] = Array.isArray(rawGrid)
+        ? (rawGrid.length > 0 && Array.isArray(rawGrid[0])
+            ? (rawGrid as boolean[][]).flatMap((row: boolean[]) => row.map((alive: boolean) => (alive ? '1' : '')))
+            : (rawGrid as unknown as (number | boolean)[]).map(v => (v ? '1' : '')))
+        : [];
       setState(prev => ({
         ...prev,
         diemStaked: status.diemStaked,
         treasuryUSDC: status.treasuryUSDC,
         tier: status.tier as Tier,
-        emergenceGrid: (emergenceData as { grid?: boolean[][]; generation?: number; patterns?: string[] }).grid
-          ? (emergenceData as { grid: boolean[][]; generation: number; patterns: string[] }).grid.flatMap((row: boolean[]) => row.map((alive: boolean) => (alive ? '1' : '')))
-          : [],
-        emergenceGeneration: (emergenceData as { grid?: boolean[][]; generation?: number }).generation ?? 0,
-        emergencePatterns: (emergenceData as { grid: boolean[][]; generation: number; patterns: string[] }).patterns,
+        emergenceGrid,
+        emergenceGeneration: (emergenceData as { grid?: boolean[] | boolean[][] | number[]; generation?: number }).generation ?? 0,
+        emergencePatterns: (emergenceData as { patterns?: string[] }).patterns ?? [],
         agentMemoryNodes: ((memoryData as { memories?: Array<{ id: string; type: string; content: string; timestamp: number; connections?: string[] }> }).memories || []).map(m => ({
           id: m.id, type: m.type as AgentMemoryNode['type'], content: m.content, timestamp: m.timestamp, connections: m.connections || [],
         })),
@@ -226,7 +244,7 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       };
     });
     if (state.backendAvailable) {
-      api.voteOnProposal(id, vote).then(() => {
+      api.voteOnProposal(id, vote, state.walletAddress ?? undefined, walletSignatureRef.current, walletNonceRef.current).then(() => {
         rollback.delete(id);
       }).catch((err: unknown) => {
         console.error('[AgentContext] voteOnProposal failed:', err);
@@ -237,11 +255,13 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
       });
     }
-  }, [state.backendAvailable, canVote, voteDisabledReason]);
+  }, [state.backendAvailable, canVote, voteDisabledReason, state.walletAddress]);
 
   const connectWallet = useCallback(async () => {
     if (state.walletAddress) {
       setState(prev => ({ ...prev, walletAddress: null, isConnected: false }));
+      walletSignatureRef.current = undefined;
+      walletNonceRef.current = undefined;
       addLog('Wallet disconnected', 'info');
       return;
     }
@@ -254,6 +274,22 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           setState(prev => ({ ...prev, walletAddress: address, isConnected: true }));
           addLog(`Wallet connected: ${address.slice(0, 6)}...${address.slice(-4)}`, 'success');
           showToast(`Wallet connected: ${address.slice(0, 6)}...`, 'success');
+
+          try {
+            const challengeRes = await fetch('/api/auth/challenge', {
+              headers: { 'x-wallet-address': address },
+            });
+            if (challengeRes.ok) {
+              const { nonce, expiresAt } = await challengeRes.json() as { nonce: string; expiresAt: string };
+              const message = `Sign this nonce to prove wallet ownership:\n${nonce}\n\nWallet: ${address}\nTimestamp: ${expiresAt}`;
+              const signature = await ethereum.request({ method: 'personal_sign', params: [message, address] }) as string;
+              walletSignatureRef.current = signature;
+              walletNonceRef.current = nonce;
+              addLog('Wallet challenge signed', 'success');
+            }
+          } catch (challengeErr) {
+            console.warn('[AgentContext] Failed to fetch/sign challenge, governance calls may fail:', challengeErr);
+          }
         }
       } catch (err) {
         console.error('[AgentContext] MetaMask connection failed:', err);

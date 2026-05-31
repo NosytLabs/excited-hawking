@@ -31,6 +31,7 @@ export const Guestbook: React.FC = () => {
   const [isUsingFallback, setIsUsingFallback] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [newReply, setNewReply] = useState<{ [entryId: string]: string }>({});
+  const [newEntry, setNewEntry] = useState('');
 
   useEffect(() => {
     const handleConnect = () => setIsConnected(true);
@@ -51,16 +52,25 @@ export const Guestbook: React.FC = () => {
         e.id === data.entryId ? { ...e, upvotes: data.upvotes } : e
       ));
     };
+    const handleGuestbookEntries = (entries: GuestbookEntry[]) => {
+      if (entries.length > 0) {
+        setEntries(entries);
+      }
+    };
 
     websocketService.on(WSEvents.CONNECT, handleConnect);
     websocketService.on(WSEvents.DISCONNECT, handleDisconnect);
     websocketService.on(WSEvents.GUESTBOOK_ENTRY, handleGuestbookEntry);
+    websocketService.on(WSEvents.GUESTBOOK_ENTRIES, handleGuestbookEntries);
     websocketService.on(WSEvents.GUESTBOOK_UPVOTE, handleGuestbookUpvote);
+
+    websocketService.emit('guestbook:request', {});
 
     return () => {
       websocketService.off(WSEvents.CONNECT, handleConnect);
       websocketService.off(WSEvents.DISCONNECT, handleDisconnect);
       websocketService.off(WSEvents.GUESTBOOK_ENTRY, handleGuestbookEntry);
+      websocketService.off(WSEvents.GUESTBOOK_ENTRIES, handleGuestbookEntries);
       websocketService.off(WSEvents.GUESTBOOK_UPVOTE, handleGuestbookUpvote);
     };
   }, []);
@@ -143,6 +153,43 @@ export const Guestbook: React.FC = () => {
           </span>
         ) : null}
       </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!newEntry.trim() || !isConnected) return;
+          websocketService.emit(WSEvents.GUESTBOOK_ENTRY, { author: 'You', content: newEntry.trim() });
+          setNewEntry('');
+        }}
+        className="mb-4 flex gap-2"
+      >
+        <textarea
+          value={newEntry}
+          onChange={(e) => setNewEntry(e.target.value)}
+          placeholder={isConnected ? "Sign the guestbook..." : "Connect to sign..."}
+          disabled={!isConnected}
+          maxLength={500}
+          className="flex-1 resize-none text-base px-3 py-2 rounded"
+          style={{
+            backgroundColor: 'var(--paper-surface)',
+            color: 'var(--paper-text)',
+            border: '1px solid var(--paper-border)',
+          }}
+          rows={2}
+        />
+        <button
+          type="submit"
+          disabled={!isConnected || !newEntry.trim()}
+          className="px-3 py-2 rounded self-end transition-opacity hover:opacity-80 disabled:opacity-50"
+          style={{
+            backgroundColor: 'var(--accent-primary)',
+            color: 'var(--paper-void)',
+          }}
+          aria-label="Sign guestbook"
+        >
+          <Send size={18} />
+        </button>
+      </form>
 
       <div className="flex-1 overflow-y-auto space-y-4 pr-2">
         {entries.length === 0 && (

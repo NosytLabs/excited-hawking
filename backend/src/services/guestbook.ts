@@ -172,4 +172,8 @@ export function setupGuestbookHandlers(socket: Socket, io: Server): void {
     io.emit('guestbook:entry', entry);
     console.log(`[WS] Guestbook reply added to: ${data.entryId}`);
   });
+
+  socket.on('guestbook:request', () => {
+    socket.emit('guestbook:entries', Array.from(guestbookEntries.values()));
+  });
 }

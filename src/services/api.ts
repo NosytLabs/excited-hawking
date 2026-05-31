@@ -103,16 +103,26 @@ export const api = {
     }).then(r => ({ proposalId: r.proposal?.id ?? '' }));
   },
 
-  async voteOnProposal(proposalId: string, vote: 'for' | 'against' | 'abstain'): Promise<{ success: boolean }> {
+  async voteOnProposal(proposalId: string, vote: 'for' | 'against' | 'abstain', walletAddress?: string, signature?: string, nonce?: string): Promise<{ success: boolean }> {
     return fetchJson<{ success: boolean }>(`${BASE_URL}/api/governance/vote`, {
       method: 'POST',
+      headers: {
+        ...(walletAddress ? { 'x-wallet-address': walletAddress } : {}),
+        ...(signature ? { 'x-signature': signature } : {}),
+        ...(nonce ? { 'x-nonce': nonce } : {}),
+      },
       body: JSON.stringify({ proposalId, vote }),
     });
   },
 
-  async delegateStake(delegateAddress: string, power?: string): Promise<{ success: boolean; delegation?: unknown }> {
+  async delegateStake(delegateAddress: string, power?: string, walletAddress?: string, signature?: string, nonce?: string): Promise<{ success: boolean; delegation?: unknown }> {
     return fetchJson<{ success: boolean; delegation?: unknown }>(`${BASE_URL}/api/governance/delegate`, {
       method: 'POST',
+      headers: {
+        ...(walletAddress ? { 'x-wallet-address': walletAddress } : {}),
+        ...(signature ? { 'x-signature': signature } : {}),
+        ...(nonce ? { 'x-nonce': nonce } : {}),
+      },
       body: JSON.stringify({ delegate: delegateAddress, power }),
     });
   },

@@ -110,7 +110,9 @@ interface SocketHandlers {
   [WSEvents.GOVERNANCE_UPDATE]: EventHandler<Record<string, unknown>>;
   [WSEvents.EMERGENCE_UPDATE]: EventHandler<EmergenceEvent>;
   [WSEvents.EMERGENCE_CELL_TOGGLE]: EventHandler<{ x: number; y: number; alive: boolean }>;
+  [WSEvents.EMERGENCE_GRID]: EventHandler<{ grid: number[]; generation: number }>;
   [WSEvents.GUESTBOOK_ENTRY]: EventHandler<GuestbookEntry>;
+  [WSEvents.GUESTBOOK_ENTRIES]: EventHandler<GuestbookEntry[]>;
   [WSEvents.GUESTBOOK_UPVOTE]: EventHandler<GuestbookUpvoteEvent>;
   [WSEvents.GUESTBOOK_REPLY]: EventHandler<GuestbookReply>;
   [WSEvents.MEMORY_NEW]: EventHandler<MemoryNewEvent>;
@@ -180,7 +182,9 @@ class WebSocketService {
       WSEvents.GOVERNANCE_UPDATE,
       WSEvents.EMERGENCE_UPDATE,
       WSEvents.EMERGENCE_CELL_TOGGLE,
+      WSEvents.EMERGENCE_GRID,
       WSEvents.GUESTBOOK_ENTRY,
+      WSEvents.GUESTBOOK_ENTRIES,
       WSEvents.GUESTBOOK_UPVOTE,
       WSEvents.GUESTBOOK_REPLY,
       WSEvents.MEMORY_NEW,

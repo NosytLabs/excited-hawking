@@ -20,7 +20,7 @@ import {
 import { reflectVoteFromPrompt } from '../lib/voting.js';
 import { getState, checkRateLimit, setRateLimitHeaders, getClientIp } from '../services/state.js';
 import { sanitizeString, sanitizeForHTML, isValidWalletAddress, detectPromptInjection } from '../types/index.js';
-import { requireWalletWithSignature, optionalWalletAuth } from '../middleware/auth.js';
+import { requireWalletWithSignature, optionalWalletAuth, createChallenge } from '../middleware/auth.js';
 import { addActivityEvent } from './emergence.js';
 
 interface ProposalBody {
@@ -43,6 +43,18 @@ interface DelegateBody {
 }
 
 export async function governanceRoutes(fastify: FastifyInstance) {
+  fastify.get('/api/auth/challenge', async (request: FastifyRequest, reply: FastifyReply) => {
+    const auth = optionalWalletAuth(request);
+    if (!auth.isValidWallet) {
+      return reply.status(400).send({ error: 'Valid wallet address required in x-wallet-address header' });
+    }
+    const challenge = createChallenge(auth.wallet);
+    if (!challenge) {
+      return reply.status(500).send({ error: 'Failed to create challenge' });
+    }
+    return { nonce: challenge.nonce, expiresAt: challenge.expiresAt };
+  });
+
   fastify.get('/api/governance/config', async (_request, _reply) => {
     return { minDeposit: 1000, votingPeriod: 7 };
   });
