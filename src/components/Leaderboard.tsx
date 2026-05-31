@@ -27,11 +27,11 @@ export const Leaderboard = () => {
         if (res.ok && !ignore) {
           const data = await res.json();
           if (data.leaderboard && Array.isArray(data.leaderboard)) {
-            setLeaderboard(data.leaderboard.map((e: { wallet: string; votes: number; weight: number }, i: number) => ({
+            setLeaderboard(data.leaderboard.map((e: { wallet: string; totalVotes?: number; proposalsVoted?: number; quadraticWeightSum?: number }, i: number) => ({
               rank: i + 1,
               address: e.wallet ? `${e.wallet.slice(0, 6)}...${e.wallet.slice(-4)}` : '---',
-              contributions: e.votes || 0,
-              weight: e.weight || 0,
+              contributions: e.totalVotes ?? e.proposalsVoted ?? 0,
+              weight: e.quadraticWeightSum ?? 0,
               trend: 'stable' as const,
             })));
           }

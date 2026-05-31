@@ -97,10 +97,10 @@ export const api = {
   vote,
 
   async createProposal(title: string, description: string, category: string, deposit: number): Promise<{ proposalId: string }> {
-    return fetchJson<{ proposalId: string }>(`${BASE_URL}/api/governance/proposal`, {
+    return fetchJson<{ success: boolean; proposal: { id: string } }>(`${BASE_URL}/api/governance/proposal`, {
       method: 'POST',
       body: JSON.stringify({ title, description, category, deposit: deposit.toString() }),
-    });
+    }).then(r => ({ proposalId: r.proposal?.id ?? '' }));
   },
 
   async voteOnProposal(proposalId: string, vote: 'for' | 'against' | 'abstain'): Promise<{ success: boolean }> {

@@ -1,5 +1,5 @@
 /* Hallmark · component: profile-page · genre: terminal-aesthetic · theme: Terminal */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Wallet, Settings } from 'lucide-react';
 import { useAgent } from '../context/useAgent';
 import { api } from '../services/api';

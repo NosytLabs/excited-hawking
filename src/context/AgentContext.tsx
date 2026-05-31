@@ -157,8 +157,10 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         diemStaked: status.diemStaked,
         treasuryUSDC: status.treasuryUSDC,
         tier: status.tier as Tier,
-        emergenceGrid: (emergenceData as { grid: boolean[][]; generation: number; patterns: string[] }).grid.flatMap((row: boolean[]) => row.map((alive: boolean) => (alive ? '1' : ''))),
-        emergenceGeneration: (emergenceData as { grid: boolean[][]; generation: number; patterns: string[] }).generation,
+        emergenceGrid: (emergenceData as { grid?: boolean[][]; generation?: number; patterns?: string[] }).grid
+          ? (emergenceData as { grid: boolean[][]; generation: number; patterns: string[] }).grid.flatMap((row: boolean[]) => row.map((alive: boolean) => (alive ? '1' : '')))
+          : [],
+        emergenceGeneration: (emergenceData as { grid?: boolean[][]; generation?: number }).generation ?? 0,
         emergencePatterns: (emergenceData as { grid: boolean[][]; generation: number; patterns: string[] }).patterns,
         agentMemoryNodes: ((memoryData as { memories?: Array<{ id: string; type: string; content: string; timestamp: number; connections?: string[] }> }).memories || []).map(m => ({
           id: m.id, type: m.type as AgentMemoryNode['type'], content: m.content, timestamp: m.timestamp, connections: m.connections || [],

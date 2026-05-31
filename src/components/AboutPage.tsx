@@ -156,18 +156,7 @@ export function AboutPage() {
                   <p className="text-base text-[var(--paper-muted)]">View source code, documentation, and smart contracts</p>
                 </div>
               </a>
-              <a 
-                href="/PUBLIC_GUIDE.md" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-4 p-4 rounded-lg bg-[var(--paper-surface)] hover:bg-[var(--paper-elevated)] transition-colors group"
-              >
-                <FileText size={20} className="text-[var(--paper-muted)] group-hover:text-[var(--accent-primary)] transition-colors shrink-0" />
-                <div className="flex-1">
-                  <p className="font-medium text-[var(--paper-text)] transition-colors">Public Guide</p>
-                  <p className="text-base text-[var(--paper-muted)]">Comprehensive documentation of study mechanics</p>
-                </div>
-              </a>
+              
             </div>
           </section>
         </div>

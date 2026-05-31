@@ -166,7 +166,7 @@ export const Guestbook: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-base mb-2" style={{ color: 'var(--paper-text)' }}>
-                  {String(entry.content).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+                  {entry.content}
                 </p>
                 <div className="flex items-center gap-3">
                   <button 
