@@ -1,7 +1,8 @@
 import { generateId } from '../lib/crypto.js';
 import { sanitizeForHTML } from '../types/index.js';
 import type { Server, Socket } from 'socket.io';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, promises as fsPromises, existsSync, mkdirSync } from 'fs';
+const { writeFile } = fsPromises;
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -60,21 +61,27 @@ function loadEntries(): Map<string, GuestbookEntry> {
 
 const guestbookEntries: Map<string, GuestbookEntry> = loadEntries();
 
-function saveEntries(): void {
-  try {
-    const dbPath = getDbPath();
-    const dataDir = join(dirname(dbPath));
-    if (!existsSync(dataDir)) {
-      mkdirSync(dataDir, { recursive: true });
+let writeTimeout: NodeJS.Timeout | null = null;
+
+function scheduleSave(): void {
+  if (writeTimeout) return;
+  writeTimeout = setTimeout(async () => {
+    writeTimeout = null;
+    try {
+      const dbPath = getDbPath();
+      const dataDir = join(dirname(dbPath));
+      if (!existsSync(dataDir)) {
+        mkdirSync(dataDir, { recursive: true });
+      }
+      const data: GuestbookData = {
+        entries: Array.from(guestbookEntries.values()),
+        order: guestbookOrder
+      };
+      await writeFile(dbPath, JSON.stringify(data, null, 2));
+    } catch (err) {
+      console.error('[Guestbook] Failed to save:', err);
     }
-    const data: GuestbookData = {
-      entries: Array.from(guestbookEntries.values()),
-      order: guestbookOrder
-    };
-    writeFileSync(dbPath, JSON.stringify(data, null, 2));
-  } catch (err) {
-    console.error('[Guestbook] Failed to save:', err);
-  }
+  }, 5000);
 }
 
 function evictOldEntries(): void {
@@ -82,7 +89,7 @@ function evictOldEntries(): void {
     const oldestId = guestbookOrder.shift();
     if (oldestId) guestbookEntries.delete(oldestId);
   }
-  saveEntries();
+  scheduleSave();
 }
 
 function checkGuestbookRateLimit(socketId: string, action: string): boolean {
@@ -130,7 +137,7 @@ export function setupGuestbookHandlers(socket: Socket, io: Server): void {
     };
     guestbookOrder.push(entry.id);
     guestbookEntries.set(entry.id, entry);
-    saveEntries();
+    scheduleSave();
     io.emit('guestbook:entry', entry);
     console.log(`[WS] Guestbook entry created: ${entry.id}`);
   });
@@ -146,7 +153,7 @@ export function setupGuestbookHandlers(socket: Socket, io: Server): void {
       return;
     }
     entry.upvotes += 1;
-    saveEntries();
+    scheduleSave();
     io.emit('guestbook:upvote', { entryId: data.entryId, upvotes: entry.upvotes });
     console.log(`[WS] Guestbook entry upvoted: ${data.entryId}, new count: ${entry.upvotes}`);
   });
@@ -168,7 +175,7 @@ export function setupGuestbookHandlers(socket: Socket, io: Server): void {
       timestamp: new Date().toISOString()
     };
     entry.replies.push(reply);
-    saveEntries();
+    scheduleSave();
     io.emit('guestbook:entry', entry);
     console.log(`[WS] Guestbook reply added to: ${data.entryId}`);
   });

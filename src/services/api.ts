@@ -81,6 +81,44 @@ async function vote(requestOrPromptId: SignedVoteRequest | string, legacyVote?: 
   });
 }
 
+export type StakingPosition = {
+  wallet: string;
+  hasPosition: boolean;
+  stakedBalance: string;
+  votingPower: string;
+  inferenceBudget: string;
+  lastUpdated?: number;
+  combinedVotingPower?: string;
+};
+
+async function stake(amount: string, walletAddress: string, signature: string, nonce: string): Promise<{ success: boolean; position?: StakingPosition; liquidBalance?: string }> {
+  return fetchJson<{ success: boolean; position?: StakingPosition; liquidBalance?: string }>(`${BASE_URL}/api/staking/stake`, {
+    method: 'POST',
+    headers: {
+      'x-wallet-address': walletAddress,
+      'x-signature': signature,
+      'x-nonce': nonce,
+    },
+    body: JSON.stringify({ wallet: walletAddress, amount }),
+  });
+}
+
+async function unstakeRequest(amount: string, walletAddress: string, signature: string, nonce: string): Promise<{ success: boolean; request?: { id: string; wallet: string; amount: string; requestedAt: number; unlockableAt: number; status: string } }> {
+  return fetchJson<{ success: boolean; request?: { id: string; wallet: string; amount: string; requestedAt: number; unlockableAt: number; status: string } }>(`${BASE_URL}/api/staking/unstake-request`, {
+    method: 'POST',
+    headers: {
+      'x-wallet-address': walletAddress,
+      'x-signature': signature,
+      'x-nonce': nonce,
+    },
+    body: JSON.stringify({ wallet: walletAddress, amount }),
+  });
+}
+
+async function getStakingStatus(walletAddress: string): Promise<StakingPosition> {
+  return fetchJson<StakingPosition>(`${BASE_URL}/api/staking/position/${walletAddress}`);
+}
+
 export const api = {
   async getStatus(): Promise<StatusResponse> {
     const payload = await fetchJson<ApiStatusEnvelope>(`${BASE_URL}/api/status`);
@@ -126,6 +164,10 @@ export const api = {
       body: JSON.stringify({ delegate: delegateAddress, power }),
     });
   },
+
+  stake,
+  unstakeRequest,
+  getStakingStatus,
 };
 
 export { normalizeStatusResponse };

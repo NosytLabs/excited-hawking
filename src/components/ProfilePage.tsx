@@ -1,8 +1,10 @@
 /* Hallmark · component: profile-page · genre: terminal-aesthetic · theme: Terminal */
 import { useState, useEffect } from 'react';
-import { Wallet, Settings } from 'lucide-react';
+import { Wallet, Settings, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAgent } from '../context/useAgent';
+import { useConnectionStore } from '../stores/connectionStore';
 import { api } from '../services/api';
+import type { StakingPosition } from '../services/api';
 
 const TIER_COLORS: Record<string, string> = {
   Observer: 'var(--paper-muted)',
@@ -83,10 +85,22 @@ interface StakingData {
   votingHistoryCount: number;
 }
 
+interface StakingPositionState {
+  position: StakingPosition | null;
+  status: 'idle' | 'loading' | 'success' | 'error';
+  error: string | null;
+}
+
 export function ProfilePage() {
   const { connectWallet, walletAddress, diemStaked: contextDiemStaked, tier: contextTier } = useAgent();
+  const connectionStore = useConnectionStore();
   const [stakingData, setStakingData] = useState<StakingData>({ status: 'loading', diemStaked: 0, tier: '', quadraticVotingWeight: 0, promptsSubmitted: 0, proposalsCreated: 0, votingHistoryCount: 0 });
   const [settings, setSettings] = useState<SettingsState>(loadSettings);
+  const [stakeAmount, setStakeAmount] = useState('');
+  const [stakingPosition, setStakingPosition] = useState<StakingPositionState>({ position: null, status: 'idle', error: null });
+  const [stakingActionLoading, setStakingActionLoading] = useState<'stake' | 'unstake' | null>(null);
+  const [stakingActionError, setStakingActionError] = useState<string | null>(null);
+  const [stakingActionSuccess, setStakingActionSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (walletAddress) {
@@ -117,6 +131,74 @@ export function ProfilePage() {
       setStakingData({ status: 'loaded', diemStaked: contextDiemStaked, tier: contextTier, quadraticVotingWeight: 0, promptsSubmitted: 0, proposalsCreated: 0, votingHistoryCount: 0 });
     }
   }, [walletAddress, contextDiemStaked, contextTier]);
+
+  useEffect(() => {
+    if (walletAddress) {
+      setStakingPosition(prev => ({ ...prev, status: 'loading', error: null }));
+      api.getStakingStatus(walletAddress).then((position) => {
+        setStakingPosition({ position, status: 'success', error: null });
+      }).catch((err) => {
+        console.error('Failed to fetch staking position:', err);
+        setStakingPosition({ position: null, status: 'error', error: 'Failed to load staking position' });
+      });
+    } else {
+      setStakingPosition({ position: null, status: 'idle', error: null });
+    }
+  }, [walletAddress]);
+
+  const handleStake = async () => {
+    if (!stakeAmount || !walletAddress) return;
+    if (!connectionStore.walletSignature || !connectionStore.walletNonce) {
+      setStakingActionError('Wallet signature not available. Please reconnect your wallet.');
+      return;
+    }
+    setStakingActionLoading('stake');
+    setStakingActionError(null);
+    setStakingActionSuccess(null);
+    try {
+      const result = await api.stake(stakeAmount, walletAddress, connectionStore.walletSignature, connectionStore.walletNonce);
+      if (result.success) {
+        setStakingActionSuccess(`Staked ${stakeAmount} DIEM successfully`);
+        setStakeAmount('');
+        const position = await api.getStakingStatus(walletAddress);
+        setStakingPosition({ position, status: 'success', error: null });
+      } else {
+        setStakingActionError('Stake failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Stake error:', err);
+      setStakingActionError('Stake failed. Please try again.');
+    } finally {
+      setStakingActionLoading(null);
+    }
+  };
+
+  const handleUnstake = async () => {
+    if (!stakeAmount || !walletAddress) return;
+    if (!connectionStore.walletSignature || !connectionStore.walletNonce) {
+      setStakingActionError('Wallet signature not available. Please reconnect your wallet.');
+      return;
+    }
+    setStakingActionLoading('unstake');
+    setStakingActionError(null);
+    setStakingActionSuccess(null);
+    try {
+      const result = await api.unstakeRequest(stakeAmount, walletAddress, connectionStore.walletSignature, connectionStore.walletNonce);
+      if (result.success) {
+        setStakingActionSuccess(`Unstake request for ${stakeAmount} DIEM submitted`);
+        setStakeAmount('');
+        const position = await api.getStakingStatus(walletAddress);
+        setStakingPosition({ position, status: 'success', error: null });
+      } else {
+        setStakingActionError('Unstake request failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Unstake error:', err);
+      setStakingActionError('Unstake request failed. Please try again.');
+    } finally {
+      setStakingActionLoading(null);
+    }
+  };
 
   const handleConnectWallet = async () => {
     await connectWallet();
@@ -221,6 +303,100 @@ export function ProfilePage() {
                     <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>{stakingData.votingHistoryCount}</p>
                     <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Votes Cast</p>
                   </div>
+                </div>
+              )}
+            </section>
+
+            <section className="card mb-6" aria-labelledby="staking-heading">
+              <h2 id="staking-heading" className="text-lg font-display font-semibold mb-6" style={{ color: 'var(--paper-text)' }}>
+                Staking Vault
+              </h2>
+              {stakingPosition.status === 'loading' ? (
+                <div className="flex items-center justify-center py-8">
+                  <p style={{ color: 'var(--paper-muted)' }}>Loading staking position...</p>
+                </div>
+              ) : stakingPosition.status === 'error' ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <p className="mb-4" style={{ color: 'var(--error)' }}>{stakingPosition.error}</p>
+                    <button
+                      onClick={() => setStakingPosition(prev => ({ ...prev, status: 'loading', error: null }))}
+                      className="px-4 py-2 rounded-lg font-mono text-sm"
+                      style={{ backgroundColor: 'var(--accent-primary)', color: 'var(--paper-void)' }}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
+                      <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>
+                        {stakingPosition.position?.hasPosition ? formatNumber(Number(stakingPosition.position.stakedBalance)) : '0'}
+                      </p>
+                      <p className="text-base" style={{ color: 'var(--paper-muted)' }}>DIEM Staked</p>
+                    </div>
+                    <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
+                      <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>
+                        {stakingPosition.position?.hasPosition ? formatNumber(Number(stakingPosition.position.votingPower)) : '0'}
+                      </p>
+                      <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Voting Power</p>
+                    </div>
+                    <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--paper-surface)' }}>
+                      <p className="text-2xl font-bold mb-1" style={{ color: 'var(--paper-text)' }}>
+                        {stakingPosition.position?.hasPosition ? formatNumber(Number(stakingPosition.position.inferenceBudget)) : '0'}
+                      </p>
+                      <p className="text-base" style={{ color: 'var(--paper-muted)' }}>Inference Budget</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                      <input
+                        type="number"
+                        value={stakeAmount}
+                        onChange={(e) => setStakeAmount(e.target.value)}
+                        placeholder="Enter amount in wei"
+                        className="w-full px-4 py-3 rounded-lg font-mono text-sm"
+                        style={{ backgroundColor: 'var(--paper-surface)', color: 'var(--paper-text)', border: '1px solid var(--paper-border)' }}
+                      />
+                      <p className="text-xs mt-1" style={{ color: 'var(--paper-muted)' }}>Amount in wei</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleStake}
+                        disabled={stakingActionLoading !== null || !stakeAmount}
+                        className="flex-1 sm:flex-none px-6 py-3 rounded-lg font-mono font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                        style={{ backgroundColor: 'var(--accent-primary)', color: 'var(--paper-void)' }}
+                      >
+                        {stakingActionLoading === 'stake' ? (
+                          <span className="animate-spin">⟳</span>
+                        ) : (
+                          <ChevronUp size={16} />
+                        )}
+                        STAKE
+                      </button>
+                      <button
+                        onClick={handleUnstake}
+                        disabled={stakingActionLoading !== null || !stakeAmount}
+                        className="flex-1 sm:flex-none px-6 py-3 rounded-lg font-mono font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                        style={{ backgroundColor: 'var(--paper-muted)', color: 'var(--paper-text)' }}
+                      >
+                        {stakingActionLoading === 'unstake' ? (
+                          <span className="animate-spin">⟳</span>
+                        ) : (
+                          <ChevronDown size={16} />
+                        )}
+                        UNSTAKE
+                      </button>
+                    </div>
+                  </div>
+                  {stakingActionError && (
+                    <p className="text-sm" style={{ color: 'var(--error)' }}>{stakingActionError}</p>
+                  )}
+                  {stakingActionSuccess && (
+                    <p className="text-sm" style={{ color: 'var(--success)' }}>{stakingActionSuccess}</p>
+                  )}
                 </div>
               )}
             </section>

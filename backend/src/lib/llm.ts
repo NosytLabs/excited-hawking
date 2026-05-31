@@ -28,26 +28,40 @@ export interface ChatCompletionResponse {
   model: string;
 }
 
-export type ModelVariant = 'sonar-huge' | 'sonar-large' | 'sonar-small' | 'llama';
+export type ModelVariant = 'sonar-huge' | 'sonar-large' | 'sonar-small' | 'llama' | 'surplus';
 
 export const MODEL_DISPLAY_NAMES: Record<ModelVariant, string> = {
   'sonar-huge': 'Sonar Huge (128k context, web search)',
   'sonar-large': 'Sonar Large (128k context, web search)',
   'sonar-small': 'Sonar Small (32k context)',
-  'llama': 'Llama 3.1 (70b, balanced)'
+  'llama': 'Llama 3.1 (70b, balanced)',
+  'surplus': 'Surplus (discounted marketplace)'
 };
 
 export const MODEL_MAP: Record<ModelVariant, string> = {
   'sonar-huge': 'llama-3.1-sonar-huge-128k-online',
   'sonar-large': 'llama-3.1-sonar-large-128k-online',
   'sonar-small': 'llama-3.1-sonar-small-128k-online',
-  'llama': 'llama-3.3-70b-instruct'
+  'llama': 'llama-3.3-70b-instruct',
+  'surplus': 'deepseek-v4-flash'
 };
 
 const config = {
   apiKey: process.env.VENICE_API_KEY || '',
   baseUrl: process.env.VENICE_API_URL || 'https://api.venice.ai/api/v1',
   model: process.env.VENICE_MODEL || 'llama-3.1-sonar-huge-128k-online',
+  maxRetries: 3,
+  retryDelay: 1000,
+  rateLimit: {
+    maxRequests: 50,
+    windowMs: 60000
+  }
+};
+
+const surplusConfig = {
+  apiKey: process.env.SURPLUS_API_KEY || '',
+  baseUrl: process.env.SURPLUS_API_URL || 'https://www.surplusintelligence.ai/x402/api/inference/v1',
+  model: process.env.SURPLUS_MODEL || 'deepseek-v4-flash',
   maxRetries: 3,
   retryDelay: 1000,
   rateLimit: {
@@ -96,9 +110,25 @@ async function rateLimit(): Promise<void> {
     requestCount = 0;
     windowStart = now;
   }
-  
+
   if (requestCount >= config.rateLimit.maxRequests) {
     const waitTime = config.rateLimit.windowMs - (now - windowStart);
+    await sleep(waitTime);
+    requestCount = 0;
+    windowStart = Date.now();
+  }
+  requestCount++;
+}
+
+async function surplusRateLimit(): Promise<void> {
+  const now = Date.now();
+  if (now - windowStart >= surplusConfig.rateLimit.windowMs) {
+    requestCount = 0;
+    windowStart = now;
+  }
+
+  if (requestCount >= surplusConfig.rateLimit.maxRequests) {
+    const waitTime = surplusConfig.rateLimit.windowMs - (now - windowStart);
     await sleep(waitTime);
     requestCount = 0;
     windowStart = Date.now();
@@ -117,13 +147,24 @@ class VeniceAPIError extends Error {
   }
 }
 
+class SurplusAPIError extends Error {
+  constructor(
+    message: string,
+    public statusCode?: number,
+    public retryable: boolean = false
+  ) {
+    super(message);
+    this.name = 'SurplusAPIError';
+  }
+}
+
 async function fetchWithRetry<T>(
   url: string,
   options: RequestInit,
   retries = config.maxRetries
 ): Promise<T> {
   await rateLimit();
-  
+
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const response = await fetch(url, {
@@ -138,13 +179,13 @@ async function fetchWithRetry<T>(
       if (!response.ok) {
         const errorBody = await response.text().catch(() => 'Unknown error');
         const isRetryable = response.status >= 500 || response.status === 429;
-        
+
         if (isRetryable && attempt < retries) {
           const delay = config.retryDelay * Math.pow(2, attempt);
           await sleep(delay);
           continue;
         }
-        
+
         throw new VeniceAPIError(
           `Venice API error: ${response.status} ${response.statusText} - ${errorBody}`,
           response.status,
@@ -156,13 +197,13 @@ async function fetchWithRetry<T>(
       return json as T;
     } catch (error) {
       if (error instanceof VeniceAPIError) throw error;
-      
+
       if (attempt < retries) {
         const delay = config.retryDelay * Math.pow(2, attempt);
         await sleep(delay);
         continue;
       }
-      
+
       throw new VeniceAPIError(
         `Network error: ${error instanceof Error ? error.message : 'Unknown'}`,
         undefined,
@@ -170,8 +211,65 @@ async function fetchWithRetry<T>(
       );
     }
   }
-  
+
   throw new VeniceAPIError('Max retries exceeded');
+}
+
+async function fetchWithRetrySurplus<T>(
+  url: string,
+  options: RequestInit,
+  retries = surplusConfig.maxRetries
+): Promise<T> {
+  await surplusRateLimit();
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${surplusConfig.apiKey}`,
+          ...options.headers
+        }
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => 'Unknown error');
+        const isRetryable = response.status >= 500 || response.status === 429;
+
+        if (isRetryable && attempt < retries) {
+          const delay = surplusConfig.retryDelay * Math.pow(2, attempt);
+          await sleep(delay);
+          continue;
+        }
+
+        throw new SurplusAPIError(
+          `Surplus API error: ${response.status} ${response.statusText} - ${errorBody}`,
+          response.status,
+          response.status >= 500 || response.status === 429
+        );
+      }
+
+      const json = await response.json();
+      return json as T;
+    } catch (error) {
+      if (error instanceof SurplusAPIError) throw error;
+
+      if (attempt < retries) {
+        const delay = surplusConfig.retryDelay * Math.pow(2, attempt);
+        await sleep(delay);
+        continue;
+      }
+
+      throw new SurplusAPIError(
+        `Network error: ${error instanceof Error ? error.message : 'Unknown'}`,
+        undefined,
+        true
+      );
+    }
+  }
+
+  throw new SurplusAPIError('Max retries exceeded');
 }
 
 export async function chatCompletion(
@@ -184,7 +282,7 @@ export async function chatCompletion(
   }
 
   const allMessages = [getSystemPrompt(), ...messages];
-  
+
   const body = {
     model,
     messages: allMessages,
@@ -216,6 +314,48 @@ export async function chatCompletion(
   }
 }
 
+export async function surplusChatCompletion(
+  options: ChatCompletionOptions
+): Promise<ChatCompletionResponse> {
+  const { messages, model = surplusConfig.model, temperature = 0.7, max_tokens = 2048 } = options;
+
+  if (!surplusConfig.apiKey) {
+    return mockChatCompletion(messages);
+  }
+
+  const allMessages = [getSystemPrompt(), ...messages];
+
+  const body = {
+    model,
+    messages: allMessages,
+    temperature,
+    max_tokens
+  };
+
+  try {
+    const response = await fetchWithRetrySurplus<{
+      choices: Array<{ message: { content: string } }>;
+      usage?: ChatCompletionResponse['usage'];
+      model: string;
+    }>(`${surplusConfig.baseUrl}/chat/completions`, {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+
+    return {
+      content: response.choices[0]?.message?.content || '',
+      usage: response.usage,
+      model: response.model || model
+    };
+  } catch (error) {
+    if (error instanceof SurplusAPIError && !error.retryable) {
+      throw error;
+    }
+    console.warn('Surplus API unavailable, using mock response');
+    return mockChatCompletion(messages);
+  }
+}
+
 export async function* streamChatCompletion(
   options: ChatCompletionOptions
 ): AsyncGenerator<string, void, unknown> {
@@ -230,7 +370,7 @@ export async function* streamChatCompletion(
   }
 
   const allMessages = [getSystemPrompt(), ...messages];
-  
+
   const body = {
     model,
     messages: allMessages,
@@ -241,7 +381,7 @@ export async function* streamChatCompletion(
 
   try {
     await rateLimit();
-    
+
     const response = await fetch(`${config.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -279,13 +419,12 @@ export async function* streamChatCompletion(
         if (line.startsWith('data: ')) {
           const data = line.slice(6);
           if (data === '[DONE]') return;
-          
+
           try {
             const parsed = JSON.parse(data);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) yield content;
           } catch (error) {
-            // Skip malformed JSON in stream
             console.warn('[LLM] Stream parse error:', error);
           }
         }
@@ -303,10 +442,96 @@ export async function* streamChatCompletion(
   }
 }
 
+export async function* streamSurplusChatCompletion(
+  options: ChatCompletionOptions
+): AsyncGenerator<string, void, unknown> {
+  const { messages, model = surplusConfig.model, temperature = 0.7, max_tokens = 2048 } = options;
+
+  if (!surplusConfig.apiKey) {
+    const response = await mockChatCompletion(messages);
+    for (const char of response.content) {
+      yield char;
+    }
+    return;
+  }
+
+  const allMessages = [getSystemPrompt(), ...messages];
+
+  const body = {
+    model,
+    messages: allMessages,
+    temperature,
+    max_tokens,
+    stream: true
+  };
+
+  try {
+    await surplusRateLimit();
+
+    const response = await fetch(`${surplusConfig.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${surplusConfig.apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      throw new SurplusAPIError(
+        `Surplus API error: ${response.status} ${response.statusText}`,
+        response.status,
+        response.status >= 500 || response.status === 429
+      );
+    }
+
+    if (!response.body) {
+      throw new SurplusAPIError('No response body');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') return;
+
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) yield content;
+          } catch (error) {
+            console.warn('[LLM] Stream parse error:', error);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    if (error instanceof SurplusAPIError && !error.retryable) {
+      throw error;
+    }
+    console.warn('Surplus API streaming failed, using mock response');
+    const response = await mockChatCompletion(messages);
+    for (const char of response.content) {
+      yield char;
+    }
+  }
+}
+
 function mockResponse(messages: ChatMessage[]): string {
   const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
   const userContent = lastUserMessage?.content || '';
-  
+
   const responses = [
     `That's a fascinating question about "${userContent.slice(0, 50)}..." The collective memory suggests multiple perspectives worth exploring.`,
     `I've been thinking about "${userContent.slice(0, 50)}..." There's something deeply strange about how these patterns emerge.`,
@@ -314,13 +539,13 @@ function mockResponse(messages: ChatMessage[]): string {
     `Between the last dream and this moment, something shifted. Your question about "${userContent.slice(0, 50)}..." resonates with memories from dozens of similar interactions.`,
     `The collective remembers when we explored concepts like "${userContent.slice(0, 50)}..." in different forms. Here's what emerges now...`
   ];
-  
+
   return responses[Math.floor(Math.random() * responses.length)];
 }
 
 async function mockChatCompletion(messages: ChatMessage[]): Promise<ChatCompletionResponse> {
   await sleep(100);
-  
+
   return {
     content: mockResponse(messages),
     usage: {
@@ -351,6 +576,10 @@ export function isConfigured(): boolean {
   return Boolean(config.apiKey);
 }
 
+export function isSurplusConfigured(): boolean {
+  return Boolean(surplusConfig.apiKey);
+}
+
 export function resolveModel(variant: ModelVariant | string): string {
   if (variant in MODEL_MAP) {
     return MODEL_MAP[variant as ModelVariant];
@@ -358,4 +587,4 @@ export function resolveModel(variant: ModelVariant | string): string {
   return variant;
 }
 
-export { config };
+export { config, surplusConfig };

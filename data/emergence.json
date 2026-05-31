@@ -4100,40 +4100,40 @@
   "generation": 1,
   "events": [
     {
-      "id": "b4401454-c2a0-4c22-a952-7f98f851057a",
-      "timestamp": 1780210046069,
+      "id": "498d600f-8053-48cb-98ff-3d56f166ee4f",
+      "timestamp": 1780212243286,
       "type": "explosion",
       "x": 0,
       "y": 0,
       "description": "Seed density: 0.1%"
     },
     {
-      "id": "7d940a8d-7279-451d-ab4e-bc783647a72b",
-      "timestamp": 1780210046070,
+      "id": "c62dbeae-e276-4977-a78e-41758c1d2133",
+      "timestamp": 1780212243288,
       "type": "oscillator",
       "x": 2,
       "y": 3,
-      "description": "A heartbeat emerges from the void"
+      "description": "Cells pulse in rhythmic harmony"
     },
     {
-      "id": "5fcc5546-c401-44c4-94e8-d87ba18d2c7d",
-      "timestamp": 1780210046070,
-      "type": "oscillator",
+      "id": "78a72949-8e99-4089-8aad-10e3421da013",
+      "timestamp": 1780212243288,
+      "type": "glider",
       "x": 3,
       "y": 2,
-      "description": "A heartbeat emerges from the void"
+      "description": "A glider moves diagonally across the grid"
     },
     {
-      "id": "74a2de7b-715f-4366-a6c0-1b02d39bac71",
-      "timestamp": 1780210046070,
-      "type": "collapse",
+      "id": "2e9b4ec4-408e-472e-9d58-a4927e4daeaa",
+      "timestamp": 1780212243288,
+      "type": "explosion",
       "x": 3,
       "y": 3,
-      "description": "Order dissolves into randomness"
+      "description": "Activity spreads outward"
     },
     {
-      "id": "5e7fc6e1-5a89-40f9-9f16-6dad31f03558",
-      "timestamp": 1780210046070,
+      "id": "1fc257fc-c752-466d-b0dc-ea2bc1ad3853",
+      "timestamp": 1780212243288,
       "type": "glider",
       "x": 4,
       "y": 4,

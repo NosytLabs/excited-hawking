@@ -5,6 +5,13 @@ import type { AgentState, Proposal } from './AgentContext';
 import { AgentProvider } from './AgentContext';
 import { useAgent } from './useAgent';
 import { WSEvents } from '../types/events';
+import { usePromptsStore } from '../stores/promptsStore';
+import { useGovernanceStore } from '../stores/governanceStore';
+import { useConnectionStore } from '../stores/connectionStore';
+import { useLogsStore } from '../stores/logsStore';
+import { useEmergenceStore } from '../stores/emergenceStore';
+import { useCreatureStore } from '../stores/creatureStore';
+import { useAgentMetaStore } from '../stores/agentMetaStore';
 
 const websocketMock = vi.hoisted(() => {
   const handlers = new Map<string, Set<(data: unknown) => void>>();
@@ -109,6 +116,13 @@ describe('AgentProvider', () => {
     apiMock.getStatus.mockClear();
     fetchMock.mockClear();
     latestAgentRef.current = null;
+    usePromptsStore.setState({ prompts: [] });
+    useGovernanceStore.setState({ proposals: [] });
+    useConnectionStore.setState({ isConnected: false, backendAvailable: false, walletAddress: null });
+    useLogsStore.setState({ logs: [] });
+    useEmergenceStore.setState({ emergenceGrid: [], emergenceGeneration: 0, emergencePatterns: [] });
+    useCreatureStore.setState({ creatureStats: { vitality: 60, momentum: 50, coherence: 50 }, creatureMood: 'neutral', totalPromptsProcessed: 0 });
+    useAgentMetaStore.setState({ diemStaked: 0, treasuryUSDC: 0, tier: 'Minimal' });
   });
 
   it('should reconcile an optimistic prompt when the backend echoes the same prompt with a server id', async () => {
